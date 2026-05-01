@@ -1,0 +1,24 @@
+{
+  "name": "claude-code-companion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Windows + iOS companion for Claude Code approvals and status.",
+  "scripts": {
+    "daemon": "node packages/daemon/src/index.js",
+    "hook:event": "node packages/hooks/event.js",
+    "hook:pre-tool-use": "node packages/hooks/pre-tool-use.js",
+    "hook:permission-request": "node packages/hooks/permission-request.js",
+    "approve": "node scripts/decide.js approve",
+    "deny": "node scripts/decide.js deny",
+    "answer": "node scripts/decide.js answer",
+    "setup-hooks": "node scripts/setup-hooks.js",
+    "desktop": "electron packages/desktop/main.js",
+    "smoke": "node scripts/smoke-test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "^41.4.0"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Claude local project settings can contain machine-specific hook commands.
+.claude/settings.local.json
+
+# Local runtime output
+*.log
+.claude-companion/
+
+# Obsidian editor state
+.obsidian/

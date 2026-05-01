@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "timeout": 60,
+            "statusMessage": "Waiting for Claude Code Companion approval",
+            "command": "node \"$env:CLAUDE_PROJECT_DIR\\packages\\hooks\\pre-tool-use.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash",
+      "PowerShell"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "node \"D:/Imperial/individual/claude-code-companion/packages/hooks/event.js\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "node \"D:/Imperial/individual/claude-code-companion/packages/hooks/event.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 60,
+            "statusMessage": "Waiting for Claude Code Companion answer",
+            "command": "node \"D:/Imperial/individual/claude-code-companion/packages/hooks/pre-tool-use.js\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "node \"D:/Imperial/individual/claude-code-companion/packages/hooks/event.js\""
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "node \"D:/Imperial/individual/claude-code-companion/packages/hooks/event.js\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "node \"D:/Imperial/individual/claude-code-companion/packages/hooks/event.js\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "node \"D:/Imperial/individual/claude-code-companion/packages/hooks/event.js\""
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 60,
+            "statusMessage": "Waiting for Claude Code Companion approval",
+            "command": "node \"D:/Imperial/individual/claude-code-companion/packages/hooks/permission-request.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

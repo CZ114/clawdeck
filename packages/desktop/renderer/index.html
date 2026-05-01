@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Code Companion</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-mode="compact">
+  <main class="island" data-status="idle">
+    <section class="status-bar" aria-label="Claude Code status">
+      <div class="drag-region">
+        <span class="status-orb" id="statusOrb" aria-hidden="true">
+          <span class="status-emoji" id="statusEmoji">...</span>
+        </span>
+        <span class="status-copy">
+          <span class="status-line">
+            <span class="status-text" id="statusText">Idle</span>
+            <span class="context-label" id="contextLabel">ctx --</span>
+          </span>
+          <span class="status-detail" id="statusDetail">No request</span>
+          <span class="context-meter" aria-hidden="true">
+            <span class="context-fill" id="contextFill"></span>
+          </span>
+        </span>
+      </div>
+
+      <div class="window-actions" aria-label="Window controls">
+        <button id="openDashboard" aria-label="Open dashboard" title="Open dashboard" type="button">&gt;</button>
+        <button id="refreshNow" aria-label="Refresh" title="Refresh" type="button">r</button>
+        <button id="minimizeWindow" aria-label="Minimize" title="Minimize" type="button">-</button>
+        <button id="closeWindow" aria-label="Close" title="Close" type="button">x</button>
+      </div>
+    </section>
+
+    <section class="request-panel" id="requestPanel" hidden>
+      <div class="request-head">
+        <div>
+          <div class="eyebrow" id="requestKind">approval</div>
+          <h1 id="requestTool">Tool request</h1>
+        </div>
+        <div class="risk" id="requestRisk">low</div>
+      </div>
+
+      <p class="request-summary" id="requestSummary"></p>
+
+      <dl class="request-meta">
+        <div>
+          <dt>cwd</dt>
+          <dd id="requestCwd"></dd>
+        </div>
+        <div>
+          <dt>reason</dt>
+          <dd id="requestReason"></dd>
+        </div>
+      </dl>
+
+      <form class="answer-form" id="answerForm" hidden></form>
+
+      <div class="actions" id="approvalActions">
+        <button class="approve" id="approveRequest" type="button">Approve</button>
+        <button class="deny" id="denyRequest" type="button">Deny</button>
+        <button class="allow" id="alwaysAllowRequest" type="button" hidden>Always Allow</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
