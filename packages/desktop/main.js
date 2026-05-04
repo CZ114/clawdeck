@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage } = require("electron");
 
 // Same path the hook scripts check via shared/protocol.js#isCompanionDisabled.
 const COMPANION_DIR = path.join(os.homedir(), ".claude-companion");
@@ -140,6 +140,11 @@ const DONE_ATTENTION_MS = 10 * 60 * 1000;
 const STATUS_POPOUT_MS = Math.max(1000, Number(process.env.CCC_STATUS_POPOUT_MS) || 2000);
 
 let mainWindow = null;
+let tray = null;
+// True only while we're running app.quit() — lets the close-on-Alt+F4
+// path know the difference between a user closing the bubble (just hide
+// to tray, keep daemon running) and an explicit Quit from the tray menu.
+let isQuitting = false;
 let currentMode = "compact";
 let boundsAnimation = null;
 let snappedEdges = { horizontal: null, vertical: null };
@@ -1003,6 +1008,98 @@ function snapWindowToNearbyEdge() {
   });
 }
 
+// ============================================================
+// System tray — gives users a way to fully quit the app, since the
+// bubble has no close button and the window stays out of the taskbar.
+// Right-click for the menu (Show / Settings / toggles / Quit), single-
+// click brings the bubble to the front. Without this, users would only
+// know to minimise the bubble — the daemon would keep running with no
+// visible way to stop it.
+// ============================================================
+
+function rebuildTrayMenu() {
+  if (!tray) return;
+  const enabled = readCompanionEnabled();
+  const autoStart = app.getLoginItemSettings().openAtLogin;
+
+  const menu = Menu.buildFromTemplate([
+    {
+      label: "Show Clawdeck",
+      click: () => {
+        if (!mainWindow) return;
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        if (!mainWindow.isVisible()) mainWindow.show();
+        mainWindow.moveTop();
+      },
+    },
+    {
+      label: "Settings…",
+      click: () => {
+        if (!mainWindow) return;
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        if (!mainWindow.isVisible()) mainWindow.show();
+        setIslandMode("settings");
+        mainWindow.moveTop();
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Companion enabled",
+      type: "checkbox",
+      checked: enabled,
+      click: (item) => {
+        setCompanionEnabled(item.checked);
+        rebuildTrayMenu();
+      },
+    },
+    {
+      label: "Start with Windows",
+      type: "checkbox",
+      checked: autoStart,
+      click: (item) => {
+        app.setLoginItemSettings({ openAtLogin: item.checked, args: [] });
+        rebuildTrayMenu();
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Quit Clawdeck",
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+  tray.setContextMenu(menu);
+}
+
+function createTray() {
+  if (tray) return;
+  const iconPath = path.join(__dirname, "assets", "tray-icon.png");
+  let image;
+  try {
+    image = nativeImage.createFromPath(iconPath);
+    if (image.isEmpty()) {
+      // Fall back to an empty native image — Tray will use the default
+      // generic icon, which is still better than crashing.
+      image = nativeImage.createEmpty();
+    }
+  } catch (_err) {
+    image = nativeImage.createEmpty();
+  }
+
+  tray = new Tray(image);
+  tray.setToolTip("Clawdeck — Claude Code companion");
+  rebuildTrayMenu();
+
+  tray.on("click", () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.moveTop();
+  });
+}
+
 function createWindow() {
   initialDesktopState = readDesktopState();
   currentMode = initialDesktopState ? normalizeMode(initialDesktopState.mode) : "compact";
@@ -1059,7 +1156,16 @@ function createWindow() {
   mainWindow.on("restore", reinforceWindowPriority);
   mainWindow.on("focus", reinforceWindowPriority);
   mainWindow.on("blur", reinforceWindowPriority);
-  mainWindow.on("close", () => {
+  mainWindow.on("close", (event) => {
+    // Alt+F4 / system close button — hide to tray instead of quitting,
+    // so the daemon (embedded in this process) keeps running. The Quit
+    // menu in the tray sets isQuitting=true and that's the only path
+    // that actually destroys the window.
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+      return;
+    }
     if (desktopStateWriteTimer) {
       clearTimeout(desktopStateWriteTimer);
       desktopStateWriteTimer = null;
@@ -1138,6 +1244,7 @@ app.whenReady().then(() => {
   }
 
   createWindow();
+  createTray();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -1147,6 +1254,12 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  // The tray keeps the app alive after the window goes away. Only an
+  // explicit Quit from the tray menu (or a system shutdown) should
+  // actually exit — closing the bubble just hides it.
+  if (!isQuitting && process.platform !== "darwin") {
+    return;
+  }
   if (process.platform !== "darwin") {
     app.quit();
   }
