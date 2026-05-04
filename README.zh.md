@@ -1,4 +1,8 @@
-# Clawdeck
+<p align="center">
+  <img src="media/logo/clawdeck.png" alt="Clawdeck logo" width="160">
+</p>
+
+<h1 align="center">Clawdeck</h1>
 
 <p align="center">
   <em>给 Windows 上 Claude Code 的悬浮小搭档。</em><br>

@@ -1,4 +1,8 @@
-# Clawdeck
+<p align="center">
+  <img src="media/logo/clawdeck.png" alt="Clawdeck logo" width="160">
+</p>
+
+<h1 align="center">Clawdeck</h1>
 
 <p align="center">
   <em>The floating Claude Code companion for Windows.</em><br>
