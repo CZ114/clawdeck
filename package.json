@@ -15,12 +15,14 @@
     "setup-user-hooks": "node scripts/setup-user-hooks.js",
     "doctor": "node scripts/doctor.js",
     "desktop": "electron packages/desktop/main.js",
-    "smoke": "node scripts/smoke-test.js"
+    "smoke": "node scripts/smoke-test.js",
+    "render-demos": "node scripts/render-demos.js"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "electron": "^41.4.0"
+    "electron": "^41.4.0",
+    "playwright": "^1.49.0"
   }
 }

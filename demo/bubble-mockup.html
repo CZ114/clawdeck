@@ -1,0 +1,2708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clawdeck — Bubble Mockup (recording master)</title>
+  <style>
+    /* ============================================================
+       @property — registered custom properties so the conic-gradient
+       ring fill can transition smoothly (matches real :root).
+       ============================================================ */
+    @property --context-angle   { syntax: "<angle>";      inherits: true; initial-value: 220deg; }
+    @property --context-percent { syntax: "<percentage>"; inherits: true; initial-value: 60%; }
+
+    /* ============================================================
+       Theme tokens — verbatim from packages/shared/themes.js +
+       packages/desktop/renderer/styles.css :root
+       ============================================================ */
+    :root,
+    body[data-theme="midnight-teal"] {
+      color-scheme: dark;
+      --bg:                oklch(13% 0.012 270);
+      --surface-1:         oklch(17% 0.014 270 / 0.96);
+      --surface-2:         oklch(22% 0.016 270);
+      --surface-3:         oklch(26% 0.018 270);
+      --inner-well:        oklch(11% 0.010 270);
+      --ink-0:             oklch(95% 0.014 80);
+      --ink-1:             oklch(70% 0.012 250);
+      --ink-2:             oklch(50% 0.010 250);
+      --line:              oklch(60% 0 0 / 0.10);
+      --accent:            oklch(74% 0.07 195);
+      --accent-warm:       oklch(78% 0.08 70);
+      --accent-warm-hi:    oklch(82% 0.10 70);
+      --accent-sage:       oklch(72% 0.06 150);
+      --accent-rose:       oklch(70% 0.07 25);
+      --accent-slate:      oklch(60% 0.03 250);
+      --shadow-inner-highlight:
+        0 1px 0 inset oklch(100% 0 0 / 0.055),
+        0 -1px 0 inset oklch(0% 0 0 / 0.18),
+        0 0 0 1px inset oklch(100% 0 0 / 0.045);
+      --island-control-hover-bg: color-mix(in oklch, var(--ink-0), transparent 92%);
+      --context-color:     oklch(74% 0.07 195);
+    }
+    body[data-theme="amber-hearth"] {
+      color-scheme: dark;
+      --bg:                oklch(15% 0.014 50);
+      --surface-1:         oklch(19% 0.018 50 / 0.96);
+      --surface-2:         oklch(24% 0.022 50);
+      --surface-3:         oklch(28% 0.026 50);
+      --inner-well:        oklch(13% 0.012 50);
+      --ink-0:             oklch(94% 0.022 85);
+      --ink-1:             oklch(72% 0.020 70);
+      --ink-2:             oklch(52% 0.018 60);
+      --line:              oklch(70% 0.020 60 / 0.12);
+      --accent:            oklch(78% 0.10 65);
+      --accent-warm:       oklch(80% 0.12 55);
+      --accent-warm-hi:    oklch(85% 0.14 60);
+      --accent-sage:       oklch(74% 0.08 145);
+      --accent-rose:       oklch(70% 0.10 28);
+      --accent-slate:      oklch(62% 0.025 70);
+      --shadow-inner-highlight:
+        0 1px 0 inset oklch(100% 0.020 80 / 0.06),
+        0 -1px 0 inset oklch(0% 0 0 / 0.22),
+        0 0 0 1px inset oklch(100% 0.020 80 / 0.05);
+      --island-control-hover-bg: color-mix(in oklch, var(--ink-0), transparent 92%);
+      --context-color:     oklch(78% 0.10 65);
+    }
+    body[data-theme="paper-light"] {
+      color-scheme: light;
+      --bg:                oklch(99% 0.004 95);
+      --surface-1:         oklch(98% 0.004 95 / 0.98);
+      --surface-2:         oklch(95% 0.006 95);
+      --surface-3:         oklch(91% 0.008 95);
+      --inner-well:        oklch(93% 0.006 95);
+      --ink-0:             oklch(19% 0.018 270);
+      --ink-1:             oklch(42% 0.018 260);
+      --ink-2:             oklch(58% 0.014 260);
+      --line:              oklch(20% 0.010 270 / 0.12);
+      --accent:            oklch(52% 0.10 200);
+      --accent-warm:       oklch(58% 0.12 60);
+      --accent-warm-hi:    oklch(62% 0.14 55);
+      --accent-sage:       oklch(50% 0.10 150);
+      --accent-rose:       oklch(54% 0.14 25);
+      --accent-slate:      oklch(48% 0.04 250);
+      --shadow-inner-highlight:
+        0 1px 0 inset oklch(100% 0 0 / 0.85),
+        0 -1px 0 inset oklch(20% 0.010 270 / 0.06),
+        0 0 0 1px inset oklch(20% 0.010 270 / 0.05);
+      --island-control-hover-bg: color-mix(in oklch, var(--ink-0), transparent 92%);
+      --context-color:     oklch(52% 0.10 200);
+    }
+    body[data-theme="aurora-indigo"] {
+      color-scheme: dark;
+      --bg:                oklch(14% 0.026 280);
+      --surface-1:         oklch(18% 0.032 280 / 0.96);
+      --surface-2:         oklch(23% 0.038 280);
+      --surface-3:         oklch(28% 0.044 285);
+      --inner-well:        oklch(12% 0.024 280);
+      --ink-0:             oklch(94% 0.018 280);
+      --ink-1:             oklch(72% 0.026 285);
+      --ink-2:             oklch(52% 0.024 280);
+      --line:              oklch(80% 0.030 285 / 0.12);
+      --accent:            oklch(76% 0.10 290);
+      --accent-warm:       oklch(80% 0.10 35);
+      --accent-warm-hi:    oklch(84% 0.12 35);
+      --accent-sage:       oklch(74% 0.08 160);
+      --accent-rose:       oklch(72% 0.09 15);
+      --accent-slate:      oklch(62% 0.04 280);
+      --shadow-inner-highlight:
+        0 1px 0 inset oklch(100% 0.020 290 / 0.07),
+        0 -1px 0 inset oklch(0% 0 0 / 0.22),
+        0 0 0 1px inset oklch(100% 0.020 290 / 0.05);
+      --island-control-hover-bg: color-mix(in oklch, var(--ink-0), transparent 92%);
+      --context-color:     oklch(76% 0.10 290);
+    }
+
+    /* Theme cross-fade — same easings the real :root uses */
+    :root, body {
+      --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+      --ease-decel:    cubic-bezier(0.05, 0.7, 0.1, 1);
+      --ease-sheet:    cubic-bezier(0.32, 0.72, 0, 1);
+      --ease-droplet:  cubic-bezier(0.34, 1.56, 0.64, 1);
+      --font-ui: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI",
+                 system-ui, sans-serif;
+      --font-mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+    }
+    :root, body { transition:
+      --bg 320ms var(--ease-standard),
+      --surface-1 320ms var(--ease-standard),
+      --surface-2 320ms var(--ease-standard),
+      --ink-0 320ms var(--ease-standard),
+      --accent 320ms var(--ease-standard),
+      --context-color 320ms var(--ease-standard);
+    }
+
+    /* ============================================================
+       Stage / page chrome (NOT recorded — sits outside record-frame)
+       ============================================================ */
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0;
+      background: #0c0c10;
+      color: oklch(85% 0 0);
+      font-family: var(--font-ui);
+      font-feature-settings: "ss01", "cv11";
+      letter-spacing: 0.005em;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; cursor: pointer; border: 0; color: inherit; }
+    body {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      /* Pinned to the user's recording window so the entire demo
+         (controls + record-frame + hook-status) lives in one viewport
+         without scrolling. */
+      max-width: 1130px;
+      max-height: 1174px;
+      margin: 0 auto;
+    }
+
+    .controls {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 22px;
+      background: oklch(15% 0 0 / 0.6);
+      border-bottom: 1px solid oklch(100% 0 0 / 0.05);
+      flex-wrap: wrap;
+    }
+    .controls .brand {
+      font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase; color: oklch(60% 0 0);
+    }
+    .controls .group { display: flex; gap: 6px; align-items: center; }
+    .controls .group + .group::before {
+      content: ""; display: block; width: 1px; height: 20px;
+      background: oklch(100% 0 0 / 0.08); margin-right: 8px;
+    }
+    .controls button {
+      padding: 7px 12px; border-radius: 8px; font-size: 12.5px;
+      background: oklch(20% 0 0); color: oklch(85% 0 0);
+      transition: background 140ms;
+    }
+    .controls button:hover { background: oklch(28% 0 0); }
+    .controls button.is-running { background: oklch(45% 0.06 195); color: oklch(98% 0 0); }
+    .controls .theme-btn {
+      width: 28px; height: 28px; padding: 0; border-radius: 50%;
+      border: 1.5px solid oklch(100% 0 0 / 0.1);
+    }
+    .controls .theme-btn[data-theme="midnight-teal"]  { background: oklch(74% 0.07 195); }
+    .controls .theme-btn[data-theme="amber-hearth"]   { background: oklch(78% 0.10 65);  }
+    .controls .theme-btn[data-theme="paper-light"]    { background: oklch(98% 0.004 95); }
+    .controls .theme-btn[data-theme="aurora-indigo"]  { background: oklch(76% 0.10 290); }
+    .controls .theme-btn.is-active {
+      box-shadow: 0 0 0 2px #0c0c10, 0 0 0 4px oklch(70% 0.10 195);
+    }
+    .controls .meta {
+      margin-left: auto; font-size: 11.5px; color: oklch(50% 0 0);
+    }
+    .controls kbd {
+      font-family: var(--font-mono);
+      font-size: 10.5px; padding: 1px 5px;
+      background: oklch(20% 0 0); border-radius: 4px; color: oklch(75% 0 0);
+    }
+    body[data-ui="hidden"] .controls { display: none; }
+    body[data-ui="hidden"] .record-frame { border-color: transparent; }
+    body[data-ui="hidden"] .record-frame::before { opacity: 0; }
+    body[data-ui="hidden"] .hook-status { display: none; }
+
+    /* ============================================================
+       Hook status card — sits below the record-frame, NOT recorded.
+       Documents which Claude Code hooks Companion is currently wired
+       into and how to inspect / toggle them. Mirrors what `npm run
+       doctor` would surface on the CLI.
+       ============================================================ */
+    .hook-status {
+      width: 720px; max-width: calc(100% - 60px);
+      background: oklch(15% 0 0 / 0.6);
+      border: 1px solid oklch(100% 0 0 / 0.06);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: oklch(70% 0 0);
+      font-size: 12px;
+      display: grid; gap: 12px;
+    }
+    .hook-status header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .hook-status header h3 {
+      margin: 0;
+      font-size: 12px; font-weight: 600;
+      color: oklch(85% 0 0);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .hook-status-summary {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; color: oklch(60% 0 0);
+      font-family: var(--font-mono);
+    }
+    .hook-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: oklch(72% 0.06 150);
+      box-shadow: 0 0 0 3px color-mix(in oklch, oklch(72% 0.06 150), transparent 80%);
+    }
+    .hook-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .hook-table th {
+      text-align: left;
+      padding: 6px 10px 6px 0;
+      border-bottom: 1px solid oklch(100% 0 0 / 0.08);
+      font-weight: 600;
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: oklch(50% 0 0);
+    }
+    .hook-table td {
+      padding: 9px 10px 9px 0;
+      border-bottom: 1px solid oklch(100% 0 0 / 0.04);
+      vertical-align: top;
+      color: oklch(75% 0 0);
+      line-height: 1.4;
+    }
+    .hook-table tbody tr:last-child td { border-bottom: 0; }
+    .hook-table .hook-name {
+      color: oklch(82% 0.08 195);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .hook-pill {
+      display: inline-block;
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+      background: color-mix(in oklch, oklch(72% 0.06 150), transparent 78%);
+      color: oklch(72% 0.06 150);
+      border: 1px solid color-mix(in oklch, oklch(72% 0.06 150), transparent 50%);
+    }
+    .hook-mode {
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      color: oklch(60% 0 0);
+    }
+    .hook-mode.blocking { color: oklch(78% 0.10 65); }
+    .hook-status footer {
+      font-size: 10.5px;
+      color: oklch(58% 0 0);
+      font-family: var(--font-mono);
+      line-height: 1.75;
+      border-top: 1px solid oklch(100% 0 0 / 0.05);
+      padding-top: 10px;
+      text-wrap: pretty;
+    }
+    .hook-status footer code {
+      background: oklch(20% 0 0);
+      color: oklch(75% 0.04 195);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10.5px;
+    }
+    .hook-status footer kbd {
+      background: oklch(20% 0 0);
+      border: 1px solid oklch(100% 0 0 / 0.08);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    /* Page envelope — keep total content within 1130 × 1174 so a single
+       browser viewport can hold the controls + stage + hook-status, and
+       ScreenToGif crops fit on a typical monitor without scrolling. */
+    .controls, .stage { width: 100%; max-width: 1130px; margin-inline: auto; }
+    .stage {
+      position: relative;
+      display: flex; flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      padding: 26px 40px 32px;
+    }
+    .frame-label {
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: oklch(50% 0 0);
+      pointer-events: none;
+      transition: opacity 200ms ease;
+    }
+    body[data-ui="hidden"] .frame-label { opacity: 0; }
+    .record-frame {
+      position: relative;
+      width: 720px; height: 620px;
+      display: grid; place-items: center;
+      border: 1px dashed oklch(100% 0 0 / 0.12);
+      border-radius: 16px;
+      /* overflow: hidden so the bubble can physically slide past the
+         frame's edges (matches main.js#compactPeekBounds where the OS
+         window slides off-screen leaving only 12 px of capsule peeking). */
+      overflow: hidden;
+    }
+
+    /* ============================================================
+       Bubble shell — animates width/height with the same 280 ms
+       cubic-bezier(0.34, 1.56, 0.64, 1) main.js#animateWindowBounds
+       uses for the OS window resize. .island border-radius transitions
+       on the same curve, so the two read as one droplet stretch.
+       ============================================================ */
+    .bubble-shell {
+      /* Compact width is set by JS (updateBubbleWidth) because it depends on
+         the rendered status-text width. The fallback 124 px keeps things sane
+         before the first JS measurement. Expanded modes use the static rules
+         below; JS clears the inline style.width on entering them. */
+      width: 124px; height: 42px;
+      transition:
+        width  280ms var(--ease-droplet),
+        height 280ms var(--ease-droplet),
+        transform 620ms cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 380ms ease;
+    }
+    /* Edge docking — bubble snaps to one of the 4 sides of the record-frame,
+       8 px from the boundary (matches snap_inset in main.js). Frame is
+       720 × 620; bubble centre starts at frame centre. Translate values:
+         right: 720/2 - 124/2 - 8 = 290 - matches the Capsule landing flush
+                with EDGE_PADDING = 8 from the right wall.
+         top:   620/2 - 42/2 - 8 = 281 → use 280. */
+    .bubble-shell.is-edge-right  { transform: translateX( 290px); }
+    .bubble-shell.is-edge-left   { transform: translateX(-290px); }
+    .bubble-shell.is-edge-top    { transform: translateY(-280px); }
+    .bubble-shell.is-edge-bottom { transform: translateY( 280px); }
+    /* Tucked — bubble physically slides further past the edge so only
+       PEEK_VISIBLE_PX (12 px) of capsule remains inside the frame.
+       record-frame's overflow:hidden clips the rest. NO opacity fade —
+       the visible 12 px shows the rounded edge of the pill exactly like
+       main.js#compactPeekBounds produces on a real screen.
+         right tuck: bubble's left edge at frame_right - 12 = 708;
+                     bubble centre at 708 + 62 = 770; translate = 770 - 360 = 410.
+         top tuck:   bubble's bottom edge at 12; centre at -9;
+                     translate = -9 - 310 = -319 → use -320. */
+    .bubble-shell.is-tucked-right  { transform: translateX( 410px); }
+    .bubble-shell.is-tucked-left   { transform: translateX(-410px); }
+    .bubble-shell.is-tucked-top    { transform: translateY(-320px); }
+    .bubble-shell.is-tucked-bottom { transform: translateY( 320px); }
+
+    /* Peek slit — INSIDE the .island, positioned at whichever edge of
+       the bubble is still inside the frame after the tuck translation.
+       For data-peek-pos="X", the bubble is tucked past edge X, so the
+       slit sits at the OPPOSITE edge of the bubble (the visible 12 px).
+       4 px wide × 61.8 % long pill (golden ratio), matching the real
+       app's .peek-context (styles.css L232-322). */
+    .peek-context {
+      position: absolute;
+      background: oklch(40% 0 0 / 0.18);
+      border-radius: 999px;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 4;
+      opacity: 0;
+      transition: opacity 380ms ease;
+    }
+    .peek-context-fill {
+      position: absolute;
+      background: var(--context-color);
+      border-radius: inherit;
+      box-shadow: 0 0 8px color-mix(in oklch, var(--context-color), transparent 50%);
+    }
+    /* Mapping: tucked-right → bubble shifted right past frame, the visible
+       12 px is the bubble's LEFT side, so the slit sits at left:4 of bubble. */
+    .peek-context[data-peek-pos="right"]  { left:   4px; top: 50%; transform: translateY(-50%); width: 4px; height: 61.8%; }
+    .peek-context[data-peek-pos="left"]   { right:  4px; top: 50%; transform: translateY(-50%); width: 4px; height: 61.8%; }
+    .peek-context[data-peek-pos="top"]    { bottom: 4px; left: 50%; transform: translateX(-50%); width: 61.8%; height: 4px; }
+    .peek-context[data-peek-pos="bottom"] { top:    4px; left: 50%; transform: translateX(-50%); width: 61.8%; height: 4px; }
+    /* Vertical fills (left/right slits) grow bottom-up; horizontal grow left-to-right. */
+    .peek-context[data-peek-pos="left"] .peek-context-fill,
+    .peek-context[data-peek-pos="right"] .peek-context-fill {
+      left: 0; right: 0; bottom: 0; height: 65%;
+    }
+    .peek-context[data-peek-pos="top"] .peek-context-fill,
+    .peek-context[data-peek-pos="bottom"] .peek-context-fill {
+      top: 0; bottom: 0; left: 0; width: 65%;
+    }
+    body[data-peek="right"]  .peek-context[data-peek-pos="right"]  { opacity: 1; }
+    body[data-peek="left"]   .peek-context[data-peek-pos="left"]   { opacity: 1; }
+    body[data-peek="top"]    .peek-context[data-peek-pos="top"]    { opacity: 1; }
+    body[data-peek="bottom"] .peek-context[data-peek-pos="bottom"] { opacity: 1; }
+    /* Status bar fades to 0 when peeking — same as real app
+       (styles.css L270: body[data-peeking="true"] .status-bar { opacity: 0 }).
+       Without this, the orb + text would still be visible in the slit area
+       even though the bubble has tucked past the edge. */
+    body[data-peek="right"]  .status-bar,
+    body[data-peek="left"]   .status-bar,
+    body[data-peek="top"]    .status-bar,
+    body[data-peek="bottom"] .status-bar {
+      opacity: 0;
+      pointer-events: none;
+    }
+    body[data-mode="approval"] .bubble-shell { width: 360px; height: 280px; }
+    body[data-mode="cards"]    .bubble-shell { width: 460px; height: 600px; }
+    body[data-mode="settings"] .bubble-shell { width: 440px; height: 580px; }
+    body[data-mode="live"]     .bubble-shell { width: 380px; height: 440px; }
+
+    .island {
+      position: relative;
+      width: 100%; height: 100%;
+      border-radius: 999px;
+      background: var(--surface-1);
+      box-shadow:
+        var(--shadow-inner-highlight),
+        0 1px 1px oklch(0% 0 0 / 0.34),
+        0 4px 8px -6px oklch(0% 0 0 / 0.52),
+        0 8px 12px -11px oklch(0% 0 0 / 0.30);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition:
+        border-radius 280ms var(--ease-droplet),
+        background    220ms var(--ease-standard),
+        box-shadow    220ms var(--ease-standard);
+    }
+    body:not([data-mode="compact"]) .island {
+      border-radius: 18px;
+      box-shadow:
+        var(--shadow-inner-highlight),
+        0 1px 2px oklch(0% 0 0 / 0.34),
+        0 8px 16px -10px oklch(0% 0 0 / 0.52),
+        0 14px 24px -18px oklch(0% 0 0 / 0.34);
+    }
+    body[data-mode="approval"] .island,
+    body[data-mode="cards"]    .island,
+    body[data-mode="settings"] .island,
+    body[data-mode="live"]     .island {
+      border-radius: 22px;
+    }
+    .island::before {
+      content: ""; position: absolute; inset: 0;
+      pointer-events: none; border-radius: inherit;
+      background: linear-gradient(180deg,
+        oklch(100% 0 0 / 0.045),
+        transparent 42%,
+        oklch(0% 0 0 / 0.075));
+    }
+
+    /* ============================================================
+       Status bar — always visible (compact = entire capsule;
+       expanded = 54 px header)
+       ============================================================ */
+    .status-bar {
+      position: relative; z-index: 1;
+      display: flex; align-items: center;
+      height: 100%;
+      padding: 0 9px;
+      transition:
+        opacity 280ms ease,
+        height 220ms var(--ease-standard),
+        padding 220ms var(--ease-standard);
+    }
+    body:not([data-mode="compact"]) .status-bar {
+      flex: 0 0 auto;
+      height: 54px;
+      padding: 0 16px;
+    }
+    .drag-region {
+      display: flex; align-items: center; gap: 9px;
+      flex: 1 1 auto; min-width: 0; height: 100%;
+    }
+
+    /* ----- Status orb: conic ring + inner-well + emoji centred ----- */
+    .status-orb {
+      display: inline-grid; place-items: center; position: relative;
+      flex: 0 0 auto;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      padding: 1.5px;
+      background: conic-gradient(
+        var(--context-color) var(--context-angle, 220deg),
+        color-mix(in oklch, var(--ink-2), transparent 70%) 0deg
+      );
+      box-shadow: var(--shadow-inner-highlight);
+    }
+    body:not([data-mode="compact"]) .status-orb {
+      width: 30px; height: 30px; padding: 2px;
+    }
+    .status-orb::after {
+      content: "";
+      position: absolute; inset: -4px;
+      border-radius: 50%;
+      background: radial-gradient(closest-side,
+        color-mix(in oklch, var(--context-color), transparent 50%),
+        transparent 72%);
+      opacity: 0; pointer-events: none;
+    }
+    .status-emoji {
+      display: inline-grid; place-items: center;
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      background: var(--inner-well);
+      font-size: 13.5px; line-height: 1;
+      transform-origin: center;
+    }
+    body:not([data-mode="compact"]) .status-emoji { font-size: 15.5px; }
+
+    .status-text {
+      /* Always full width — never truncated. The bubble-shell width is
+         set by JS (updateBubbleWidth) to fit text + orb + (optional)
+         controls strip, so the controls never paint over text. */
+      flex: 0 0 auto;
+      overflow: visible;
+      color: var(--ink-0);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.005em;
+      white-space: nowrap;
+      transition: color 240ms var(--ease-standard);
+    }
+
+    /* ----- Window-actions: absolute + hover-revealed ----- */
+    .window-actions {
+      position: absolute; top: 50%; right: 7px;
+      display: flex; align-items: center; gap: 3px;
+      padding: 2.5px;
+      border-radius: 999px;
+      background: transparent;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(8px, -50%);
+      transition:
+        opacity 240ms var(--ease-decel),
+        transform 320ms var(--ease-decel);
+    }
+    body[data-controls="visible"] .window-actions {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(0, -50%);
+    }
+    /* In compact mode, controls only appear once the bubble has actually
+       widened to the hover-expanded size — same gating rule the real bubble
+       uses (data-hover-expanded on body, set by main.js after the resize). */
+    body[data-mode="compact"][data-controls="visible"]:not([data-hover-expanded="true"]) .window-actions {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(8px, -50%);
+    }
+    .wa-btn {
+      width: 20px; height: 20px;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--ink-1);
+      font-size: 11px; line-height: 1;
+      display: grid; place-items: center;
+      transition: background 200ms var(--ease-standard), color 200ms var(--ease-standard);
+    }
+    .wa-btn:hover {
+      background: var(--island-control-hover-bg);
+      color: var(--ink-0);
+    }
+    .wa-btn .swatch {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow:
+        0 0 0 1px oklch(100% 0 0 / 0.26),
+        0 1px 2px oklch(0% 0 0 / 0.45);
+    }
+    .wa-btn .cards-glyph { font-size: 12px; line-height: 1; }
+    .wa-btn .cards-badge {
+      position: absolute; top: -2px; right: -3px;
+      min-width: 12px; height: 12px;
+      padding: 0 3px;
+      border-radius: 999px;
+      background: var(--ink-0);
+      color: var(--surface-1);
+      font-size: 9px; font-weight: 700;
+      display: grid; place-items: center;
+      font-family: var(--font-mono);
+      border: 1.5px solid var(--surface-1);
+      pointer-events: none;
+    }
+    .wa-btn { position: relative; }
+    .wa-btn.is-pulse { animation: btnPulse 700ms ease-out; }
+
+    /* ----- Status animations (subset of real keyframes) ----- */
+    [data-status="running_tool"] .status-orb { animation: orbSpin 2.6s linear infinite; }
+    [data-status="running_tool"] .status-emoji { animation: orbSpin 2.6s linear infinite reverse; }
+    [data-status="thinking"] .status-orb::after { animation: orbHalo 3.6s ease-in-out infinite; }
+    [data-status="thinking"] .status-emoji { animation: emojiBreathe 4.4s ease-in-out infinite; }
+    [data-status="waiting_approval"] .status-orb { animation: orbAttention 1.8s ease-in-out infinite; }
+    [data-status="waiting_approval"] .status-orb::after { animation: orbHalo 1.8s ease-in-out infinite; }
+    [data-status="waiting_approval"] .status-emoji { animation: emojiBreathe 1.8s ease-in-out infinite; }
+    [data-status="waiting"] .status-orb::after { animation: orbHalo 2.6s ease-in-out infinite; }
+    [data-status="done"] .status-emoji { animation: emojiBob 3s ease-in-out infinite; }
+    [data-status="idle"] .status-emoji { animation: emojiBreathe 6s ease-in-out infinite; }
+
+    /* ============================================================
+       Each expanded panel hidden unless its mode is active
+       ============================================================ */
+    .panel { display: none; flex: 1 1 auto; min-height: 0; position: relative; z-index: 1; }
+    body[data-mode="approval"] .panel-approval { display: flex; }
+    body[data-mode="cards"]    .panel-cards    { display: grid; }
+    body[data-mode="settings"] .panel-settings { display: grid; }
+    body[data-mode="live"]     .panel-live     { display: flex; }
+
+    /* ============================================================
+       Approval panel
+       ============================================================ */
+    .panel-approval {
+      flex-direction: column;
+      /* No top padding — .request-head's bottom-border + 12px margin
+         already gives the eyebrow row enough breathing room from the
+         status-bar above. */
+      padding: 0 16px 16px;
+      overflow: hidden;
+    }
+    .request-head {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px;
+      padding: 0 0 12px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 12px;
+    }
+    .eyebrow {
+      color: var(--ink-1);
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .req-h1 {
+      margin: 0;
+      color: var(--ink-0);
+      font-size: 17px; font-weight: 600;
+      letter-spacing: -0.005em; line-height: 1.2;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .risk {
+      flex: 0 0 auto; align-self: flex-start;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--accent-sage);
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+      color: var(--accent-sage);
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.10em; text-transform: uppercase;
+    }
+    .risk[data-risk="medium"] {
+      border-color: var(--accent-warm-hi);
+      background: color-mix(in oklch, var(--accent-warm), transparent 82%);
+      color: var(--accent-warm-hi);
+    }
+    .risk[data-risk="high"] {
+      border-color: var(--accent-rose);
+      background: color-mix(in oklch, var(--accent-rose), transparent 82%);
+      color: var(--accent-rose);
+    }
+    .request-summary {
+      display: block;
+      margin: 0 0 10px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      box-shadow: var(--shadow-inner-highlight);
+      color: var(--ink-1);
+      font-family: var(--font-mono);
+      font-size: 11.5px; line-height: 1.45;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .request-meta {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      row-gap: 6px;
+      margin-bottom: 12px;
+      font-size: 11.5px;
+    }
+    .request-meta dt {
+      color: var(--ink-2);
+      font-variant-caps: all-small-caps;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      margin: 0;
+    }
+    .request-meta dd {
+      margin: 0;
+      color: var(--ink-1);
+      font-family: var(--font-mono);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .actions {
+      display: flex; gap: 8px;
+      margin-top: auto;
+    }
+    .actions button {
+      flex: 1;
+      min-height: 34px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--ink-0);
+      font-weight: 600; font-size: 12.5px;
+      letter-spacing: 0.02em;
+      box-shadow: var(--shadow-inner-highlight);
+      transition: background 160ms var(--ease-sheet), transform 160ms var(--ease-sheet);
+    }
+    .actions button:hover { transform: translateY(-1px); background: var(--surface-3); }
+    .actions .approve {
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+      color: var(--accent-sage);
+    }
+    .actions .approve:hover { background: color-mix(in oklch, var(--accent-sage), transparent 70%); }
+    .actions .approve.is-pulse { animation: btnPulse 700ms ease-out; }
+    .actions .deny {
+      background: color-mix(in oklch, var(--accent-rose), transparent 82%);
+      color: var(--accent-rose);
+    }
+    .actions .deny:hover { background: color-mix(in oklch, var(--accent-rose), transparent 70%); }
+
+    /* ============================================================
+       Cards panel
+       ============================================================ */
+    .panel-cards {
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+    .cards-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .cards-eyebrow { font-size: 13px; color: var(--ink-2); }
+    .cards-tabs {
+      display: flex; gap: 2px;
+      background: var(--surface-2);
+      padding: 3px;
+      border-radius: 11px;
+      flex: 1;
+    }
+    .cards-tab {
+      flex: 1;
+      background: transparent;
+      color: var(--ink-1);
+      font-size: 11.5px; font-weight: 500;
+      padding: 7px 10px;
+      border-radius: 8px;
+      transition: color 160ms var(--ease-sheet), background 240ms var(--ease-sheet);
+    }
+    .cards-tab:hover:not(.is-active) {
+      color: var(--ink-0);
+      background: color-mix(in oklch, var(--ink-0), transparent 92%);
+    }
+    .cards-tab.is-active {
+      color: var(--ink-0);
+      background: var(--surface-3);
+      box-shadow: var(--shadow-inner-highlight);
+    }
+    .cards-tab-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-left: 4px;
+      padding: 0 5px;
+      background: var(--surface-2);
+      color: var(--ink-2);
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 10px; height: 14px;
+      font-weight: 600;
+    }
+    .cards-tab.is-active .cards-tab-count {
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+      color: var(--accent-sage);
+    }
+
+    .cards-body {
+      padding: 14px;
+      display: flex; flex-direction: column; gap: 12px;
+      min-height: 0; overflow: hidden;
+      position: relative;
+    }
+    .cards-deck {
+      display: flex; flex-direction: column; gap: 12px;
+      flex: 1 1 auto; min-height: 0; overflow: hidden;
+    }
+    .abstract {
+      background: var(--surface-2);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow-inner-highlight);
+      flex: 1 1 auto; min-height: 80px;
+      overflow-y: auto;
+    }
+    .abstract-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 8px; gap: 8px;
+    }
+    .abstract-date {
+      font-size: 11px; font-weight: 600;
+      color: var(--ink-0); font-family: var(--font-mono);
+    }
+    .abstract-meta {
+      font-size: 10.5px; color: var(--ink-2); font-family: var(--font-mono);
+    }
+    .streak-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 10.5px; font-weight: 600;
+      background: color-mix(in oklch, var(--accent-warm), transparent 80%);
+      color: var(--accent-warm-hi);
+      border: 1px solid color-mix(in oklch, var(--accent-warm), transparent 60%);
+    }
+    .md { color: var(--ink-1); font-size: 12px; line-height: 1.6; text-wrap: pretty; }
+    .md > * + * { margin-top: 8px; }
+    .md p { margin: 0; }
+    .md strong { font-weight: 700; color: var(--ink-0); }
+
+    .progress-strip {
+      flex: 0 0 auto;
+      background: var(--surface-2);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow-inner-highlight);
+    }
+    .progress-block { display: grid; gap: 6px; }
+    .progress-label {
+      font-size: 10px;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--ink-2); font-weight: 600;
+    }
+    .progress-bar-shell {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--surface-3);
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; width: 40%;
+      background: linear-gradient(90deg,
+        var(--accent-sage),
+        color-mix(in oklch, var(--accent-sage), var(--accent-warm) 30%));
+      border-radius: 999px;
+    }
+    .progress-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
+    }
+    .progress-num {
+      font-family: var(--font-mono);
+      color: var(--ink-1); font-size: 11px;
+    }
+    .progress-num strong { color: var(--ink-0); font-size: 13px; font-weight: 700; }
+    .difficulty-mix {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono); font-size: 10px; color: var(--ink-2);
+    }
+    .difficulty-mix .easy-n   { color: var(--accent-sage); font-weight: 700; }
+    .difficulty-mix .medium-n { color: var(--accent-warm); font-weight: 700; }
+    .difficulty-mix .hard-n   { color: var(--accent-rose); font-weight: 700; }
+
+    .card-cta-row { display: flex; gap: 8px; flex: 0 0 auto; }
+    .btn-cta {
+      flex: 1;
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+      color: var(--accent-sage);
+      border-radius: 12px;
+      min-height: 44px;
+      font-size: 13px; font-weight: 600;
+      box-shadow: var(--shadow-inner-highlight);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      transition: background 160ms var(--ease-sheet);
+    }
+    .btn-cta:hover { background: color-mix(in oklch, var(--accent-sage), transparent 70%); }
+    .btn-cta.is-pulse { animation: btnPulse 700ms ease-out; }
+    .btn-cta .arrow {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--ink-2); font-weight: 500;
+    }
+    .btn-cta-secondary {
+      flex: 0 0 auto;
+      background: var(--surface-2);
+      color: var(--ink-1);
+      border-radius: 12px;
+      min-height: 44px;
+      padding: 0 14px;
+      font-size: 12px; font-weight: 600;
+      box-shadow: var(--shadow-inner-highlight);
+    }
+    .btn-cta-secondary:hover { background: var(--surface-3); color: var(--ink-0); }
+
+    /* ----- Active review overlay (covers cards-body) ----- */
+    .review-active {
+      position: absolute; inset: 0;
+      z-index: 2;
+      background: var(--surface-1);
+      display: none;
+      grid-template-rows: auto 1fr auto;
+    }
+    .panel-cards.is-reviewing .review-active { display: grid; }
+    .review-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .review-back {
+      background: transparent; color: var(--ink-2);
+      font-size: 14px; padding: 0 4px;
+    }
+    .review-back:hover { color: var(--ink-0); }
+    .review-progress-text {
+      font-size: 11.5px; color: var(--ink-1); font-weight: 500;
+    }
+    .difficulty-chip {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 9.5px; font-weight: 700;
+      letter-spacing: 0.06em;
+      font-family: var(--font-mono);
+      text-transform: lowercase;
+      border: 1px solid transparent;
+    }
+    .difficulty-chip::before {
+      content: ""; width: 6px; height: 6px; border-radius: 50%;
+    }
+    .difficulty-chip.medium {
+      background: color-mix(in oklch, var(--accent-warm), transparent 82%);
+      color: var(--accent-warm);
+      border-color: color-mix(in oklch, var(--accent-warm), transparent 60%);
+    }
+    .difficulty-chip.medium::before { background: var(--accent-warm); }
+
+    .review-body {
+      padding: 14px;
+      overflow-y: auto;
+      display: grid; gap: 12px; align-content: start;
+    }
+    .progress-dots { display: flex; gap: 4px; }
+    .progress-dots .dot {
+      width: 18px; height: 3px; border-radius: 999px;
+      background: oklch(40% 0 0 / 0.18);
+    }
+    .progress-dots .dot.done    { background: var(--accent-sage); }
+    .progress-dots .dot.current { background: var(--accent); }
+    .progress-dots .dot.wrong   { background: var(--accent-rose); }
+    .review-question {
+      font-size: 13.5px; line-height: 1.45;
+      color: var(--ink-0); font-weight: 500;
+      margin: 0; text-wrap: pretty;
+    }
+    .review-question code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--inner-well);
+      padding: 1px 5px; border-radius: 4px;
+      color: var(--ink-0);
+    }
+    .source-expand-head {
+      padding: 8px 10px;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface-2);
+      border-radius: 10px;
+      box-shadow: var(--shadow-inner-highlight);
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--ink-1);
+    }
+    .source-label-tag {
+      color: var(--ink-2);
+      font-size: 9.5px; font-weight: 600;
+      letter-spacing: 0.10em; text-transform: uppercase;
+    }
+    .option-list { display: grid; gap: 6px; }
+    .option {
+      display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start;
+      background: var(--inner-well);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px; line-height: 1.4;
+      color: var(--ink-0); text-align: left;
+      text-wrap: pretty;
+      transition: background 160ms;
+    }
+    .option:hover { background: var(--surface-3); }
+    .option .option-key {
+      color: var(--ink-2);
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 600;
+      margin-top: 1px;
+    }
+    .option.correct {
+      border-color: color-mix(in oklch, var(--accent-sage), transparent 30%);
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+    }
+    .option.correct .option-key { color: var(--accent-sage); }
+    .option.wrong {
+      border-color: color-mix(in oklch, var(--accent-rose), transparent 30%);
+      background: color-mix(in oklch, var(--accent-rose), transparent 82%);
+    }
+    .option.wrong .option-key { color: var(--accent-rose); }
+
+    .feedback { display: grid; gap: 8px; }
+    .feedback[hidden] { display: none; }
+    .feedback-head { display: flex; align-items: center; gap: 12px; }
+    .feedback-icon {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 16px; font-weight: 700;
+      flex: 0 0 auto;
+    }
+    .feedback-icon.correct {
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+      color: var(--accent-sage);
+      border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 50%);
+    }
+    .feedback-icon.wrong {
+      background: color-mix(in oklch, var(--accent-rose), transparent 82%);
+      color: var(--accent-rose);
+      border: 1px solid color-mix(in oklch, var(--accent-rose), transparent 50%);
+    }
+    .feedback-verdict { display: flex; flex-direction: column; }
+    .feedback-verdict .top {
+      font-size: 14px; font-weight: 600; letter-spacing: 0.005em;
+    }
+    .feedback-verdict.correct .top { color: var(--accent-sage); }
+    .feedback-verdict.wrong   .top { color: var(--accent-rose); }
+    .feedback-verdict .sub {
+      font-size: 10.5px; color: var(--ink-2);
+      margin-top: 2px; font-family: var(--font-mono);
+    }
+
+    .review-foot {
+      padding: 10px 14px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--surface-1);
+    }
+    .foot-link {
+      background: transparent; color: var(--ink-2);
+      font-size: 11px; padding: 0;
+    }
+    .foot-link:hover { color: var(--ink-1); }
+    .btn-primary {
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+      color: var(--accent-sage);
+      border-radius: 10px;
+      min-height: 34px;
+      padding: 0 14px;
+      font-size: 12px; font-weight: 600;
+      box-shadow: var(--shadow-inner-highlight);
+    }
+    .btn-primary:hover { background: color-mix(in oklch, var(--accent-sage), transparent 70%); }
+
+    /* ============================================================
+       Settings panel
+       ============================================================ */
+    .panel-settings {
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+    .settings-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .settings-eyebrow { font-size: 13px; color: var(--ink-2); }
+    .settings-title {
+      font-size: 13px; font-weight: 600;
+      color: var(--ink-0); letter-spacing: 0.005em;
+    }
+    .settings-body {
+      display: grid;
+      grid-template-columns: 124px 1fr;
+      min-height: 0;
+    }
+    .set-rail {
+      background: var(--inner-well);
+      padding: 8px 6px 14px;
+      display: flex; flex-direction: column; gap: 1px;
+      border-right: 1px solid var(--line);
+      overflow-y: auto;
+    }
+    .rail-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--ink-1);
+      background: transparent;
+      text-align: left;
+      transition: color 160ms var(--ease-sheet), background 240ms var(--ease-sheet);
+    }
+    .rail-item .glyph {
+      width: 16px; text-align: center; font-size: 12px;
+      color: var(--ink-2);
+      flex: 0 0 16px;
+    }
+    .rail-item:hover:not(.is-active) {
+      background: color-mix(in oklch, var(--ink-0), transparent 92%);
+      color: var(--ink-0);
+    }
+    .rail-item.is-active {
+      background: var(--surface-3);
+      color: var(--ink-0);
+      box-shadow: var(--shadow-inner-highlight);
+    }
+    .rail-item.is-active .glyph { color: var(--accent); }
+
+    .set-panels {
+      overflow-y: auto;
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .set-panel-head h3 {
+      margin: 0;
+      font-size: 16px; font-weight: 600;
+      color: var(--ink-0); letter-spacing: -0.005em;
+    }
+    .set-panel-head .lede {
+      display: block; margin-top: 2px;
+      font-size: 11.5px; color: var(--ink-2);
+    }
+    .set-subheading {
+      margin: 14px 0 4px;
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-2);
+    }
+    .set-subheading:first-of-type { margin-top: 4px; }
+
+    .focus-block {
+      display: grid; gap: 8px;
+      background: var(--inner-well);
+      border: 1px dashed color-mix(in oklch, var(--accent-warm), transparent 60%);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .focus-label {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 8px; flex-wrap: wrap;
+    }
+    .focus-label .lhs {
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-0);
+      display: inline-flex; align-items: baseline; gap: 6px;
+    }
+    .focus-label .icon { color: var(--accent-warm); font-size: 11px; }
+    .focus-label .hint {
+      font-size: 10.5px; color: var(--ink-2);
+      font-family: var(--font-mono);
+    }
+    .focus-textarea {
+      width: 100%;
+      min-height: 64px;
+      resize: none;
+      background: transparent;
+      border: 0;
+      color: var(--ink-0);
+      font-family: var(--font-mono);
+      font-size: 11.5px; line-height: 1.55;
+      padding: 0;
+      outline: none;
+    }
+
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      min-height: 28px;
+      flex-wrap: wrap;          /* control drops below when too tight */
+    }
+    .settings-row-text {
+      display: flex; flex-direction: column;
+      flex: 1 1 140px;          /* claims space first; never crushed */
+      min-width: 0;
+    }
+    .settings-row-label {
+      font-size: 12.5px; color: var(--ink-0); font-weight: 500;
+      flex: 1 1 auto; min-width: 0;
+    }
+    .settings-row-meta {
+      font-size: 11px; color: var(--ink-2);
+      margin-top: 1px; font-family: var(--font-mono);
+    }
+    .segmented {
+      display: inline-flex;
+      background: var(--surface-2);
+      border-radius: 10px;
+      padding: 3px;
+      box-shadow: var(--shadow-inner-highlight);
+      gap: 2px;
+      flex: 0 0 auto;
+    }
+    .segment {
+      background: transparent;
+      padding: 5px 10px;
+      font-size: 11px; font-weight: 500;
+      color: var(--ink-2);
+      border-radius: 7px;
+    }
+    .segment:hover { color: var(--ink-1); }
+    .segment.is-active {
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+      color: var(--accent-sage);
+    }
+    .toggle {
+      width: 36px; height: 20px;
+      border-radius: 999px;
+      background: var(--surface-3);
+      position: relative;
+      flex: 0 0 auto;
+      padding: 0;
+      transition: background 200ms var(--ease-standard);
+    }
+    .toggle::after {
+      content: "";
+      position: absolute;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--ink-1);
+      top: 2px; left: 2px;
+      transition: transform 200ms var(--ease-standard), background 200ms var(--ease-standard);
+    }
+    .toggle.is-on { background: color-mix(in oklch, var(--accent-sage), transparent 70%); }
+    .toggle.is-on::after { transform: translateX(16px); background: var(--accent-sage); }
+    .range-slider-wrap {
+      display: inline-flex; align-items: center; gap: 10px;
+      flex: 0 0 auto;
+    }
+    .range-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 140px; height: 4px;
+      background: var(--surface-3);
+      border-radius: 2px;
+      outline: none;
+    }
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid oklch(22% 0.025 195);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .range-slider-value {
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 600;
+      color: var(--accent);
+      min-width: 36px; text-align: right;
+    }
+
+    /* ============================================================
+       Live panel
+       ============================================================ */
+    .panel-live {
+      flex-direction: column;
+      padding: 14px 16px 16px;
+      overflow: hidden;
+    }
+    .floating-window {
+      flex: 1 1 auto; min-height: 0;
+      display: flex; flex-direction: column;
+      background: color-mix(in oklch, var(--surface-1), transparent 12%);
+      border-radius: 14px;
+      border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 60%);
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+      box-shadow:
+        0 1px 0 inset oklch(100% 0 0 / 0.08),
+        0 12px 28px -12px oklch(0% 0 0 / 0.45);
+      overflow: hidden;
+    }
+    .floating-window-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .breathing-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent-sage);
+      animation: breathe 2.4s ease-in-out infinite;
+      flex: 0 0 auto;
+    }
+    .floating-window-title {
+      margin: 0;
+      font-size: 13px; font-weight: 600;
+      color: var(--ink-0); letter-spacing: 0.005em;
+    }
+    .floating-window-count {
+      font-family: var(--font-mono);
+      font-size: 10.5px; color: var(--ink-2);
+      margin-left: 2px;
+    }
+    .floating-window-collapse {
+      margin-left: auto;
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 6px;
+      background: transparent; color: var(--ink-2);
+      font-size: 14px; line-height: 1;
+    }
+    .floating-window-collapse:hover {
+      background: color-mix(in oklch, var(--ink-0), transparent 92%);
+      color: var(--ink-0);
+    }
+    .floating-window-body {
+      padding: 12px 14px;
+      overflow-y: auto;
+      flex: 1 1 auto; min-height: 0;
+    }
+    .live-block {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px 0;
+    }
+    .live-block + .live-block {
+      border-top: 1px solid var(--line);
+      margin-top: 4px;
+    }
+    .live-block-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 10px; padding: 0 2px;
+    }
+    .live-block-label {
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--ink-1);
+    }
+    .live-block-meta {
+      font-size: 10.5px; color: var(--ink-2);
+      font-family: var(--font-mono);
+    }
+    .live-block-actions { display: flex; flex-direction: column; gap: 6px; }
+    .live-cards-entry {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px;
+      background: color-mix(in oklch, var(--accent), transparent 82%);
+      color: var(--accent);
+      font-weight: 600;
+      border-radius: 10px;
+      transition: background 160ms var(--ease-sheet);
+    }
+    .live-cards-entry:hover { background: color-mix(in oklch, var(--accent), transparent 70%); }
+    .live-cards-entry .arrow { margin-left: auto; font-size: 13px; }
+    .sessions-list { display: grid; gap: 6px; }
+    .session-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px;
+      background: var(--surface-2);
+      border-radius: 9px;
+      font-size: 11px;
+      box-shadow: var(--shadow-inner-highlight);
+    }
+    .session-row .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-sage);
+      flex: 0 0 auto;
+    }
+    .session-row .dot.warm { background: var(--accent-warm); }
+    .session-row .row-text {
+      flex: 1 1 auto; min-width: 0;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .session-row .row-tool {
+      font-weight: 600; color: var(--ink-0);
+      font-size: 11.5px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .session-row .row-cwd {
+      font-family: var(--font-mono);
+      font-size: 9.5px; color: var(--ink-2);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* ============================================================
+       Heatmap session picker (Settings · Knowledge cards · scope)
+       ============================================================ */
+    .picker-panel {
+      background: var(--surface-2);
+      border-radius: 12px;
+      padding: 12px;
+      display: grid; gap: 10px;
+      box-shadow: var(--shadow-inner-highlight);
+    }
+    .picker-header { display: grid; gap: 2px; }
+    .picker-headline {
+      margin: 0;
+      font-size: 11.5px; font-weight: 600;
+      color: var(--ink-0); letter-spacing: 0.005em;
+    }
+    .picker-hint {
+      font-size: 10.5px; color: var(--ink-2);
+      font-family: var(--font-mono); line-height: 1.45;
+    }
+    .picker-toolbar {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap;
+    }
+    .btn-chip {
+      padding: 4px 10px;
+      background: var(--surface-3);
+      color: var(--ink-1);
+      border-radius: 999px;
+      font-size: 10.5px; font-weight: 500;
+      font-family: var(--font-mono);
+      transition: background 160ms, color 160ms;
+    }
+    .btn-chip:hover {
+      background: color-mix(in oklch, var(--accent), transparent 78%);
+      color: var(--accent);
+    }
+    .btn-chip.is-active {
+      background: color-mix(in oklch, var(--accent), transparent 70%);
+      color: var(--accent);
+    }
+    .picker-meta {
+      margin-left: auto;
+      font-size: 10.5px; color: var(--ink-2);
+      font-family: var(--font-mono);
+    }
+    .heatmap-strip-wrap { display: grid; gap: 4px; }
+    .heatmap-month-labels {
+      display: flex; justify-content: space-between;
+      font-size: 9.5px; color: var(--ink-2);
+      font-family: var(--font-mono);
+      padding: 0 2px;
+      letter-spacing: 0.04em;
+    }
+    .heatmap {
+      display: grid;
+      grid-auto-flow: column;
+      grid-template-rows: repeat(7, 1fr);
+      gap: 2px;
+      padding: 2px 0;
+    }
+    .heatmap .cell {
+      width: 11px; height: 11px;
+      border-radius: 2px;
+      background: var(--surface-3);
+      transition: transform 120ms, outline 120ms;
+    }
+    .heatmap .cell.lvl-1 { background: color-mix(in oklch, var(--accent-sage), transparent 72%); }
+    .heatmap .cell.lvl-2 { background: color-mix(in oklch, var(--accent-sage), transparent 50%); }
+    .heatmap .cell.lvl-3 { background: color-mix(in oklch, var(--accent-sage), transparent 25%); }
+    .heatmap .cell.lvl-4 { background: var(--accent-sage); }
+    .heatmap .cell:hover { transform: scale(1.4); }
+    .heatmap .cell.is-selected {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      z-index: 1; position: relative;
+    }
+    .heatmap-legend {
+      display: flex; align-items: center; gap: 4px;
+      justify-content: flex-end;
+    }
+    .legend-text {
+      font-size: 9.5px; color: var(--ink-2); font-family: var(--font-mono);
+    }
+    .legend-cell {
+      width: 9px; height: 9px;
+      border-radius: 2px;
+      background: var(--surface-3);
+    }
+    .legend-cell.lvl-1 { background: color-mix(in oklch, var(--accent-sage), transparent 72%); }
+    .legend-cell.lvl-2 { background: color-mix(in oklch, var(--accent-sage), transparent 50%); }
+    .legend-cell.lvl-3 { background: color-mix(in oklch, var(--accent-sage), transparent 25%); }
+    .legend-cell.lvl-4 { background: var(--accent-sage); }
+
+    /* ============================================================
+       Fake mouse cursor — sits above everything, follows JS-driven
+       moves so each "click" in a sequence has a visible pointer.
+       ============================================================ */
+    .fake-cursor {
+      position: fixed;
+      top: 0; left: 0;
+      width: 20px; height: 24px;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.45));
+      /* Smooth slide between targets — single shared easing for cursor moves */
+      transition:
+        transform 480ms cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 200ms ease;
+      will-change: transform;
+    }
+    .fake-cursor.is-visible { opacity: 1; }
+    .fake-cursor svg {
+      display: block;
+      transition: transform 130ms ease-out;
+      transform-origin: 2px 2px;  /* pivot at the arrow tip */
+    }
+    .fake-cursor.is-clicking svg { transform: scale(0.78); }
+    /* Click halo — ripple emanates from the arrow tip (which sits at
+       offset 2,2 inside the .fake-cursor box). */
+    .fake-cursor::after {
+      content: "";
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: color-mix(in oklch, oklch(74% 0.07 195), transparent 50%);
+      transform: translate(-50%, -50%) scale(0);
+      pointer-events: none;
+      opacity: 0;
+    }
+    .fake-cursor.is-clicking::after {
+      animation: cursorClickRipple 360ms ease-out;
+    }
+    @keyframes cursorClickRipple {
+      0%   { transform: translate(-50%, -50%) scale(0);   opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+    }
+
+    /* ============================================================
+       Keyframes
+       ============================================================ */
+    @keyframes orbSpin { to { transform: rotate(360deg); } }
+    @keyframes orbHalo {
+      0%, 100% { opacity: 0; transform: scale(0.92); }
+      50%      { opacity: 0.7; transform: scale(1.18); }
+    }
+    @keyframes orbAttention {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.05); }
+    }
+    @keyframes emojiBreathe {
+      0%, 100% { transform: scale(1);    opacity: 0.94; }
+      50%      { transform: scale(1.05); opacity: 1; }
+    }
+    @keyframes emojiBob {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-1.5px); }
+    }
+    @keyframes breathe {
+      0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent-sage), transparent 40%); }
+      50%      { box-shadow: 0 0 0 6px color-mix(in oklch, var(--accent-sage), transparent 92%); }
+    }
+    @keyframes btnPulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(0.96); }
+      100% { transform: scale(1); }
+    }
+
+    /* Inline generating spinner — used inside btn-primary while the demo
+       simulates a `claude -p` generation run. */
+    .spinner {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: orbSpin 0.8s linear infinite;
+      vertical-align: -1px;
+      margin-right: 4px;
+    }
+    .btn-primary.is-generating {
+      background: color-mix(in oklch, var(--accent-warm), transparent 78%);
+      color: var(--accent-warm-hi);
+    }
+    .btn-primary.is-success {
+      background: color-mix(in oklch, var(--accent-sage), transparent 70%);
+      color: var(--accent-sage);
+    }
+    /* Banner that appears in the cards-deck after generation completes */
+    .deck-fresh {
+      background: color-mix(in oklch, var(--accent-warm), transparent 78%);
+      color: var(--accent-warm-hi);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      margin-bottom: 6px;
+      animation: freshFlash 600ms var(--ease-standard);
+    }
+    .deck-fresh[hidden] { display: none; }
+    @keyframes freshFlash {
+      0%   { opacity: 0; transform: translateY(-4px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<!-- Initial state: data-mode="compact" (124×42), data-status="idle". The
+     bubble starts at its true resting size — orb + status text only, no
+     controls strip. Hover the bubble (or trigger a sequence) to see it
+     expand to the hover state with the controls strip revealed. -->
+<body data-theme="midnight-teal" data-mode="compact" data-status="idle"
+      data-controls="hidden" data-hover-expanded="false" data-ui="visible">
+
+  <!-- Fake cursor — JS slides it to each click target during sequences. -->
+  <div class="fake-cursor" id="fakeCursor" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="24" viewBox="0 0 20 24">
+      <path d="M2,2 L2,18 L7,14 L11,22 L14,21 L10,13 L17,13 Z"
+            fill="white" stroke="black" stroke-width="1.2" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <header class="controls">
+    <span class="brand">Clawdeck mockup</span>
+    <div class="group" id="seqGroup">
+      <button data-seq="edges">▶ Edges</button>
+      <button data-seq="status">▶ Status</button>
+      <button data-seq="morph">▶ Morph cycle</button>
+      <button data-seq="approval">▶ Approval flow</button>
+      <button data-seq="cards">▶ Cards review</button>
+      <button data-seq="themes">▶ Themes cycle</button>
+      <button data-seq="reset">↻ Reset</button>
+    </div>
+    <div class="group" id="themeGroup">
+      <button class="theme-btn is-active" data-theme="midnight-teal" title="Midnight Teal 深海青夜"></button>
+      <button class="theme-btn" data-theme="amber-hearth" title="Amber Hearth 暖夜炉火"></button>
+      <button class="theme-btn" data-theme="paper-light" title="Paper Light 晨纸轻亮"></button>
+      <button class="theme-btn" data-theme="aurora-indigo" title="Aurora Indigo 极光紫夜"></button>
+    </div>
+    <span class="meta">
+      <kbd>H</kbd> hide UI · <kbd>R</kbd> reset ·
+      <kbd>E</kbd>dges / <kbd>S</kbd>tatus / <kbd>M</kbd>orph / <kbd>A</kbd>pproval / <kbd>C</kbd>ards / <kbd>T</kbd>hemes ·
+      <kbd>1–5</kbd> jump mode
+    </span>
+  </header>
+
+  <main class="stage">
+    <div class="frame-label">RECORD AREA — crop ScreenToGif to this rectangle</div>
+    <div class="record-frame">
+      <div class="bubble-shell" id="bubbleShell">
+        <div class="island">
+          <!-- Peek slits live INSIDE the island (matches real app's
+               packages/desktop/renderer/index.html structure). When the
+               bubble translates past a frame edge, all 4 slits travel with
+               it; only the one matching body[data-peek=...] fades in, and
+               it ends up at the bubble's edge that's still inside the
+               frame — exactly the same physical layout main.js#compactPeekBounds
+               produces with PEEK_VISIBLE_PX = 12. -->
+          <div class="peek-context" data-peek-pos="right"  aria-hidden="true"><div class="peek-context-fill"></div></div>
+          <div class="peek-context" data-peek-pos="left"   aria-hidden="true"><div class="peek-context-fill"></div></div>
+          <div class="peek-context" data-peek-pos="top"    aria-hidden="true"><div class="peek-context-fill"></div></div>
+          <div class="peek-context" data-peek-pos="bottom" aria-hidden="true"><div class="peek-context-fill"></div></div>
+
+          <!-- Status bar — always at top. In compact mode it IS the entire
+               bubble (orb + text); on hover the bubble widens and the
+               window-actions strip fades in. In expanded modes the bar
+               shrinks to a 54 px header with the panel below. -->
+          <header class="status-bar">
+            <div class="drag-region">
+              <span class="status-orb">
+                <span class="status-emoji" id="statusEmoji">&#x1F4A4;</span>
+              </span>
+              <span class="status-text" id="statusText">Idle</span>
+            </div>
+            <div class="window-actions">
+              <button class="wa-btn" title="Kill switch (⏻)">⏻</button>
+              <button class="wa-btn" title="Theme"><span class="swatch"></span></button>
+              <button class="wa-btn" title="Cards" data-jump="cards">
+                <span class="cards-glyph">&#x1F4DA;</span>
+                <span class="cards-badge" id="cardsBadge" hidden>3</span>
+              </button>
+              <button class="wa-btn" title="Settings" data-jump="settings">⚙</button>
+              <button class="wa-btn" title="Live monitor" data-jump="live">⤢</button>
+              <button class="wa-btn" title="Minimize" data-jump="compact">−</button>
+            </div>
+          </header>
+
+          <!-- APPROVAL panel -->
+          <section class="panel panel-approval">
+            <div class="request-head">
+              <div>
+                <div class="eyebrow">approval</div>
+                <h1 class="req-h1">Bash</h1>
+              </div>
+              <div class="risk" data-risk="low">low</div>
+            </div>
+            <p class="request-summary">npm run smoke</p>
+            <dl class="request-meta">
+              <dt>cwd</dt><dd>~\claude-code-companion</dd>
+              <dt>reason</dt><dd>Verify daemon boots after the latest hook change.</dd>
+            </dl>
+            <div class="actions">
+              <button class="deny">Deny</button>
+              <button class="approve" id="btnApprove">Approve</button>
+            </div>
+          </section>
+
+          <!-- CARDS panel -->
+          <section class="panel panel-cards" id="cardsPanel">
+            <header class="cards-head">
+              <span class="cards-eyebrow">&#x1F4DA;</span>
+              <nav class="cards-tabs">
+                <button class="cards-tab is-active">Today</button>
+                <button class="cards-tab">History</button>
+                <button class="cards-tab">Wrong book<span class="cards-tab-count">2</span></button>
+                <button class="cards-tab">Record</button>
+              </nav>
+            </header>
+            <div class="cards-body">
+              <article class="cards-deck">
+                <div class="deck-fresh" id="deckFreshBanner" hidden>
+                  ✨ Just generated · 5 fresh cards from 4 sessions
+                </div>
+                <section class="abstract">
+                  <div class="abstract-head">
+                    <span class="abstract-date">May 4 · 5 sessions</span>
+                    <span class="streak-badge">&#x1F525; 12-day streak</span>
+                  </div>
+                  <div class="md">
+                    <p>Yesterday you wrestled with <strong>Electron transparent windows on Win11</strong>
+                    — three threads on shadow gutters and rounded corners, plus a long detour into
+                    <strong>conic-gradient ring animation</strong>. Today's deck reinforces both,
+                    with one bonus card on <strong>OKLCH color-mix</strong>.</p>
+                  </div>
+                </section>
+                <section class="progress-strip">
+                  <div class="progress-block">
+                    <span class="progress-label">Today's goal</span>
+                    <div class="progress-bar-shell"><div class="progress-bar-fill"></div></div>
+                    <div class="progress-row">
+                      <span class="progress-num"><strong>2</strong> / 5 done</span>
+                      <span class="difficulty-mix">
+                        <span><span class="easy-n">3</span> easy</span>
+                        <span><span class="medium-n">2</span> med</span>
+                        <span><span class="hard-n">1</span> hard</span>
+                      </span>
+                    </div>
+                  </div>
+                </section>
+                <div class="card-cta-row">
+                  <button class="btn-cta" id="btnStartReview">
+                    <span>Start review</span>
+                    <span class="arrow">3 left →</span>
+                  </button>
+                  <button class="btn-cta-secondary" title="Regenerate">↻</button>
+                </div>
+              </article>
+
+              <!-- Active review overlay -->
+              <article class="review-active" id="reviewActive">
+                <header class="review-head">
+                  <button class="review-back">&larr;</button>
+                  <span class="review-progress-text" id="reviewProgress">Card 3 / 5</span>
+                  <span class="difficulty-chip medium">medium</span>
+                </header>
+                <div class="review-body">
+                  <div class="progress-dots">
+                    <span class="dot done"></span>
+                    <span class="dot done"></span>
+                    <span class="dot current"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                  </div>
+                  <h2 class="review-question" id="reviewQ">
+                    Why does the bubble's BrowserWindow set <code>thickFrame: false</code>?
+                  </h2>
+                  <div class="source-expand-head">
+                    <span class="source-label-tag">source</span>
+                    <span>session 2026-05-03 · main.js:962</span>
+                  </div>
+                  <div class="option-list" id="reviewOptions">
+                    <button class="option"><span class="option-key">A</span><span>It's a Mac-only flag with no Windows effect.</span></button>
+                    <button class="option"><span class="option-key">B</span><span>Win11 paints a 1px rectangle around transparent frameless windows otherwise.</span></button>
+                    <button class="option"><span class="option-key">C</span><span>Saves ~2 MB of GPU memory at idle.</span></button>
+                    <button class="option"><span class="option-key">D</span><span>Required for setVisibleOnAllWorkspaces to work.</span></button>
+                  </div>
+                  <div class="feedback" id="reviewFeedback" hidden>
+                    <div class="feedback-head">
+                      <div class="feedback-icon" id="feedbackIcon">✓</div>
+                      <div class="feedback-verdict" id="feedbackVerdict">
+                        <span class="top">Correct</span>
+                        <span class="sub">main.js:962 — comment confirms</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <footer class="review-foot">
+                  <button class="foot-link">Skip</button>
+                  <button class="btn-primary">Submit</button>
+                </footer>
+              </article>
+            </div>
+          </section>
+
+          <!-- SETTINGS panel -->
+          <section class="panel panel-settings">
+            <header class="settings-head">
+              <span class="settings-eyebrow">⚙</span>
+              <span class="settings-title">Settings</span>
+            </header>
+            <div class="settings-body">
+              <aside class="set-rail">
+                <button class="rail-item is-active"><span class="glyph">✦</span>Knowledge cards</button>
+                <button class="rail-item"><span class="glyph">🗂</span>Storage</button>
+                <button class="rail-item"><span class="glyph">↓</span>Export</button>
+                <button class="rail-item"><span class="glyph">⚙</span>Companion</button>
+              </aside>
+              <div class="set-panels">
+                <div class="set-panel-head">
+                  <h3>Knowledge cards</h3>
+                  <span class="lede">Generation prompt, scope, and behaviour — everything that controls how today's deck is built.</span>
+                </div>
+                <h4 class="set-subheading">Generation prompt</h4>
+                <div class="focus-block">
+                  <div class="focus-label">
+                    <span class="lhs"><span class="icon">✦</span><span>What do you want to learn?</span></span>
+                    <span class="hint">prepended to every prompt</span>
+                  </div>
+                  <textarea class="focus-textarea" spellcheck="false">CSS layout, OKLCH color, Electron quirks on Windows</textarea>
+                </div>
+                <div class="settings-row">
+                  <span class="settings-row-label">Difficulty</span>
+                  <div class="segmented" id="difficultySeg">
+                    <button class="segment" data-diff="casual">Casual</button>
+                    <button class="segment is-active" data-diff="balanced">Balanced</button>
+                    <button class="segment" data-diff="deep">Deep</button>
+                  </div>
+                </div>
+                <div class="settings-row">
+                  <span class="settings-row-label">Cards per gen</span>
+                  <div class="range-slider-wrap">
+                    <input type="range" class="range-slider" min="1" max="20" value="5">
+                    <span class="range-slider-value">5</span>
+                  </div>
+                </div>
+
+                <h4 class="set-subheading">Generation scope</h4>
+                <div class="settings-row">
+                  <span class="settings-row-label">Transcript budget</span>
+                  <div class="range-slider-wrap">
+                    <input type="range" class="range-slider" min="10000" max="500000" step="10000" value="60000">
+                    <span class="range-slider-value">60k</span>
+                  </div>
+                </div>
+                <div class="picker-panel">
+                  <div class="picker-header">
+                    <h4 class="picker-headline">📅 Pick which days to review</h4>
+                  </div>
+                  <div class="picker-toolbar">
+                    <button class="btn-chip" id="chipAutoTop">Auto top-3</button>
+                    <button class="btn-chip">All</button>
+                    <button class="btn-chip">None</button>
+                    <button class="btn-chip" title="Refresh">↻</button>
+                    <span class="picker-meta" id="pickerMeta">0 days</span>
+                  </div>
+                  <div class="heatmap-strip-wrap">
+                    <div class="heatmap-month-labels"><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span></div>
+                    <div class="heatmap" id="heatmap"></div>
+                  </div>
+                  <div class="heatmap-legend">
+                    <span class="legend-text">less</span>
+                    <span class="legend-cell lvl-0"></span>
+                    <span class="legend-cell lvl-1"></span>
+                    <span class="legend-cell lvl-2"></span>
+                    <span class="legend-cell lvl-3"></span>
+                    <span class="legend-cell lvl-4"></span>
+                    <span class="legend-text">more</span>
+                  </div>
+                </div>
+
+                <h4 class="set-subheading">Behavior</h4>
+                <div class="settings-row">
+                  <span class="settings-row-label">Auto-generate</span>
+                  <button class="toggle is-on" type="button"></button>
+                </div>
+                <div class="settings-row">
+                  <span class="settings-row-label">Allow web fallback</span>
+                  <button class="toggle is-on" type="button"></button>
+                </div>
+                <div class="settings-row">
+                  <span class="settings-row-label">Streak notifications</span>
+                  <button class="toggle" type="button"></button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE panel -->
+          <section class="panel panel-live">
+            <div class="floating-window">
+              <div class="floating-window-head">
+                <span class="breathing-dot"></span>
+                <h3 class="floating-window-title">Live</h3>
+                <span class="floating-window-count">2 sessions</span>
+                <button class="floating-window-collapse" title="Collapse">−</button>
+              </div>
+              <div class="floating-window-body">
+                <div class="live-block">
+                  <div class="live-block-head">
+                    <span class="live-block-label">Today's deck</span>
+                    <span class="live-block-meta" id="liveDeckMeta">2 / 5 done</span>
+                  </div>
+                  <div class="live-block-actions">
+                    <button class="btn-primary" id="btnGenerate" style="justify-content: center;">↻ Generate now</button>
+                    <button class="live-cards-entry">📚 <span>Open Knowledge Cards</span> <span class="arrow">→</span></button>
+                  </div>
+                </div>
+                <div class="live-block">
+                  <div class="live-block-head">
+                    <span class="live-block-label">Active Claude sessions</span>
+                  </div>
+                  <div class="sessions-list">
+                    <div class="session-row">
+                      <span class="dot warm"></span>
+                      <div class="row-text">
+                        <span class="row-tool">Editing README · running tool</span>
+                        <span class="row-cwd">~\claude-code-companion</span>
+                      </div>
+                    </div>
+                    <div class="session-row">
+                      <span class="dot"></span>
+                      <div class="row-text">
+                        <span class="row-tool">Refactoring auth · idle</span>
+                        <span class="row-cwd">~\week15</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div><!-- /.island -->
+      </div><!-- /.bubble-shell -->
+    </div><!-- /.record-frame -->
+
+    <!-- Hook status reference — sits OUTSIDE the record-frame so it doesn't
+         end up in the GIF. Mirrors what `npm run doctor` reports + which
+         Claude Code hooks Companion is actually wired into. -->
+    <aside class="hook-status">
+      <header>
+        <h3>Currently installed hooks</h3>
+        <span class="hook-status-summary">
+          <span class="hook-dot"></span>
+          <span>3 / 3 active · injected by <code style="color:inherit;background:transparent;padding:0">setup-user-hooks</code> into <code style="color:inherit;background:transparent;padding:0">~/.claude/settings.json</code></span>
+        </span>
+      </header>
+      <table class="hook-table">
+        <thead>
+          <tr>
+            <th>Hook</th>
+            <th>Fires when</th>
+            <th>What it does</th>
+            <th>Mode</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="hook-name">PreToolUse</td>
+            <td>Before every tool call (Bash, Edit, Write, …)</td>
+            <td>Routes Claude's permission prompt through the bubble's approval card; result goes back to Claude as approve / deny / answer</td>
+            <td><span class="hook-mode blocking">blocking</span></td>
+            <td><span class="hook-pill">active</span></td>
+          </tr>
+          <tr>
+            <td class="hook-name">PermissionRequest</td>
+            <td>On any explicit "ask" permission decision</td>
+            <td>Surfaces the request in the bubble, awaits decide / approve / deny / answer over WS</td>
+            <td><span class="hook-mode blocking">blocking</span></td>
+            <td><span class="hook-pill">active</span></td>
+          </tr>
+          <tr>
+            <td class="hook-name">Event</td>
+            <td>On every Claude lifecycle event</td>
+            <td>Feeds session state to the bubble's status orb (thinking → running_tool → done) plus the Live monitor session list</td>
+            <td><span class="hook-mode">non-blocking</span></td>
+            <td><span class="hook-pill">active</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <footer>
+        <code>npm run doctor</code> verifies install &middot;
+        <code>$env:CCC_BYPASS_APPROVAL_HOOK=&quot;true&quot;</code> bypasses approval for the next Claude Code launched in that shell &middot;
+        <code>$env:CCC_DISABLE_STATUS_HOOK=&quot;true&quot;</code> stops the status feed &middot;
+        the bubble's <kbd>⏻</kbd> button hard-disables everything via a sentinel file at <code>%USERPROFILE%\.claude-companion\disabled</code>
+      </footer>
+    </aside>
+  </main>
+
+  <script>
+    // ============================================================
+    // Status meta — mirrors packages/desktop/renderer/app.js#STATUS_META
+    // ============================================================
+    const STATUS_META = {
+      idle:             { emoji: "\u{1F4A4}", label: "Idle" },
+      thinking:         { emoji: "\u{1F914}", label: "Thinking" },
+      running_tool:     { emoji: "⚙️", label: "Running tool" },
+      waiting:          { emoji: "⏳",   label: "Waiting" },
+      waiting_approval: { emoji: "\u{1F7E1}", label: "Awaiting approval" },
+      waiting_answer:   { emoji: "❓",    label: "Awaiting answer" },
+      done:             { emoji: "✅",    label: "Done" },
+      failed:           { emoji: "⚠️", label: "Failed" },
+      blocked:          { emoji: "⛔",    label: "Blocked" }
+    };
+
+    // ============================================================
+    // State helpers
+    // ============================================================
+    const body = document.body;
+    const bubble = document.getElementById("bubbleShell");
+    const statusTextEl = document.getElementById("statusText");
+
+    // Compact bubble layout — mirrors main.js#compactCapsule. Bubble grows
+    // to fit the status text so long labels never get clipped by the
+    // controls strip on hover.
+    const COMPACT_PAD_L = 9;
+    const COMPACT_PAD_R = 14;
+    const COMPACT_ORB_W = 26;
+    const COMPACT_GAP = 9;
+    const COMPACT_TEXT_GAP_BEFORE_CONTROLS = 12;
+    const COMPACT_CONTROLS_W = 140;
+    const COMPACT_CONTROLS_R = 7;
+    const COMPACT_W_MIN = 124;
+    const COMPACT_HOVER_W_MIN = 224;
+
+    function updateBubbleWidth() {
+      // In expanded modes, clear inline style so the static CSS rule
+      // (data-mode="cards" → 460 px etc.) takes over.
+      if (body.dataset.mode !== "compact") {
+        bubble.style.width = "";
+        return;
+      }
+      const textW = Math.ceil(statusTextEl.getBoundingClientRect().width);
+      const expanded = body.dataset.hoverExpanded === "true";
+      const baseW = COMPACT_PAD_L + COMPACT_ORB_W + COMPACT_GAP + textW + COMPACT_PAD_R;
+      const w = expanded
+        ? Math.max(COMPACT_HOVER_W_MIN,
+                   COMPACT_PAD_L + COMPACT_ORB_W + COMPACT_GAP + textW
+                   + COMPACT_TEXT_GAP_BEFORE_CONTROLS + COMPACT_CONTROLS_W + COMPACT_CONTROLS_R)
+        : Math.max(COMPACT_W_MIN, baseW);
+      bubble.style.width = w + "px";
+    }
+
+    const setMode = (m) => {
+      body.dataset.mode = m;
+      requestAnimationFrame(updateBubbleWidth);
+    };
+    const setStatus = (s, label) => {
+      body.dataset.status = s;
+      const meta = STATUS_META[s] || STATUS_META.idle;
+      document.getElementById("statusEmoji").textContent = meta.emoji;
+      statusTextEl.textContent = label || meta.label;
+      requestAnimationFrame(updateBubbleWidth);
+    };
+    const setHoverExpanded = (v) => {
+      body.dataset.hoverExpanded = v ? "true" : "false";
+      body.dataset.controls = v ? "visible" : "hidden";
+      requestAnimationFrame(updateBubbleWidth);
+    };
+    const setTheme = (t) => {
+      body.dataset.theme = t;
+      document.querySelectorAll(".theme-btn").forEach((b) =>
+        b.classList.toggle("is-active", b.dataset.theme === t));
+    };
+    const pulse = (sel) => {
+      const el = typeof sel === "string" ? document.querySelector(sel) : sel;
+      if (!el) return;
+      el.classList.add("is-pulse");
+      setTimeout(() => el.classList.remove("is-pulse"), 800);
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // ============================================================
+    // Fake cursor — every "click" in a sequence visibly moves the
+    // pointer to its target, pauses, and emits a click ripple before
+    // firing the action. Makes recordings read as user-driven instead
+    // of as state changes appearing out of nowhere.
+    // ============================================================
+    const fakeCursor = document.getElementById("fakeCursor");
+    function setCursorPos(x, y) {
+      // SVG arrow tip is at (2, 2); shift so the tip lands exactly at (x, y).
+      fakeCursor.style.transform = `translate(${Math.round(x - 2)}px, ${Math.round(y - 2)}px)`;
+    }
+    function teleportCursor(x, y) {
+      // Jump to a position without animating — used for spawning.
+      const prev = fakeCursor.style.transition;
+      fakeCursor.style.transition = "none";
+      setCursorPos(x, y);
+      // Force reflow so the next transition kicks in
+      void fakeCursor.offsetWidth;
+      fakeCursor.style.transition = prev;
+    }
+    function showCursor() { fakeCursor.classList.add("is-visible"); }
+    function hideCursor() { fakeCursor.classList.remove("is-visible"); }
+    async function startCursor() {
+      // Spawn at the bottom-right corner of the record-frame
+      const frame = document.querySelector(".record-frame").getBoundingClientRect();
+      teleportCursor(frame.right - 60, frame.bottom - 50);
+      showCursor();
+      await sleep(220);
+    }
+    async function endCursor() {
+      hideCursor();
+      await sleep(220);
+    }
+    async function moveCursorTo(el) {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setCursorPos(r.left + r.width / 2, r.top + r.height / 2);
+      await sleep(500); // matches CSS transition
+    }
+    // Move cursor to el → brief hold → click ripple + fire action callback.
+    async function cursorClick(el, action, opts = {}) {
+      if (!el) { if (action) action(); return; }
+      await moveCursorTo(el);
+      await sleep(opts.hold ?? 240);
+      fakeCursor.classList.add("is-clicking");
+      if (typeof action === "function") action();
+      await sleep(opts.flash ?? 360);
+      fakeCursor.classList.remove("is-clicking");
+    }
+
+    // Drag-select range — simulates a real "press, drag continuously, release"
+    // gesture along a single row of the heatmap. The cursor slides linearly
+    // from start to end in one continuous motion (~1s); cells along the path
+    // light up at staggered timestamps that match the cursor's actual screen
+    // position. Looks like a true drag, not a series of teleports.
+    async function dragSelectRow(startIdx, endIdx) {
+      const allCells = Array.from(document.querySelectorAll(".heatmap .cell"));
+      const startCell = allCells[startIdx];
+      const endCell = allCells[endIdx];
+      if (!startCell || !endCell) return;
+
+      // Build the cell path. Heatmap is grid-auto-flow:column with 7 rows,
+      // so cell i is at row (i % 7), col floor(i / 7).
+      const startRow = startIdx % 7;
+      const endRow = endIdx % 7;
+      const path = [];
+      if (startRow === endRow) {
+        const startCol = Math.floor(startIdx / 7);
+        const endCol = Math.floor(endIdx / 7);
+        const step = endCol >= startCol ? 1 : -1;
+        for (let c = startCol; step > 0 ? c <= endCol : c >= endCol; c += step) {
+          path.push(allCells[c * 7 + startRow]);
+        }
+      } else {
+        path.push(startCell, endCell);
+      }
+      if (path.length < 2) return;
+
+      // 1. Move cursor to start cell at normal speed
+      await moveCursorTo(startCell);
+      await sleep(220);
+
+      // 2. Press — cursor SVG scales down + ripple animates once at start
+      fakeCursor.classList.add("is-clicking");
+      startCell.classList.add("is-selected");
+      await sleep(160);
+
+      // 3. Drag — single linear cursor move across the whole range. Cells
+      //    in the path highlight at stagger ticks matching the cursor speed.
+      const dragMs = Math.max(700, 220 * (path.length - 1));
+      const endRect = endCell.getBoundingClientRect();
+      const prevTransition = fakeCursor.style.transition;
+      fakeCursor.style.transition = `transform ${dragMs}ms linear`;
+      setCursorPos(endRect.left + endRect.width / 2, endRect.top + endRect.height / 2);
+
+      const stepMs = dragMs / (path.length - 1);
+      for (let i = 1; i < path.length; i++) {
+        await sleep(stepMs);
+        path[i].classList.add("is-selected");
+      }
+
+      // 4. Restore default transition + tiny dwell + release
+      fakeCursor.style.transition = prevTransition;
+      await sleep(160);
+      fakeCursor.classList.remove("is-clicking");
+
+      // 5. Update picker meta to reflect the selection
+      const meta = document.getElementById("pickerMeta");
+      if (meta) meta.textContent = `${path.length} days`;
+      await sleep(280);
+    }
+
+    // Click the live panel's Generate button → simulate a `claude -p` run
+    // with progress text, then surface the result.
+    async function simulateGenerate() {
+      const btn = document.getElementById("btnGenerate");
+      const meta = document.getElementById("liveDeckMeta");
+      if (!btn) return;
+      await cursorClick(btn, () => {
+        btn.classList.add("is-generating");
+        btn.innerHTML = '<span class="spinner"></span>Scanning sessions…';
+      });
+      await sleep(900);
+      btn.innerHTML = '<span class="spinner"></span>Calling claude -p …';
+      if (meta) meta.textContent = "thinking…";
+      await sleep(1100);
+      btn.innerHTML = '<span class="spinner"></span>Validating sources…';
+      await sleep(700);
+      // Done
+      btn.classList.remove("is-generating");
+      btn.classList.add("is-success");
+      btn.innerHTML = "✓ 5 cards · just generated";
+      if (meta) meta.textContent = "5 / 5 ready";
+      await sleep(1100);
+    }
+
+    let runningSeq = null;
+    function cancelSeq() {
+      if (runningSeq) {
+        runningSeq.cancelled = true;
+        document.querySelectorAll("#seqGroup button.is-running")
+          .forEach((b) => b.classList.remove("is-running"));
+        runningSeq = null;
+      }
+    }
+    function resetState() {
+      setMode("compact");
+      setHoverExpanded(false);
+      setStatus("idle");
+      hideCursor();
+      bubble.classList.remove(
+        "is-edge-right", "is-edge-top", "is-edge-left", "is-edge-bottom",
+        "is-tucked-right", "is-tucked-top", "is-tucked-left", "is-tucked-bottom",
+      );
+      body.dataset.edge = "";
+      body.dataset.peek = "";
+      document.getElementById("cardsPanel").classList.remove("is-reviewing");
+      document.getElementById("reviewFeedback").hidden = true;
+      document.querySelectorAll(".option").forEach((o) => {
+        o.classList.remove("correct", "wrong");
+      });
+      document.getElementById("chipAutoTop")?.classList.remove("is-active");
+      document.querySelectorAll(".heatmap .cell.is-selected")
+        .forEach((c) => c.classList.remove("is-selected"));
+      const pickerMeta = document.getElementById("pickerMeta");
+      if (pickerMeta) pickerMeta.textContent = "0 days";
+      const setPanels = document.querySelector(".set-panels");
+      if (setPanels) setPanels.scrollTop = 0;
+      // Reset generate button + live deck meta
+      const genBtn = document.getElementById("btnGenerate");
+      if (genBtn) {
+        genBtn.classList.remove("is-generating", "is-success");
+        genBtn.innerHTML = "↻ Generate now";
+      }
+      const liveMeta = document.getElementById("liveDeckMeta");
+      if (liveMeta) liveMeta.textContent = "2 / 5 done";
+      // Hide fresh banner
+      const freshBanner = document.getElementById("deckFreshBanner");
+      if (freshBanner) freshBanner.hidden = true;
+    }
+    function reset() {
+      cancelSeq();
+      resetState();
+    }
+
+    // ============================================================
+    // Sequences — every interaction is cursor-driven: pointer slides
+    // to the target, brief hold, click ripple, then the action fires.
+    // Reads as a real user driving the bubble.
+    // ============================================================
+    const $jump = (target) => document.querySelector(`[data-jump="${target}"]`);
+    const $swatch = () => document.querySelector(".wa-btn .swatch")?.closest(".wa-btn");
+
+    const sequences = {
+      // 0a. Edges — bubble cycles through 4 edge positions (right → top
+      //     → left → bottom → center). At each edge it goes through the
+      //     full lifecycle: glide in → briefly visible → tuck behind the
+      //     edge (fades out + peek slit fades in) → hold tucked → glide
+      //     back out → next edge. Demonstrates both "can live on any edge"
+      //     AND "auto-hides when not in use". Crop the full record-frame.
+      async edges(token) {
+        resetState();
+        await sleep(400); if (token.cancelled) return;
+
+        const stops = [
+          { edge: "right",  dock: "is-edge-right",  tuck: "is-tucked-right" },
+          { edge: "top",    dock: "is-edge-top",    tuck: "is-tucked-top" },
+          { edge: "left",   dock: "is-edge-left",   tuck: "is-tucked-left" },
+          { edge: "bottom", dock: "is-edge-bottom", tuck: "is-tucked-bottom" },
+        ];
+        const allClasses = stops.flatMap((s) => [s.dock, s.tuck]);
+
+        for (const stop of stops) {
+          if (token.cancelled) return;
+
+          // 1. Dock — glide bubble onto the edge
+          bubble.classList.remove(...allClasses);
+          bubble.classList.add(stop.dock);
+          body.dataset.edge = stop.edge;
+          body.dataset.peek = "";
+          await sleep(680); if (token.cancelled) return;
+          await sleep(450); if (token.cancelled) return;
+
+          // 2. Tuck — bubble fades + slides further off; peek slit fades in
+          bubble.classList.remove(stop.dock);
+          bubble.classList.add(stop.tuck);
+          body.dataset.peek = stop.edge;
+          await sleep(680); if (token.cancelled) return;
+          await sleep(900); if (token.cancelled) return;
+
+          // 3. Untuck — bubble glides back into docked position
+          bubble.classList.remove(stop.tuck);
+          bubble.classList.add(stop.dock);
+          body.dataset.peek = "";
+          await sleep(680); if (token.cancelled) return;
+          await sleep(180); if (token.cancelled) return;
+        }
+
+        // Return to centre
+        bubble.classList.remove(...allClasses);
+        body.dataset.edge = "";
+        body.dataset.peek = "";
+        await sleep(720);
+      },
+
+      // 0b. Status — bubble stays put (centered, compact, no edge dock,
+      //     no controls strip), and the orb cycles through every Claude
+      //     lifecycle state with its proper emoji, label, and animation.
+      //     The bubble grows / shrinks slightly with text length — that's
+      //     the dynamic-width feature, not a bug. Crop tightly around the
+      //     bubble for this one (~360 wide × 60 tall).
+      async status(token) {
+        resetState();
+        await sleep(400); if (token.cancelled) return;
+
+        // Each entry mirrors packages/desktop/renderer/app.js#STATUS_META;
+        // the orb animations come from the [data-status="..."] CSS rules.
+        const cycle = [
+          { status: "idle",             dwell: 1100 },
+          { status: "thinking",         dwell: 2400 },  // halo breathes ~1 cycle
+          { status: "running_tool",     dwell: 2600 },  // ring spins ~1 turn
+          { status: "waiting_approval", dwell: 1800 },  // attention pulse
+          { status: "waiting_answer",   dwell: 1500 },
+          { status: "done",             dwell: 1700 },  // emoji bobs
+          { status: "idle",             dwell: 1100 },
+        ];
+        for (const step of cycle) {
+          if (token.cancelled) return;
+          setStatus(step.status);
+          await sleep(step.dwell);
+        }
+      },
+
+      // 1. Morph cycle — hero. Full story: pick sessions in heatmap →
+      //    generate cards from those sessions → review the fresh deck.
+      //    Showcases liquid morph + navigation + the picker drag-select +
+      //    the generation pipeline producing actual cards.
+      async morph(token) {
+        resetState();
+        await sleep(400); if (token.cancelled) return;
+        await startCursor();
+        if (token.cancelled) return;
+
+        // Hover bubble → controls fade in + width grows
+        await cursorClick(bubble, () => setHoverExpanded(true), { hold: 200, flash: 80 });
+        await sleep(360); if (token.cancelled) return;
+
+        // Click ⚙ → settings (skip the cards detour — we'll come back to
+        // cards at the end after generation produces something fresh)
+        await cursorClick($jump("settings"), () => setMode("settings"));
+        await sleep(900); if (token.cancelled) return;
+
+        // Scroll set-panels down to expose the heatmap picker
+        const setPanels = document.querySelector(".set-panels");
+        const pickerPanel = document.querySelector(".picker-panel");
+        if (setPanels && pickerPanel) {
+          setPanels.scrollTop = pickerPanel.offsetTop - 20;
+        }
+        await sleep(500); if (token.cancelled) return;
+
+        // Drag-select Wed of weeks 8 → 12 (cells 52, 59, 66, 73, 80) — one
+        // continuous horizontal sweep across 5 contiguous workdays.
+        await dragSelectRow(52, 80);
+        if (token.cancelled) return;
+        await sleep(500); if (token.cancelled) return;
+
+        // Click ⤢ → live (where the Generate button lives)
+        await cursorClick($jump("live"), () => setMode("live"));
+        await sleep(1000); if (token.cancelled) return;
+
+        // Click Generate → simulate the `claude -p` pipeline with progress
+        await simulateGenerate();
+        if (token.cancelled) return;
+        await sleep(400); if (token.cancelled) return;
+
+        // Click 📚 → cards mode shows the fresh deck with a "just generated" banner
+        document.getElementById("deckFreshBanner").hidden = false;
+        await cursorClick($jump("cards"), () => setMode("cards"));
+        await sleep(1700); if (token.cancelled) return;
+
+        // Click − → compact, story complete
+        await cursorClick($jump("compact"), () => {
+          setMode("compact");
+          setHoverExpanded(false);
+        });
+        await sleep(400);
+        await endCursor();
+      },
+
+      // 2. Approval — Claude triggers the request (no cursor); bubble auto
+      //    morphs to approval card; user cursor enters, clicks Approve;
+      //    bubble returns to compact + done flash, settles to idle.
+      async approval(token) {
+        resetState();
+        setStatus("running_tool");
+        await sleep(800); if (token.cancelled) return;
+
+        // Auto: Claude requests permission — bubble flips to approval card
+        setStatus("waiting_approval");
+        setMode("approval");
+        await sleep(900); if (token.cancelled) return;
+
+        await startCursor();
+        if (token.cancelled) return;
+
+        // Click Approve
+        await cursorClick(document.getElementById("btnApprove"), () => {
+          pulse("#btnApprove");
+        });
+        await sleep(280); if (token.cancelled) return;
+
+        // Bubble morphs back, status flashes done then settles
+        setMode("compact");
+        setStatus("done", "Tool finished");
+        await sleep(220);
+        await endCursor();
+        await sleep(700); if (token.cancelled) return;
+        setStatus("idle");
+      },
+
+      // 3. Cards review — cursor opens 📚, hits Start review, answers one
+      //    correct then one wrong, closes the deck.
+      async cards(token) {
+        resetState();
+        await sleep(400); if (token.cancelled) return;
+        await startCursor();
+        if (token.cancelled) return;
+
+        // Hover → expand
+        await cursorClick(bubble, () => setHoverExpanded(true), { hold: 200, flash: 80 });
+        await sleep(320); if (token.cancelled) return;
+
+        // Click 📚
+        await cursorClick($jump("cards"), () => setMode("cards"));
+        await sleep(1100); if (token.cancelled) return;
+
+        // Click Start review
+        await cursorClick(document.getElementById("btnStartReview"), () => {
+          document.getElementById("cardsPanel").classList.add("is-reviewing");
+        });
+        await sleep(700); if (token.cancelled) return;
+
+        // Click correct option (B)
+        const opts = document.querySelectorAll(".option");
+        const fb = document.getElementById("reviewFeedback");
+        await cursorClick(opts[1], () => {
+          opts[1].classList.add("correct");
+          document.getElementById("feedbackIcon").className = "feedback-icon correct";
+          document.getElementById("feedbackIcon").textContent = "✓";
+          document.getElementById("feedbackVerdict").className = "feedback-verdict correct";
+          document.getElementById("feedbackVerdict").innerHTML =
+            '<span class="top">Correct</span><span class="sub">main.js:962 — comment confirms</span>';
+          fb.hidden = false;
+        });
+        await sleep(1500); if (token.cancelled) return;
+
+        // Auto: advance to wrong-answer question
+        opts.forEach((o) => o.classList.remove("correct", "wrong"));
+        fb.hidden = true;
+        document.getElementById("reviewProgress").textContent = "Card 4 / 5";
+        document.getElementById("reviewQ").innerHTML =
+          'What does <code>color-mix(in oklch, …, transparent 80%)</code> produce?';
+        opts[0].querySelector("span:last-child").textContent =
+          "An RGB blend that ignores the OKLCH input.";
+        opts[1].querySelector("span:last-child").textContent =
+          "The first colour with 20% opacity in perceptually-uniform space.";
+        opts[2].querySelector("span:last-child").textContent =
+          "Half-saturation of the first colour.";
+        opts[3].querySelector("span:last-child").textContent =
+          "An invalid value — falls back to currentColor.";
+        await sleep(700); if (token.cancelled) return;
+
+        // Click wrong option (C) — system reveals correct (B)
+        await cursorClick(opts[2], () => {
+          opts[2].classList.add("wrong");
+          opts[1].classList.add("correct");
+          document.getElementById("feedbackIcon").className = "feedback-icon wrong";
+          document.getElementById("feedbackIcon").textContent = "✗";
+          document.getElementById("feedbackVerdict").className = "feedback-verdict wrong";
+          document.getElementById("feedbackVerdict").innerHTML =
+            '<span class="top">Not quite</span><span class="sub">It\'s B — OKLCH transparent is alpha, not desaturation.</span>';
+          fb.hidden = false;
+        });
+        await sleep(1700); if (token.cancelled) return;
+
+        // Auto: close review back to deck
+        document.getElementById("cardsPanel").classList.remove("is-reviewing");
+        opts.forEach((o) => o.classList.remove("correct", "wrong"));
+        fb.hidden = true;
+        await sleep(500); if (token.cancelled) return;
+
+        // Click − → compact
+        await cursorClick($jump("compact"), () => {
+          setMode("compact");
+          setHoverExpanded(false);
+        });
+        await sleep(300);
+        await endCursor();
+      },
+
+      // 4. Themes cycle — bubble stays compact; cursor lands on swatch and
+      //    clicks 4 times to cycle through every preset.
+      async themes(token) {
+        resetState();
+        await sleep(400); if (token.cancelled) return;
+        await startCursor();
+        if (token.cancelled) return;
+
+        // Hover → reveal swatch
+        await cursorClick(bubble, () => setHoverExpanded(true), { hold: 200, flash: 80 });
+        await sleep(320); if (token.cancelled) return;
+
+        const themes = ["amber-hearth", "paper-light", "aurora-indigo", "midnight-teal"];
+        for (const theme of themes) {
+          if (token.cancelled) return;
+          await cursorClick($swatch(), () => setTheme(theme), { hold: 200, flash: 280 });
+          await sleep(700);
+        }
+        await endCursor();
+      },
+    };
+
+    // ============================================================
+    // Wire up controls
+    // ============================================================
+    document.querySelectorAll("#seqGroup button[data-seq]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const name = btn.dataset.seq;
+        if (name === "reset") { reset(); return; }
+        cancelSeq();
+        const token = { cancelled: false };
+        runningSeq = token;
+        btn.classList.add("is-running");
+        try { await sequences[name](token); } finally {
+          btn.classList.remove("is-running");
+          if (runningSeq === token) runningSeq = null;
+        }
+      });
+    });
+
+    document.querySelectorAll(".theme-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+    });
+
+    // Bubble hover — in compact mode, hovering the bubble (or its 12 px
+    // shadow gutter) reveals the controls strip and widens to 224×42, just
+    // like the real bubble (main.js#setCompactHover).
+    bubble.addEventListener("pointerenter", () => {
+      if (body.dataset.mode === "compact") setHoverExpanded(true);
+      else body.dataset.controls = "visible";
+    });
+    bubble.addEventListener("pointerleave", () => {
+      if (body.dataset.mode === "compact") setHoverExpanded(false);
+      else body.dataset.controls = "hidden";
+    });
+
+    // Quick-jump from the bubble's controls strip itself. 📚/⚙/⤢ toggle —
+    // clicking the same button again returns to compact (matches main.js
+    // #open:cards / #open:settings handlers). The − button always returns
+    // to compact.
+    document.querySelectorAll("[data-jump]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        cancelSeq();
+        const target = btn.dataset.jump;
+        const next = target !== "compact" && body.dataset.mode === target
+          ? "compact"
+          : target;
+        setMode(next);
+        if (next === "compact") setHoverExpanded(false);
+      });
+    });
+
+    // Keyboard shortcuts — H/R/1-5 are utility, M/A/C/T trigger the same
+    // sequences as the top buttons. Letting you hide the UI (H) and then
+    // start a recording with just the bubble visible.
+    async function runSeqByName(name) {
+      cancelSeq();
+      // Headless renderer (scripts/render-demos.js) polls window.__seqDone
+      // to know when to stop the video capture. Keep this flag wired here
+      // so it's always reset at sequence start regardless of trigger source.
+      window.__seqDone = false;
+      const token = { cancelled: false };
+      runningSeq = token;
+      const btn = document.querySelector(`#seqGroup button[data-seq="${name}"]`);
+      btn?.classList.add("is-running");
+      try { await sequences[name](token); } finally {
+        btn?.classList.remove("is-running");
+        if (runningSeq === token) runningSeq = null;
+        if (!token.cancelled) window.__seqDone = true;
+      }
+    }
+    document.addEventListener("keydown", (e) => {
+      if (e.target.matches("textarea, input")) return;
+      const k = e.key.toLowerCase();
+      if (k === "h") {
+        body.dataset.ui = body.dataset.ui === "hidden" ? "visible" : "hidden";
+      } else if (k === "r") {
+        reset();
+      } else if (k === "e") { runSeqByName("edges"); }
+      else if (k === "s") { runSeqByName("status"); }
+      else if (k === "m") { runSeqByName("morph"); }
+      else if (k === "a") { runSeqByName("approval"); }
+      else if (k === "c") { runSeqByName("cards"); }
+      else if (k === "t") { runSeqByName("themes"); }
+      else if (k === "1") { cancelSeq(); setMode("compact"); setHoverExpanded(false); }
+      else if (k === "2") { cancelSeq(); setMode("approval"); }
+      else if (k === "3") { cancelSeq(); setMode("cards"); }
+      else if (k === "4") { cancelSeq(); setMode("settings"); }
+      else if (k === "5") { cancelSeq(); setMode("live"); }
+    });
+
+    // ============================================================
+    // Heatmap populator — 13 weeks × 7 days, deterministic plausible
+    // pattern (workdays heavier than weekends, recent denser than old).
+    // ============================================================
+    function populateHeatmap() {
+      const heatmap = document.getElementById("heatmap");
+      if (!heatmap) return;
+      const weeks = 13;
+      const days = weeks * 7;
+      const cells = [];
+      for (let i = 0; i < days; i++) {
+        const dayOfWeek = i % 7;
+        const weeksAgo = Math.floor((days - i - 1) / 7);
+        let lvl;
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          // Weekend baseline: mostly empty, occasional activity
+          lvl = (i % 11 === 0) ? 1 : 0;
+        } else {
+          // Workday: density grows toward "now"
+          lvl = weeksAgo > 8 ? 1 : weeksAgo > 4 ? 2 : 3;
+          // Sprinkle some 4s (heaviest) on Tue/Thu in last 3 weeks
+          if (weeksAgo < 3 && (dayOfWeek === 2 || dayOfWeek === 4)) lvl = 4;
+        }
+        // A few intentional gaps so the pattern doesn't look uniform
+        if (i === 8 || i === 27 || i === 45 || i === 70) lvl = 0;
+        cells.push(Math.max(0, Math.min(4, lvl)));
+      }
+      heatmap.innerHTML = cells.map((l, i) =>
+        `<div class="cell lvl-${l}" data-idx="${i}"></div>`).join("");
+    }
+    populateHeatmap();
+
+    // Initial width pass — measure the seeded "Idle" label.
+    requestAnimationFrame(updateBubbleWidth);
+
+    // ============================================================
+    // URL-driven autoplay — used by scripts/render-demos.js to drive
+    // headless captures. ?ui=hidden hides the controls + dashed frame
+    // border so the recording is just the bubble. ?seq=NAME triggers
+    // that sequence after a tiny settle delay.
+    // ============================================================
+    (function () {
+      const params = new URLSearchParams(location.search);
+      if (params.get("ui") === "hidden") {
+        body.dataset.ui = "hidden";
+      }
+      const seq = params.get("seq");
+      if (seq && sequences[seq]) {
+        // 200 ms lets fonts + heatmap + initial layout settle before the
+        // sequence starts running, so frame 0 of the recording is stable.
+        setTimeout(() => runSeqByName(seq), 200);
+      }
+    })();
+  </script>
+</body>
+</html>

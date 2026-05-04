@@ -28,7 +28,39 @@ Supporting demos:
 
 GitHub renders ≤10 MB inline; keep each clip ≤8 MB to be safe.
 
-## Recording recipe (Windows)
+## Auto-render (recommended)
+
+One command rebuilds every APNG in this folder from `demo/bubble-mockup.html`
+— no manual ScreenToGif clicking, deterministic timing, drives the same
+sequences the keyboard shortcuts trigger.
+
+**One-time setup**
+
+```powershell
+winget install ffmpeg            # ffmpeg on PATH
+npm install                      # pulls playwright
+npx playwright install chromium  # the headless browser playwright drives
+```
+
+**Render**
+
+```powershell
+npm run render-demos
+```
+
+About 1–2 minutes. Output goes straight into this folder
+(`hero-status.apng`, `edges-cycle.apng`, `hero-morph.apng`,
+`approval-flow.apng`, `cards-review.apng`, `themes-cycle.apng`).
+
+The script ([../scripts/render-demos.js](../scripts/render-demos.js))
+launches headless Chromium, navigates to each
+`demo/bubble-mockup.html?seq=<name>&ui=hidden`, polls
+`window.__seqDone` to know when the sequence finishes, then ffmpeg-crops
+the video to the record-frame and encodes it as an infinite-loop APNG.
+
+After every demo HTML change, just `npm run render-demos` again.
+
+## Manual record (fallback)
 
 1. Install [ScreenToGif](https://www.screentogif.com/) (free) — `winget install ScreenToGif` works.
 2. Open [`demo/bubble-mockup.html`](../demo/bubble-mockup.html) in Chrome / Edge.
