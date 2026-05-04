@@ -55,6 +55,9 @@ const state = {
     focus: "",
     difficulty: "balanced",   // "casual" | "balanced" | "deep"
     autoGenerate: true,
+    // 24h "HH:MM" — when current local time crosses this AND today
+    // hasn't been auto-generated yet, fire. Default 09:00 = "morning".
+    autoGenerateAt: "09:00",
     autoAddWrong: true,       // mirror of daemon-side default
     streakNotif: false,
     // Generation window (in days) used when no targetDate is set. Pinned to
@@ -1982,20 +1985,37 @@ async function fetchCardsToday() {
   fetchStreak();
 }
 
-// "Auto-generate on first bubble open of the day" — wired to
-// state.settings.autoGenerate. Fires at most once per local date by
-// stamping the date into localStorage. Skips if today's deck already
-// has cards (re-open on same day, after a manual generate, etc.) or
-// if a generation is already in flight from another renderer instance.
+// Scheduled auto-generate. Fires at the user-picked HH:MM each day —
+// alarm-clock semantics: if the app is running at the time, it fires;
+// if the app started later but the time has already passed AND today
+// hasn't been auto-generated, fire immediately (catch-up). At most
+// once per local date, tracked via localStorage so it survives reloads.
 const AUTO_GEN_LAST_DATE_KEY = "ccc.autoGen.lastDate";
+
+function nowHHMM() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+function todayLocalDateString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 async function maybeAutoGenerate() {
   if (!state.settings.autoGenerate) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const target = state.settings.autoGenerateAt || "09:00";
+  if (!/^\d{2}:\d{2}$/.test(target)) return;
+  // Only catch up after the configured time. Before it, just wait —
+  // the tick loop below re-calls this function every minute.
+  if (nowHHMM() < target) return;
+
+  const today = todayLocalDateString();
   let lastDate = null;
   try { lastDate = window.localStorage.getItem(AUTO_GEN_LAST_DATE_KEY); } catch (_e) {}
   if (lastDate === today) return;
 
-  // Snapshot today's deck. If it already has cards, just stamp and bail.
+  // Snapshot today's deck. If it already has cards from a manual run,
+  // stamp + bail (don't blow away the user's current deck).
   await fetchCardsToday();
   const deck = state.cards.today;
   const hasCards = deck && Array.isArray(deck.cards) && deck.cards.length > 0;
@@ -2004,9 +2024,19 @@ async function maybeAutoGenerate() {
   if (hasCards || inFlight) return;
 
   // Fire the same generate flow the manual button uses. Consent modal
-  // still gates the first ever run; if the user declines we just bail
-  // — the date stamp above means we won't pester them again today.
+  // gates first-ever run; if user declines, the date stamp above means
+  // we won't pester them again today.
   triggerCardsGenerate();
+}
+
+// Tick once a minute (well, once every 30 s for crisper fire times).
+// Cheap — just a couple of comparisons + a localStorage read most ticks.
+let autoGenTickTimer = null;
+function startAutoGenTickLoop() {
+  if (autoGenTickTimer) return;
+  autoGenTickTimer = setInterval(() => {
+    maybeAutoGenerate().catch(() => {});
+  }, 30_000);
 }
 
 async function fetchStreak() {
@@ -2178,7 +2208,20 @@ function renderCards() {
   if (els.cardsDeck)  els.cardsDeck.hidden  = false;
 
   if (els.abstractDate) {
-    els.abstractDate.textContent = `${payload.date} ${weekdayShort(payload.date)}`;
+    // The deck's own date stays primary (it's the file key — cards/<date>.json).
+    // When the source content actually came from a different span (heatmap
+    // pick of older sessions), append a "based on" tag so the user isn't
+    // confused by an abstract that talks about content from days/weeks ago.
+    let dateLine = `${payload.date} ${weekdayShort(payload.date)}`;
+    const range = payload.sourceDateRange;
+    if (range && range.from && (range.from !== payload.date || range.to !== payload.date)) {
+      const isZh = state.locale === "zh";
+      const span = range.from === range.to
+        ? range.from
+        : `${range.from} → ${range.to} · ${range.days}${isZh ? " 天" : "d"}`;
+      dateLine += isZh ? `  ·  内容自 ${span}` : `  ·  from ${span}`;
+    }
+    els.abstractDate.textContent = dateLine;
   }
   if (els.abstractMeta) {
     const stats = payload.stats || {};
@@ -2819,6 +2862,9 @@ function loadSettingsFromStorage() {
         difficulty: ["casual", "balanced", "deep"].includes(parsed.difficulty)
           ? parsed.difficulty : state.settings.difficulty,
         autoGenerate: typeof parsed.autoGenerate === "boolean" ? parsed.autoGenerate : state.settings.autoGenerate,
+        autoGenerateAt: typeof parsed.autoGenerateAt === "string" && /^\d{2}:\d{2}$/.test(parsed.autoGenerateAt)
+          ? parsed.autoGenerateAt
+          : state.settings.autoGenerateAt,
         autoAddWrong: typeof parsed.autoAddWrong === "boolean" ? parsed.autoAddWrong : state.settings.autoAddWrong,
         streakNotif:  typeof parsed.streakNotif  === "boolean" ? parsed.streakNotif  : state.settings.streakNotif,
         generateWindow: [1, 3, 7, 30].includes(Number(parsed.generateWindow))
@@ -3734,6 +3780,101 @@ if (els.settingsDifficulty) {
   });
 }
 
+// Apple-clock-style two-wheel time picker — scroll-snaps to a 24px row,
+// reads the centred row as the value. Padding rows at the top and
+// bottom let 00 / 23 / 59 actually land in the centre band. JS reads
+// scrollTop on scroll-end; CSS scroll-snap-type pulls the wheel to a
+// stable row even on flick gestures.
+function bindAutoGenerateTimePicker() {
+  const root = document.getElementById("autoGenerateTimePicker");
+  if (!root) return;
+  const ROW_H = 24;
+  const VISIBLE_ROWS = 3;
+  const PAD_ROWS = (VISIBLE_ROWS - 1) / 2; // 1 pad above + 1 below
+
+  function buildWheel(el, max) {
+    el.replaceChildren();
+    for (let i = 0; i < PAD_ROWS; i += 1) {
+      const pad = document.createElement("div");
+      pad.className = "time-wheel-cell is-pad";
+      el.append(pad);
+    }
+    for (let i = 0; i <= max; i += 1) {
+      const cell = document.createElement("div");
+      cell.className = "time-wheel-cell";
+      cell.textContent = String(i).padStart(2, "0");
+      cell.dataset.value = String(i);
+      el.append(cell);
+    }
+    for (let i = 0; i < PAD_ROWS; i += 1) {
+      const pad = document.createElement("div");
+      pad.className = "time-wheel-cell is-pad";
+      el.append(pad);
+    }
+  }
+
+  function valueFor(el) {
+    return Math.max(0, Math.round(el.scrollTop / ROW_H));
+  }
+  function paintCurrent(el) {
+    const idx = valueFor(el);
+    el.querySelectorAll(".time-wheel-cell").forEach((c, i) => {
+      // i=0..PAD_ROWS-1 are top pads, i=PAD_ROWS..PAD_ROWS+max are values
+      // current cell sits at i = PAD_ROWS + idx... but we use scrollTop /
+      // ROW_H so just compare against (idx + PAD_ROWS).
+      c.classList.toggle("is-current", i === idx + PAD_ROWS);
+    });
+  }
+  function setWheelTo(el, value) {
+    el.scrollTop = value * ROW_H;
+    paintCurrent(el);
+  }
+  function readTime() {
+    const h = valueFor(root.querySelector('.time-wheel[data-unit="hour"]'));
+    const m = valueFor(root.querySelector('.time-wheel[data-unit="minute"]'));
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+
+  const hourEl = root.querySelector('.time-wheel[data-unit="hour"]');
+  const minEl  = root.querySelector('.time-wheel[data-unit="minute"]');
+  buildWheel(hourEl, 23);
+  buildWheel(minEl, 59);
+
+  // Hydrate from saved setting.
+  const initial = state.settings.autoGenerateAt || "09:00";
+  const [ih, im] = initial.split(":").map((n) => parseInt(n, 10) || 0);
+  setWheelTo(hourEl, ih);
+  setWheelTo(minEl, im);
+
+  // Persist on scroll-end. Debounce so a flick doesn't spam writes.
+  let writeTimer = null;
+  const onScroll = (el) => {
+    paintCurrent(el);
+    if (writeTimer) clearTimeout(writeTimer);
+    writeTimer = setTimeout(() => {
+      writeTimer = null;
+      state.settings.autoGenerateAt = readTime();
+      persistSettings();
+    }, 220);
+  };
+  hourEl.addEventListener("scroll", () => onScroll(hourEl), { passive: true });
+  minEl.addEventListener("scroll", () => onScroll(minEl), { passive: true });
+
+  // Hide the wheel when auto-generate is off (still rendered so we don't
+  // re-build on toggle, just visually collapsed via [hidden]).
+  function syncWheelVisibility() {
+    root.hidden = !state.settings.autoGenerate;
+  }
+  syncWheelVisibility();
+  // Rebind: when the existing toggleAutoGenerate handler flips the bool,
+  // also update visibility.
+  const toggleEl = els.toggleAutoGenerate;
+  if (toggleEl) {
+    const observer = new MutationObserver(syncWheelVisibility);
+    observer.observe(toggleEl, { attributes: true, attributeFilter: ["class"] });
+  }
+}
+
 function bindToggle(button, key) {
   if (!button) return;
   button.addEventListener("click", () => {
@@ -4246,17 +4387,31 @@ if (els.dayAllToggle) {
     renderDayDetail();
   });
 }
-// 确定 button is now a no-op (changes already committed live), but
-// kept as an explicit "yes I'm done picking" affordance — flashes the
-// meta line green for a second so users get the visual confirmation
-// they were missing before.
+// 确定 button is now mostly a no-op (changes already committed live)
+// but kept as an explicit "yes I'm done picking" affordance. Earlier
+// version only flashed the meta-line color which the user reported
+// as too subtle — now the button itself becomes a sage "✓ 已保存"
+// pill for 1.4 s. Hard to miss.
 if (els.pickerConfirmBtn) {
-  els.pickerConfirmBtn.addEventListener("click", () => {
+  const btn = els.pickerConfirmBtn;
+  const originalLabel = btn.textContent;
+  let revertTimer = null;
+  btn.addEventListener("click", () => {
     commitDraft();
+    if (revertTimer) clearTimeout(revertTimer);
+    btn.classList.add("is-saved-flash");
+    btn.textContent = state.locale === "zh" ? "✓ 已保存" : "✓ Saved";
     if (els.pickerCountMeta) {
       els.pickerCountMeta.classList.add("is-flash-saved");
-      setTimeout(() => els.pickerCountMeta.classList.remove("is-flash-saved"), 900);
     }
+    revertTimer = setTimeout(() => {
+      btn.classList.remove("is-saved-flash");
+      btn.textContent = originalLabel;
+      if (els.pickerCountMeta) {
+        els.pickerCountMeta.classList.remove("is-flash-saved");
+      }
+      revertTimer = null;
+    }, 1400);
   });
 }
 
@@ -4391,11 +4546,17 @@ applySettingsToInputs();
 // Prime the cards button on first load (no-op if daemon hasn't responded yet).
 fetchCardsToday().then(updateCardsButton);
 
-// First bubble open of the day — auto-generate today's deck unless the
-// user disabled it in Settings. Deferred 1.5 s so the daemon's WS has
-// settled and the consent modal (if first run) lands cleanly without
-// fighting the bubble's morph animation.
-setTimeout(() => { maybeAutoGenerate().catch(() => {}); }, 1500);
+// Auto-generate scheduler — checks every 30 s whether now ≥ user's
+// picked time AND today hasn't been generated yet. Initial 1.5 s delay
+// lets the daemon WS settle + the consent modal (if first run) land
+// cleanly without fighting the bubble's morph animation.
+setTimeout(() => {
+  maybeAutoGenerate().catch(() => {});
+  startAutoGenTickLoop();
+}, 1500);
+
+// Wire the time-wheel picker — Apple-clock-style two-drum scroll.
+bindAutoGenerateTimePicker();
 
 // Debug handle: expose state on window so DevTools console can poke at
 // `appState.cards.today`, etc. Read-only contract — don't mutate from

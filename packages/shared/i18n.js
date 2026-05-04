@@ -155,8 +155,9 @@ const STRINGS = {
     "settings.picker.dayDetail.selectAll": "Select all",
 
     // ── Settings: behavior section ─────────────────────────
-    "settings.autoGenerate.label": "Auto-generate",
-    "settings.autoGenerate.meta": "on first bubble open of the day",
+    "settings.autoGenerate.label": "Auto-generate daily",
+    "settings.autoGenerate.meta": "runs once a day at the picked time",
+    "settings.autoGenerate.timeHint": "scroll a wheel · 24h",
     "settings.autoWrong.label": "Auto-add wrong cards",
     "settings.autoWrong.meta": "missed cards return tomorrow",
     "settings.streakNotif.label": "Streak notifications",
@@ -338,8 +339,9 @@ const STRINGS = {
     "settings.picker.dayDetail.selectAll": "全选",
 
     // ── 设置：行为 ────────────────────────────────────
-    "settings.autoGenerate.label": "自动生成",
-    "settings.autoGenerate.meta": "每天首次打开浮岛时自动跑一次",
+    "settings.autoGenerate.label": "每日定时生成",
+    "settings.autoGenerate.meta": "每天到时间自动跑一次",
+    "settings.autoGenerate.timeHint": "滑动选时 · 24 小时制",
     "settings.autoWrong.label": "自动加入错题本",
     "settings.autoWrong.meta": "答错的卡片明天再来",
     "settings.streakNotif.label": "连胜提醒",

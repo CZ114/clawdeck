@@ -571,6 +571,109 @@ body[data-mode="compact"] .window-actions button:hover {
   align-items: stretch !important;
   gap: 8px !important;
 }
+.settings-row-stack-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ============================================================
+   Auto-generate time picker — Apple-clock style two-wheel scroll.
+   Two narrow vertical strips, scroll-snap to a 24px row. The center
+   row of each wheel is the picked value; subtle gradient masks the
+   non-centered rows so they read as "drum sides". JS reads the
+   wheel via Math.round(el.scrollTop / 24) on every scroll-end.
+   ============================================================ */
+.time-wheel-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--inner-well);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  /* Hide entirely when the auto-gen toggle is off. */
+  transition: opacity 220ms var(--ease-standard), max-height 280ms var(--ease-standard);
+  max-height: 80px;
+  opacity: 1;
+  overflow: hidden;
+}
+.time-wheel-row[hidden] {
+  display: flex;
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  pointer-events: none;
+}
+.time-wheel {
+  position: relative;
+  width: 44px;
+  height: 72px;            /* 3 visible rows × 24px each */
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  /* Soft drum-side fade — center row stays sharp, top/bottom dim. */
+  -webkit-mask-image: linear-gradient(180deg,
+    transparent 0,
+    #000 25%,
+    #000 75%,
+    transparent 100%);
+          mask-image: linear-gradient(180deg,
+    transparent 0,
+    #000 25%,
+    #000 75%,
+    transparent 100%);
+}
+.time-wheel::-webkit-scrollbar { display: none; }
+.time-wheel-cell {
+  height: 24px;
+  scroll-snap-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.time-wheel-cell.is-pad {
+  /* The first + last 24px on each wheel are spacers so 00 / 23 / 59 can
+     scroll into the center band. Invisible. */
+  pointer-events: none;
+}
+.time-wheel-cell.is-current {
+  color: var(--ink-0);
+  font-weight: 600;
+  font-size: 14px;
+}
+/* Subtle horizontal lines marking the center "selected" band — the
+   actual visual cue that "this row is the chosen value". */
+.time-wheel::before,
+.time-wheel::after {
+  content: "";
+  position: absolute;
+  left: 4px; right: 4px;
+  height: 1px;
+  background: var(--line);
+  pointer-events: none;
+  z-index: 1;
+}
+.time-wheel::before { top: 24px; }
+.time-wheel::after  { top: 48px; }
+.time-wheel-sep {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-1);
+  padding: 0 2px;
+}
+.time-wheel-hint {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
 .theme-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2019,6 +2122,15 @@ body[data-peeking="true"] .live-panel {
 }
 .btn-primary:hover { background: var(--bg-sage-hover); }
 .btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+/* Used briefly after the picker's 确定 click — a stronger save-feedback
+   than just colour-flashing the meta line, which the user kept missing. */
+.btn-primary.is-saved-flash {
+  background: var(--accent-sage);
+  color: var(--bg);
+  transform: scale(1.04);
+  transition: background 200ms ease, color 200ms ease, transform 200ms ease;
+}
 
 .btn-secondary {
   background: var(--surface-2);

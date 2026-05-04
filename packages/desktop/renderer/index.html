@@ -412,12 +412,24 @@
           </div>
           <h4 class="set-subheading" data-i18n="settings.section.behavior">Behavior</h4>
           <div class="set-panel-body">
-            <div class="settings-row">
-              <div class="settings-row-text">
-                <span class="settings-row-label" data-i18n="settings.autoGenerate.label">Auto-generate</span>
-                <span class="settings-row-meta" data-i18n="settings.autoGenerate.meta">on first bubble open of the day</span>
+            <div class="settings-row settings-row-stack">
+              <div class="settings-row-stack-head">
+                <div class="settings-row-text">
+                  <span class="settings-row-label" data-i18n="settings.autoGenerate.label">Auto-generate daily</span>
+                  <span class="settings-row-meta" data-i18n="settings.autoGenerate.meta">runs once a day at the picked time</span>
+                </div>
+                <button class="toggle is-on" id="toggleAutoGenerate" type="button" role="switch" aria-checked="true" data-i18n-aria-label="settings.autoGenerate.label"></button>
               </div>
-              <button class="toggle is-on" id="toggleAutoGenerate" type="button" role="switch" aria-checked="true" data-i18n-aria-label="settings.autoGenerate.label"></button>
+              <!-- Apple-clock-style two-wheel time picker (hour : minute,
+                   24h). Visible only when Auto-generate is on. JS in
+                   bindAutoGenerateTimePicker reads scrollTop / scroll-snap
+                   to pull the centred row's value. -->
+              <div class="time-wheel-row" id="autoGenerateTimePicker">
+                <div class="time-wheel" data-unit="hour" aria-label="Hour"></div>
+                <span class="time-wheel-sep">:</span>
+                <div class="time-wheel" data-unit="minute" aria-label="Minute"></div>
+                <span class="time-wheel-hint" data-i18n="settings.autoGenerate.timeHint">scroll a wheel · 24h</span>
+              </div>
             </div>
 
             <div class="settings-row">

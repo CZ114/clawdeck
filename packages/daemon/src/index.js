@@ -1705,6 +1705,26 @@ async function handleCardsGenerate(req, res) {
     });
   }
 
+  // Span of dates the included sessions actually cover. Drives the prompt
+  // ("Activity span: from X to Y") and the deck header ("based on 04-20→
+  // 04-23 · 4 days" instead of just "today"). Without this, picking 4 days
+  // back returns an abstract that says "这一天" because the model thinks
+  // the transcript is just today's.
+  const includedIds = new Set(transcripts.map((t) => t.sessionId));
+  const includedDateSet = new Set();
+  for (const s of allSessions) {
+    if (!includedIds.has(s.sessionId)) continue;
+    const ms = typeof s.lastSeenAt === "number" ? s.lastSeenAt : Date.parse(s.lastSeenAt);
+    if (!Number.isFinite(ms)) continue;
+    includedDateSet.add(new Date(ms).toISOString().slice(0, 10));
+  }
+  const sortedIncluded = Array.from(includedDateSet).sort();
+  const sourceDateRange = sortedIncluded.length > 0 ? {
+    from: sortedIncluded[0],
+    to: sortedIncluded[sortedIncluded.length - 1],
+    days: sortedIncluded.length
+  } : null;
+
   cardsGenerationStatus.stage = "calling";
   cardsGenerationStatus.message = transcripts.length > 0
     ? `Calling claude -p with ${transcripts.length} session${transcripts.length === 1 ? "" : "s"} (${Math.round(transcriptCharsUsed / 1000)}k chars)…`
@@ -1730,6 +1750,7 @@ async function handleCardsGenerate(req, res) {
     sessions: sessionStateList(),
     auditEvents,
     transcripts,
+    sourceDateRange,
     sampleDeckPayload
   });
 

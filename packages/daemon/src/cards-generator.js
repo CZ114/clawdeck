@@ -51,6 +51,7 @@ async function generateCards({
   sessions,
   auditEvents,
   transcripts,  // [{sessionId, cwd, text}, ...] — real per-session content
+  sourceDateRange, // {from, to, days} | null — span of the included sessions
   sampleDeckPayload  // injected fallback for stub / spawn-failure paths
 }) {
   const date = isValidDate(targetDate) ? targetDate : todayLocalDate();
@@ -82,7 +83,8 @@ async function generateCards({
       windowDays: window,
       cardCount: count,
       webAllowed,
-      locale: localeKey
+      locale: localeKey,
+      sourceDateRange
     });
   } catch (error) {
     return errorResult(error, { date, focus: focusText, difficulty: difficultyKey });
@@ -120,7 +122,8 @@ async function generateCards({
     focus: focusText,
     difficulty: difficultyKey,
     parsed,
-    prompt
+    prompt,
+    sourceDateRange
   });
 }
 
@@ -128,7 +131,7 @@ async function generateCards({
 // Prompt composition
 // ============================================================
 
-function composePrompt({ focus, difficulty, transcript, date, windowDays, cardCount, webAllowed, locale }) {
+function composePrompt({ focus, difficulty, transcript, date, windowDays, cardCount, webAllowed, locale, sourceDateRange }) {
   const localeKey = LOCALES.includes(locale) ? locale : DEFAULT_LOCALE;
   const tpl = PROMPT_TEMPLATES[localeKey] || PROMPT_TEMPLATES[DEFAULT_LOCALE];
   // Output language directive — the model follows the prompt's language
@@ -137,15 +140,35 @@ function composePrompt({ focus, difficulty, transcript, date, windowDays, cardCo
   const outputLanguageDirective = localeKey === "zh"
     ? `IMPORTANT: All natural-language card text (questions, options, abstract, explanation snippets) MUST be in Simplified Chinese (中文). JSON keys stay English.`
     : `IMPORTANT: All natural-language card text MUST be in English. JSON keys stay English.`;
+  // When the user picked sessions explicitly, the "past N days" framing
+  // is misleading — the activity log might be 4 days from a fortnight
+  // ago, not "today". Tell the model the real span so the abstract
+  // doesn't open with "今天" / "this day" when the source is older.
+  const spanLine = sourceDateRange && sourceDateRange.from
+    ? sourceDateRange.from === sourceDateRange.to
+      ? `Activity span: a single day (${sourceDateRange.from})`
+      : `Activity span: ${sourceDateRange.from} → ${sourceDateRange.to} (${sourceDateRange.days} day${sourceDateRange.days === 1 ? "" : "s"} of activity, possibly with gaps)`
+    : `Activity window: past ${windowDays} day${windowDays === 1 ? "" : "s"}`;
+  // Force the abstract to acknowledge the span — without this directive
+  // the model still defaults to "这一天 ..." even when the activity log
+  // covers a multi-day stretch.
+  const spanDirective = sourceDateRange && sourceDateRange.from
+    ? sourceDateRange.from === sourceDateRange.to
+      ? `In the abstract opening line, refer to the source date explicitly (e.g. "${sourceDateRange.from}" / "On ${sourceDateRange.from}, …" / "${sourceDateRange.from} 这一天，…"). Do NOT call it "today" / "这一天" without the date — the deck may be reviewed days later.`
+      : `In the abstract opening line, refer to the source span explicitly (e.g. "Across ${sourceDateRange.from}–${sourceDateRange.to} (${sourceDateRange.days} days), …" / "${sourceDateRange.from} 到 ${sourceDateRange.to} 这 ${sourceDateRange.days} 天里，…"). Do NOT use singular phrases like "today" / "this day" / "这一天" — the activity is multi-day.`
+    : null;
+
   return [
     tpl.intro,
     ``,
     `Today's date: ${date}`,
-    `Activity window: past ${windowDays} day${windowDays === 1 ? "" : "s"}`,
+    spanLine,
     `Target card count: ${cardCount} cards (best effort; produce as close as possible)`,
     ``,
     outputLanguageDirective,
     ``,
+    spanDirective,
+    spanDirective ? `` : null,
     focus
       ? [
           `User's stated learning focus:`,
@@ -446,7 +469,7 @@ function parseInnerCards(text) {
 // Payload composition
 // ============================================================
 
-function composePayload({ date, focus, difficulty, parsed, prompt }) {
+function composePayload({ date, focus, difficulty, parsed, prompt, sourceDateRange }) {
   const cards = Array.isArray(parsed && parsed.cards) ? parsed.cards : [];
   const validated = [];
   const dropped = [];
@@ -494,6 +517,7 @@ function composePayload({ date, focus, difficulty, parsed, prompt }) {
       focusCoverage,
       difficultyPreference: difficulty,
       sourceSessionIds,
+      sourceDateRange: sourceDateRange || null,
       sourceCounts: {
         session: validated.length - webCards,
         web: webCards
