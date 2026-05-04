@@ -48,23 +48,21 @@
     "extraResources": [],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        { "target": "nsis", "arch": ["x64"] }
       ],
       "signAndEditExecutable": false,
       "verifyUpdateCodeSignature": false
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
+      "allowElevation": false,
+      "runAfterFinish": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Clawdeck",
-      "uninstallDisplayName": "Clawdeck"
-    },
-    "portable": {
-      "artifactName": "${productName}-${version}-portable.exe"
+      "uninstallDisplayName": "Clawdeck",
+      "artifactName": "${productName}-${version}.exe"
     }
   },
   "devDependencies": {
