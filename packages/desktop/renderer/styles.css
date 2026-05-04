@@ -3506,6 +3506,14 @@ body[data-peeking="true"] .live-panel {
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--ink-2);
+  transition: color 200ms ease, transform 200ms ease;
+}
+/* Brief sage flash when the user clicks 确定 — they were missing visual
+   feedback that the selection actually saved (it auto-saves now too,
+   but the explicit click should still feel acknowledged). */
+.picker-meta.is-flash-saved {
+  color: var(--accent-sage);
+  transform: scale(1.04);
 }
 .btn-chip {
   background: var(--surface-2);

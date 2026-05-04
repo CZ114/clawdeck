@@ -1982,6 +1982,33 @@ async function fetchCardsToday() {
   fetchStreak();
 }
 
+// "Auto-generate on first bubble open of the day" — wired to
+// state.settings.autoGenerate. Fires at most once per local date by
+// stamping the date into localStorage. Skips if today's deck already
+// has cards (re-open on same day, after a manual generate, etc.) or
+// if a generation is already in flight from another renderer instance.
+const AUTO_GEN_LAST_DATE_KEY = "ccc.autoGen.lastDate";
+async function maybeAutoGenerate() {
+  if (!state.settings.autoGenerate) return;
+  const today = new Date().toISOString().slice(0, 10);
+  let lastDate = null;
+  try { lastDate = window.localStorage.getItem(AUTO_GEN_LAST_DATE_KEY); } catch (_e) {}
+  if (lastDate === today) return;
+
+  // Snapshot today's deck. If it already has cards, just stamp and bail.
+  await fetchCardsToday();
+  const deck = state.cards.today;
+  const hasCards = deck && Array.isArray(deck.cards) && deck.cards.length > 0;
+  const inFlight = state.cards.generation && state.cards.generation.state === "generating";
+  try { window.localStorage.setItem(AUTO_GEN_LAST_DATE_KEY, today); } catch (_e) {}
+  if (hasCards || inFlight) return;
+
+  // Fire the same generate flow the manual button uses. Consent modal
+  // still gates the first ever run; if the user declines we just bail
+  // — the date stamp above means we won't pester them again today.
+  triggerCardsGenerate();
+}
+
 async function fetchStreak() {
   try {
     state.cards.streak = await fetchJson("/cards/streak");
@@ -3101,6 +3128,22 @@ async function triggerCardsGenerate() {
     if (state.settings.generateDate) {
       state.settings.generateDate = null;
     }
+    // Same one-shot semantics for the heatmap session pick — once it's
+    // been used to feed a generation, drop back to Auto so the next run
+    // doesn't silently re-use the same selection (a real bug report from
+    // a user who picked sessions, generated, then expected the next
+    // generate to be fresh and got the same set).
+    if (Array.isArray(state.settings.selectedSessionIds)) {
+      state.settings.selectedSessionIds = null;
+      persistSettings();
+      if (picker && picker.draft) {
+        picker.draft.clear();
+      }
+      if (els.heatmap) renderHeatmap();
+      if (els.dayDetail) renderDayDetail();
+      updatePickerCountMeta();
+      applyPickerSummaryToInputs();
+    }
   } catch (error) {
     console.error("[cards] generate failed:", error);
     state.cards.generation = {
@@ -3978,9 +4021,10 @@ function bindHeatmapPointer() {
     const [lo, hi] = a < b ? [a, b] : [b, a];
     const dates = enumerateDates(lo, hi).filter((ds) => picker.byDate.has(ds));
     picker.focusDates = new Set(dates);
-    // Drag-as-bulk-select: auto-add every session in the range to the draft.
-    // The detail panel still lets the user uncheck individual ones before
-    // hitting Confirm.
+    // Drag-as-bulk-select: auto-add every session in the range to the
+    // selection AND immediately commit. The old flow left the result in
+    // a "draft" limbo until the user hit 确定 — which they often didn't,
+    // so Generate kept falling back to today's session only.
     if (a !== b) {
       for (const ds of dates) {
         for (const s of (picker.byDate.get(ds) || [])) {
@@ -3988,7 +4032,7 @@ function bindHeatmapPointer() {
         }
       }
     }
-    renderHeatmap();
+    commitDraft();
     renderDayDetail();
   };
   els.heatmap.addEventListener("pointerup", finishDrag);
@@ -4036,7 +4080,10 @@ function renderDayDetail() {
       else picker.draft.delete(item.sessionId);
       row.classList.toggle("is-checked", cb.checked);
       updateSelectAllToggle();
-      updatePickerCountMeta();
+      // Auto-commit so the selection actually reaches /cards/generate
+      // even if the user never clicks 确定. Old flow left changes in
+      // limbo and Generate fell back to today's session.
+      commitDraft();
     });
     const text = document.createElement("div");
     text.className = "day-session-text";
@@ -4195,12 +4242,21 @@ if (els.dayAllToggle) {
         else picker.draft.delete(s.sessionId);
       }
     }
+    commitDraft();
     renderDayDetail();
   });
 }
+// 确定 button is now a no-op (changes already committed live), but
+// kept as an explicit "yes I'm done picking" affordance — flashes the
+// meta line green for a second so users get the visual confirmation
+// they were missing before.
 if (els.pickerConfirmBtn) {
   els.pickerConfirmBtn.addEventListener("click", () => {
     commitDraft();
+    if (els.pickerCountMeta) {
+      els.pickerCountMeta.classList.add("is-flash-saved");
+      setTimeout(() => els.pickerCountMeta.classList.remove("is-flash-saved"), 900);
+    }
   });
 }
 
@@ -4334,6 +4390,12 @@ applySettingsToInputs();
 
 // Prime the cards button on first load (no-op if daemon hasn't responded yet).
 fetchCardsToday().then(updateCardsButton);
+
+// First bubble open of the day — auto-generate today's deck unless the
+// user disabled it in Settings. Deferred 1.5 s so the daemon's WS has
+// settled and the consent modal (if first run) lands cleanly without
+// fighting the bubble's morph animation.
+setTimeout(() => { maybeAutoGenerate().catch(() => {}); }, 1500);
 
 // Debug handle: expose state on window so DevTools console can poke at
 // `appState.cards.today`, etc. Read-only contract — don't mutate from
