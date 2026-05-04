@@ -110,9 +110,8 @@ The island persists its last bounds, mode, snapped edge, and tucked state in `~/
 The hover-only controls are:
 
 - power toggles Companion approvals globally (`~/.claude-companion/disabled` flag).
-- color swatch opens the system color picker for the compact capsule surface.
-- gear toggles dashboard mode — the bubble's full overview (pending queue, sessions, devices, pairing, audit events, health). Replaces the legacy browser dashboard.
-- square toggles compact / expanded — opens approval / question if a request is pending, otherwise opens the dashboard.
+- color swatch opens the system color picker for the compact capsule surface. The bubble pins itself open while the picker is showing so it can't auto-collapse out from under the user (especially on macOS where the picker is a separate window).
+- gear toggles dashboard mode — the bubble's full overview (pending queue, sessions, devices, pairing, audit events, health). It is the single entry point for both "settings" and "expand"; pending requests auto-expand to approval / question on their own, so a separate expand button is no longer wired up. Replaces the legacy browser dashboard.
 - minus minimizes the window.
 
 The window does not start or stop Claude Code. It is another local client of the daemon, so the terminal remains the source of truth and Claude Code's native UI still works when the Companion approval hook is bypassed.
@@ -195,10 +194,10 @@ npm run setup-hooks -- D:\Imperial\individual\week15
 
 The setup command creates or merges:
 
-- `permissions.ask`: `Bash`, `PowerShell`
+- `permissions.ask`: `Bash`, `PowerShell` on Windows; `Bash` only on macOS / Linux. Including `PowerShell` in the rule list on a non-Windows host makes Claude Code reject the entire `permissions` block at startup (no such tool registered) — `setup-hooks.js` keys off `process.platform === "win32"` to avoid that.
 - `permissions.deny`: `.env` and `secrets/**` reads
 - lifecycle status hooks for `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `Notification`, and `Stop`
-- native approval hook for `PermissionRequest`
+- native approval hook for `PermissionRequest` with matcher `Bash|PowerShell` on Windows, `Bash` only on macOS / Linux
 - answer hook for `AskUserQuestion`
 
 It preserves unrelated existing settings and hook entries. To preview the generated settings without writing:
@@ -257,9 +256,24 @@ CCC_CONTEXT_WINDOW_TOKENS=
 CCC_MODEL_CONTEXT_WINDOWS=
 CCC_DISABLE_1M_CONTEXT=false
 CLAUDE_CODE_DISABLE_1M_CONTEXT=
+
+# Knowledge Cards (Stage 1.5) — see also docs/security.md "Knowledge Cards Data Policy"
+CCC_CARDS_USE_STUB=false                  # true = bypass real claude -p, return seeded sample deck
+CCC_CLAUDE_BIN=claude                     # override claude CLI binary path
+CCC_CARDS_GENERATE_TIMEOUT_MS=180000      # subprocess kill timeout (no web fallback)
+CCC_CARDS_GENERATE_TIMEOUT_WEB_MS=360000  # subprocess kill timeout (web fallback enabled)
+CCC_CARDS_TRANSCRIPT_BUDGET=60000         # default total chars fed to claude -p (UI override 10k..1M)
+CCC_CARDS_TRANSCRIPT_PER_SESSION=         # default = floor(budget/5); per-session char cap
 ```
 
 Use `CCC_FAIL_OPEN=true` only while debugging. The default is fail-closed.
+
+Knowledge Cards env vars:
+
+- `CCC_CARDS_USE_STUB=true` skips spawning the user's `claude` CLI and returns a seeded sample deck — used by the smoke test (`scripts/smoke-test.js`) and useful when developing on a machine without `claude` installed. Stub mode also bypasses the consent gate.
+- `CCC_CLAUDE_BIN` overrides `claude` (e.g. set to `C:\Users\me\AppData\Local\Programs\Claude\claude.exe` if not on PATH).
+- `CCC_CARDS_GENERATE_TIMEOUT_MS` and `…_WEB_MS` kill the `claude -p` subprocess if it hasn't returned by then. Web fallback adds 2-3 HTTP round-trips per card so the web variant defaults higher.
+- `CCC_CARDS_TRANSCRIPT_BUDGET` is the *default* total prompt budget. The bubble overrides per-run via the slider (`Settings → Knowledge cards → Transcript budget`). Daemon clamps to `[10_000, 1_000_000]`.
 
 Runtime switches:
 
@@ -349,6 +363,11 @@ Invoke-RestMethod `
 
 ## Troubleshooting
 
+If Claude Code on macOS refuses to start with a "no such tool: PowerShell" error after running `setup-hooks`:
+
+- The installed `setup-hooks.js` predates the cross-platform fix. Re-run `npm run setup-hooks -- <target-repo>` from the latest checkout — the current installer skips `PowerShell` entirely on non-Windows hosts (both in `permissions.ask` and the `PermissionRequest` matcher).
+- If you hand-edited `.claude/settings.local.json`, remove `"PowerShell"` from `permissions.ask` and replace any `Bash|PowerShell` matcher with `Bash`.
+
 If every Bash or PowerShell command is denied:
 
 1. Make sure `npm run daemon` is running.
@@ -373,3 +392,30 @@ Or move the new daemon to a different port and use the same `CCC_PORT` when laun
 $env:CCC_PORT = "4318"
 npm run daemon
 ```
+
+### Knowledge Cards troubleshooting
+
+Generation hangs / times out:
+
+- The default timeout is 180 s (no web fallback) / 360 s (with web). If the user has a long focus + web fallback enabled and a flaky network, raise `CCC_CARDS_GENERATE_TIMEOUT_WEB_MS` or turn web fallback off in Settings → Behavior.
+- Check the daemon console — `claude -p timed out after Ns — raise CCC_CARDS_GENERATE_TIMEOUT_MS` will print on a real timeout.
+
+Generated deck is empty / "0 cards":
+
+- Strict-source validation is dropping every card. Common causes:
+  1. Selected too small a transcript window; nothing in the prompt ≥ 10 chars matches the model's quote
+  2. Web fallback is off + user's `focus` doesn't appear in any session content
+- Check `payload.generationRecord.cardsDropped` in `<DATA_DIR>/cards/<date>.json` for the count + reasons.
+
+`claude -p` not on PATH:
+
+- Daemon falls back to a stub deck so the bubble keeps working, with `error: "claude CLI not available …; using stub deck"` on the response.
+- Set `CCC_CLAUDE_BIN` to the absolute path or install the Claude Code CLI.
+
+Picker heatmap is empty even though sessions exist:
+
+- The picker fetches `/sessions/scan-candidates` ~600 ms after app boot. If the daemon was offline at that moment, click any rail item or reload the bubble — the fetch will retry.
+
+Sessions auto-trash misbehaving:
+
+- Generator session noise is moved to `<DATA_DIR>/trash/generator/`; manual deletes go to `<DATA_DIR>/trash/manual/`. Both are auto-pruned to the last 50. To recover a trashed session, copy it back into `~/.claude/projects/<encoded-cwd>/`.

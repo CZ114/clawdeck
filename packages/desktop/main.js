@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 
 // Same path the hook scripts check via shared/protocol.js#isCompanionDisabled.
 const COMPANION_DIR = path.join(os.homedir(), ".claude-companion");
@@ -46,25 +46,46 @@ function setCompanionEnabled(enabled) {
 // gutter as long as the BrowserWindow opts out of thickFrame, mica, and
 // roundedCorners (see createWindow).
 const BUBBLE_PADDING = 12;
+// SATELLITE_GUTTER reserves vertical room BELOW the bubble for the
+// approve/deny floating chips. Only added to modes that actually show
+// the satellites (approval / question). The chips animate into this
+// gutter from the bubble's bottom edge.
+const SATELLITE_GUTTER = 44;
 const CAPSULE_BOUNDS = {
   compact: { width: 124, height: 42 },
   approval: { width: 360, height: 238 },
   question: { width: 360, height: 300 },
-  // dashboard: full overview that replaces the legacy browser dashboard at
-  // http://127.0.0.1:4317/ — pending queue, sessions, devices, pairing,
-  // audit events, health footer. Internal scroll handles overflow.
-  dashboard: { width: 420, height: 540 }
+  // cards: knowledge-cards mode (Stage 1.5). Today / History / Wrong-book
+  // tabs, daily abstract, active-review flow. See
+  // docs/decisions/ADR-20260503-knowledge-cards.md.
+  cards: { width: 460, height: 600 },
+  // settings: replaces the old dashboard mode. Knowledge Cards config plus
+  // collapsible sections for sessions / activity / devices / pairing.
+  settings: { width: 440, height: 580 },
+  // live: dedicated "monitor" surface — active Claude sessions + today's
+  // deck + Knowledge Cards entry. Lives outside settings so the user can
+  // open it with one click from the controls strip.
+  live: { width: 380, height: 440 }
 };
 const COMPACT_HOVER_CAPSULE = { width: 224, height: 42 };
 function paddedBounds(b) {
   return { width: b.width + 2 * BUBBLE_PADDING, height: b.height + 2 * BUBBLE_PADDING };
 }
+function paddedBoundsWithSatellites(b) {
+  return { width: b.width + 2 * BUBBLE_PADDING, height: b.height + 2 * BUBBLE_PADDING + SATELLITE_GUTTER };
+}
 const MODE_BOUNDS = {
   compact: paddedBounds(CAPSULE_BOUNDS.compact),
-  approval: paddedBounds(CAPSULE_BOUNDS.approval),
-  question: paddedBounds(CAPSULE_BOUNDS.question),
-  dashboard: paddedBounds(CAPSULE_BOUNDS.dashboard)
+  approval: paddedBoundsWithSatellites(CAPSULE_BOUNDS.approval),
+  question: paddedBoundsWithSatellites(CAPSULE_BOUNDS.question),
+  cards: paddedBounds(CAPSULE_BOUNDS.cards),
+  settings: paddedBounds(CAPSULE_BOUNDS.settings),
+  live: paddedBounds(CAPSULE_BOUNDS.live)
 };
+const MAX_MODE_BOUNDS = Object.values(MODE_BOUNDS).reduce((acc, b) => ({
+  width: Math.max(acc.width, b.width),
+  height: Math.max(acc.height, b.height)
+}), { width: 0, height: 0 });
 const COMPACT_HOVER_BOUNDS = paddedBounds(COMPACT_HOVER_CAPSULE);
 const EDGE_PADDING = 8;
 const SNAP_DISTANCE = 48;
@@ -89,6 +110,7 @@ let snappedEdges = { horizontal: null, vertical: null };
 let snapDebounceTimer = null;
 let isPeeking = false;
 let compactHoverExpanded = false;
+let lastSentHoverExpanded = false;
 let snapSuppressedUntil = 0;
 let compactCollapseTimer = null;
 let compactHoverVisibleSince = 0;
@@ -98,6 +120,14 @@ let peekHoverPollTimer = null;
 let desktopStateWriteTimer = null;
 let windowPriorityTimer = null;
 let initialDesktopState = null;
+// holdOpen is set while a system-modal control on the bubble (currently the
+// macOS color picker) is open. The picker steals pointer focus, which would
+// otherwise auto-collapse the compact bubble and dismiss the controls strip
+// before the user can pick a color. While held, both the compact-collapse
+// timer and the peek-unhover transition are suppressed.
+let holdOpen = false;
+const HOLD_OPEN_FALLBACK_MS = 30_000;
+let holdOpenFallbackTimer = null;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -105,6 +135,18 @@ function clamp(value, min, max) {
 
 function easeOutCubic(value) {
   return 1 - Math.pow(1 - value, 3);
+}
+
+// Liquid water-droplet easing — overshoots the target ~6% then settles.
+// Mirrors the rubber-band physics of iOS/macOS dynamic island morphs.
+// Curve mimics cubic-bezier(0.34, 1.56, 0.64, 1) when sampled at the
+// fixed points the renderer's CSS transition uses, so the OS window
+// resize and the renderer's border-radius / scale animation read as
+// one continuous "droplet stretch" instead of two separate transitions.
+function easeOutDroplet(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
 
 function readJsonFile(filePath) {
@@ -283,7 +325,7 @@ function targetBoundsForMode(mode) {
   return { x, y, width: size.width, height: size.height };
 }
 
-function animateWindowBounds(target, durationMs = 190, onComplete) {
+function animateWindowBounds(target, durationMs = 190, onComplete, opts) {
   if (!mainWindow) {
     return;
   }
@@ -293,6 +335,11 @@ function animateWindowBounds(target, durationMs = 190, onComplete) {
     boundsAnimation = null;
   }
 
+  // Liquid morph mode: bouncy overshoot easing so the bubble stretches
+  // toward the target like a water droplet under tension. Used for
+  // mode→mode transitions; small adjustments (peek / hover) stay on the
+  // gentle easeOutCubic so they don't feel jittery.
+  const easing = (opts && opts.liquid) ? easeOutDroplet : easeOutCubic;
   const start = mainWindow.getBounds();
   const startedAt = Date.now();
 
@@ -304,7 +351,7 @@ function animateWindowBounds(target, durationMs = 190, onComplete) {
     }
 
     const progress = clamp((Date.now() - startedAt) / durationMs, 0, 1);
-    const eased = easeOutCubic(progress);
+    const eased = easing(progress);
     const next = {
       x: Math.round(start.x + (target.x - start.x) * eased),
       y: Math.round(start.y + (target.y - start.y) * eased),
@@ -395,6 +442,58 @@ function sendAttentionChanged() {
     return;
   }
   mainWindow.webContents.send("window:attention-changed", attentionState);
+}
+
+function sendHoverExpandedChanged() {
+  if (!mainWindow) {
+    return;
+  }
+  // Compact mode's resting capsule is too narrow to hold the controls strip
+  // alongside the orb + label. The renderer uses this signal to gate
+  // window-actions visibility on whether the bubble has actually expanded
+  // (avoiding the brief overlap during the 170ms hover-expand animation).
+  const expanded = currentMode !== "compact" || compactHoverExpanded;
+  if (expanded === lastSentHoverExpanded) {
+    return;
+  }
+  lastSentHoverExpanded = expanded;
+  mainWindow.webContents.send("window:hover-expanded-changed", expanded);
+}
+
+function clearHoldOpenFallback() {
+  if (holdOpenFallbackTimer) {
+    clearTimeout(holdOpenFallbackTimer);
+    holdOpenFallbackTimer = null;
+  }
+}
+
+function setHoldOpen(value) {
+  const next = Boolean(value);
+  if (next === holdOpen) {
+    return;
+  }
+  holdOpen = next;
+  if (holdOpen) {
+    clearCompactCollapseTimer();
+    clearHoldOpenFallback();
+    holdOpenFallbackTimer = setTimeout(() => {
+      holdOpenFallbackTimer = null;
+      holdOpen = false;
+      // After the fallback fires, fall back to the normal collapse path so
+      // we don't get stuck pinned open if the picker never reports closed.
+      if (mainWindow && currentMode === "compact" && compactHoverExpanded) {
+        scheduleCompactCollapse();
+      }
+    }, HOLD_OPEN_FALLBACK_MS);
+    return;
+  }
+  clearHoldOpenFallback();
+  // When the user finishes with the picker, re-enter the normal collapse
+  // schedule so the bubble eventually tucks back even if the cursor is still
+  // off the bubble.
+  if (mainWindow && currentMode === "compact" && compactHoverExpanded) {
+    scheduleCompactCollapse();
+  }
 }
 
 function reinforceWindowPriority() {
@@ -516,6 +615,7 @@ function detachFromEdge() {
   snapSuppressedUntil = Date.now() + SNAP_REATTACH_COOLDOWN_MS;
   mainWindow.webContents.send("window:peek-changed", false);
   sendSnapChanged();
+  sendHoverExpandedChanged();
   scheduleDesktopStateSave();
 }
 
@@ -529,8 +629,12 @@ function enterPeek() {
   if (currentMode !== "compact" || !isSnapped()) {
     return;
   }
+  if (holdOpen) {
+    return;
+  }
   clearCompactCollapseTimer();
   compactHoverExpanded = false;
+  sendHoverExpandedChanged();
   isPeeking = true;
   animateWindowBounds(compactPeekBounds(), 180, scheduleDesktopStateSave);
   mainWindow.webContents.send("window:peek-changed", true);
@@ -546,6 +650,7 @@ function exitPeek() {
   if (currentMode === "compact" && isSnapped()) {
     compactHoverExpanded = true;
     compactHoverVisibleSince = Date.now();
+    sendHoverExpandedChanged();
     animateWindowBounds(compactSnappedBounds(true), 170, scheduleDesktopStateSave);
   }
   mainWindow.webContents.send("window:peek-changed", false);
@@ -587,6 +692,7 @@ function collapseCompactHoverNow() {
   }
 
   compactHoverExpanded = false;
+  sendHoverExpandedChanged();
   if (isSnapped()) {
     enterPeek();
     return;
@@ -599,6 +705,9 @@ function scheduleCompactCollapse() {
   if (!mainWindow || currentMode !== "compact") {
     return;
   }
+  if (holdOpen) {
+    return;
+  }
 
   clearCompactCollapseTimer();
   const visibleFor = Date.now() - compactHoverVisibleSince;
@@ -608,6 +717,9 @@ function scheduleCompactCollapse() {
     compactCollapseTimer = null;
 
     if (!mainWindow || currentMode !== "compact") {
+      return;
+    }
+    if (holdOpen) {
       return;
     }
 
@@ -640,7 +752,7 @@ function setCompactHover(expanded) {
       return;
     }
     const target = isSnapped() ? compactSnappedBounds(true) : targetBoundsForMode("compact");
-    animateWindowBounds(target, 170);
+    animateWindowBounds(target, 170, sendHoverExpandedChanged);
     return;
   }
 
@@ -663,16 +775,22 @@ function setIslandMode(mode) {
   const target = currentMode === "compact" && isSnapped()
     ? compactSnappedBounds()
     : targetBoundsForMode(currentMode);
-  animateWindowBounds(target, 190, () => {
+  // Liquid morph: bouncy 280 ms transition gives the bubble its
+  // water-droplet stretch feel for mode→mode changes (compact ⇄ approval ⇄
+  // cards ⇄ settings). Renderer's CSS .island border-radius transition
+  // shares the same timing budget so the OS resize and the visual
+  // shape change read as one continuous motion.
+  animateWindowBounds(target, 280, () => {
     if (currentMode === "compact" && isSnapped()) {
       enterPeek();
     } else {
       scheduleDesktopStateSave();
     }
-  });
+  }, { liquid: true });
   mainWindow.webContents.send("window:mode-changed", currentMode);
   mainWindow.webContents.send("window:peek-changed", false);
   sendSnapChanged();
+  sendHoverExpandedChanged();
   return { mode: currentMode };
 }
 
@@ -687,7 +805,7 @@ function triggerDoneAttention() {
   compactHoverExpanded = true;
   compactHoverVisibleSince = Date.now();
   setAttentionState("done");
-  animateWindowBounds(compactSnappedBounds(true), 190);
+  animateWindowBounds(compactSnappedBounds(true), 190, sendHoverExpandedChanged);
   mainWindow.webContents.send("window:peek-changed", false);
 
   doneAttentionTimer = setTimeout(() => {
@@ -766,16 +884,24 @@ function snapWindowToNearbyEdge() {
     bottom: Math.abs(workArea.y + workArea.height - (bounds.y + bounds.height))
   };
 
-  const horizontal = distances.left <= SNAP_DISTANCE
-    ? "left"
-    : distances.right <= SNAP_DISTANCE
-      ? "right"
-      : null;
-  const vertical = distances.top <= SNAP_DISTANCE
-    ? "top"
-    : distances.bottom <= SNAP_DISTANCE
-      ? "bottom"
-      : null;
+  // Single-axis snap: pick whichever edge the user is closest to. Snapping
+  // to two edges at once forced the bubble into a corner, which made every
+  // off-corner drag look like it "centered" itself because the other axis
+  // got pinned to the screen edge instead of staying where the user dropped
+  // it. With single-axis snap, drag-to-top preserves the user's X and
+  // drag-to-right preserves the user's Y.
+  const closest = Object.entries(distances).reduce((best, entry) => {
+    return entry[1] < best[1] ? entry : best;
+  });
+  let horizontal = null;
+  let vertical = null;
+  if (closest[1] <= SNAP_DISTANCE) {
+    if (closest[0] === "left" || closest[0] === "right") {
+      horizontal = closest[0];
+    } else {
+      vertical = closest[0];
+    }
+  }
 
   snappedEdges = { horizontal, vertical };
   sendSnapChanged();
@@ -826,8 +952,8 @@ function createWindow() {
     height: initial.height,
     minWidth: 46,
     minHeight: 40,
-    maxWidth: MODE_BOUNDS.dashboard.width,
-    maxHeight: MODE_BOUNDS.dashboard.height,
+    maxWidth: MAX_MODE_BOUNDS.width,
+    maxHeight: MAX_MODE_BOUNDS.height,
     x: initial.x,
     y: initial.y,
     frame: false,
@@ -896,12 +1022,38 @@ function createWindow() {
     mainWindow.webContents.send("window:mode-changed", currentMode);
     mainWindow.webContents.send("window:snap-changed", snappedEdges);
     mainWindow.webContents.send("window:peek-changed", isPeeking);
+    lastSentHoverExpanded = currentMode !== "compact" || compactHoverExpanded;
+    mainWindow.webContents.send("window:hover-expanded-changed", lastSentHoverExpanded);
     mainWindow.showInactive();
     startWindowPriorityGuard();
     scheduleDesktopStateSave();
     if (isPeeking) {
       startPeekHoverPolling();
     }
+    // CCC_DEVTOOLS=true auto-opens DevTools detached. The bubble is
+    // frameless so the system menu is hidden — Ctrl+Shift+I from the
+    // accelerator map sometimes gets eaten by IMEs (especially Chinese).
+    // The opt-in env var is the most reliable handoff for debug sessions.
+    if (process.env.CCC_DEVTOOLS === "true") {
+      mainWindow.webContents.openDevTools({ mode: "detach" });
+    }
+  });
+
+  // Always wire an explicit accelerator that fires regardless of menu
+  // visibility — F12 is the universal "open dev tools" key and isn't
+  // touched by IMEs. Also accept Ctrl+Shift+I as a backup.
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.type !== "keyDown") return;
+    const isToggle =
+      input.key === "F12" ||
+      (input.control && input.shift && (input.key === "I" || input.key === "i"));
+    if (!isToggle) return;
+    if (mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools();
+    } else {
+      mainWindow.webContents.openDevTools({ mode: "detach" });
+    }
+    event.preventDefault();
   });
 }
 
@@ -950,12 +1102,28 @@ ipcMain.handle("window:set-mode", (_event, mode) => {
   return setIslandMode(mode);
 });
 
-// Gear button — toggle in-app dashboard. The legacy browser page at
-// http://127.0.0.1:4317/ has been removed; everything it used to show
-// now lives inside the bubble's dashboard mode.
-ipcMain.handle("open:dashboard", () => {
-  const target = currentMode === "dashboard" ? "compact" : "dashboard";
+// Gear button — opens settings (Knowledge Cards config + collapsible
+// sessions / activity / devices sections). Replaces the legacy dashboard
+// mode; click again from inside settings to collapse back to compact.
+ipcMain.handle("open:settings", () => {
+  const target = currentMode === "settings" ? "compact" : "settings";
   return setIslandMode(target);
+});
+
+// 📚 button — opens the cards mode (Today / History / Wrong-book tabs).
+ipcMain.handle("open:cards", () => {
+  const target = currentMode === "cards" ? "compact" : "cards";
+  return setIslandMode(target);
+});
+
+// ⤢ button — always EXPANDS to live monitor mode. Never toggles back
+// to compact (use the − minimize button for that). The user explicitly
+// wants this asymmetry: ⤢ = open, − = close.
+ipcMain.handle("open:live", () => {
+  if (currentMode === "live") {
+    return { mode: currentMode };
+  }
+  return setIslandMode("live");
 });
 
 ipcMain.handle("window:peek-hover", () => {
@@ -983,3 +1151,30 @@ ipcMain.handle("window:clear-attention", () => {
 ipcMain.handle("companion:get-enabled", () => readCompanionEnabled());
 
 ipcMain.handle("companion:set-enabled", (_event, enabled) => setCompanionEnabled(Boolean(enabled)));
+
+ipcMain.handle("window:set-hold", (_event, value) => {
+  setHoldOpen(value);
+  return { holdOpen };
+});
+
+// File-system helpers used by Settings → Cards storage. The renderer
+// can't legally open native dialogs or shell URLs on its own (sandbox),
+// so it goes through main process IPC.
+ipcMain.handle("dialog:pick-folder", async (_event, options = {}) => {
+  if (!mainWindow) return { canceled: true, folder: null };
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: options.title || "Pick a folder",
+    defaultPath: options.defaultPath || undefined,
+    properties: ["openDirectory", "createDirectory", "promptToCreate"]
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { canceled: true, folder: null };
+  }
+  return { canceled: false, folder: result.filePaths[0] };
+});
+
+ipcMain.handle("shell:open-folder", async (_event, folder) => {
+  if (!folder || typeof folder !== "string") return { ok: false, error: "no folder" };
+  const error = await shell.openPath(folder);
+  return { ok: !error, error: error || null };
+});

@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redesign C — Spatial Tabs</title>
+<style>
+/* =============================================================
+   Direction C — "Spatial Tabs"
+   The bubble has segmented zones (status / approval / cards / settings).
+   Mode change = the active zone scales UP, the others compress —
+   no shape morph, smallest possible motion budget.
+   Settings becomes a command-palette list — searchable, no nesting.
+   ============================================================= */
+:root {
+  color-scheme: dark;
+
+  --bg:               oklch(13% 0.012 270);
+  --surface-0:        oklch(13% 0.012 270);
+  --surface-1:        oklch(17% 0.014 270 / 0.96);
+  --surface-2:        oklch(22% 0.016 270);
+  --surface-3:        oklch(26% 0.018 270);
+  --inner-well:       oklch(11% 0.010 270);
+  --ink-0:            oklch(95% 0.014 80);
+  --ink-1:            oklch(70% 0.012 250);
+  --ink-2:            oklch(50% 0.010 250);
+  --line:             oklch(60% 0 0 / 0.10);
+  --accent:           oklch(74% 0.07 195);
+  --accent-warm:      oklch(78% 0.08 70);
+  --accent-warm-hi:   oklch(82% 0.10 70);
+  --accent-sage:      oklch(72% 0.06 150);
+  --accent-rose:      oklch(70% 0.07 25);
+  --accent-slate:     oklch(60% 0.03 250);
+
+  --bg-accent:       color-mix(in oklch, var(--accent),       transparent 82%);
+  --bg-sage:         color-mix(in oklch, var(--accent-sage),  transparent 82%);
+  --bg-warm:         color-mix(in oklch, var(--accent-warm),  transparent 82%);
+  --bg-rose:         color-mix(in oklch, var(--accent-rose),  transparent 82%);
+
+  --shadow-inner:
+    0 1px 0 inset oklch(100% 0 0 / 0.055),
+    0 -1px 0 inset oklch(0% 0 0 / 0.18),
+    0 0 0 1px inset oklch(100% 0 0 / 0.045);
+  --shadow-float:
+    0 1px 1px oklch(0% 0 0 / 0.34),
+    0 4px 8px -6px oklch(0% 0 0 / 0.52),
+    0 8px 12px -11px oklch(0% 0 0 / 0.30);
+  --shadow-float-tall:
+    0 1px 2px oklch(0% 0 0 / 0.34),
+    0 8px 16px -10px oklch(0% 0 0 / 0.52),
+    0 14px 24px -18px oklch(0% 0 0 / 0.34);
+
+  /* Notch-style spring — restrained, no overshoot beyond 1.04× */
+  --ease-zone:   cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.18, 0.64, 1);
+
+  --font-ui: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: radial-gradient(ellipse at top, oklch(18% 0.018 270), var(--bg));
+  color: var(--ink-0);
+  font-family: var(--font-ui);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.005em;
+  min-height: 100vh;
+  padding: 48px 24px 96px;
+}
+button { border: 0; font: inherit; cursor: pointer; color: inherit; }
+
+.page { max-width: 880px; margin: 0 auto; }
+
+.rationale {
+  background: var(--surface-1);
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow-inner), var(--shadow-float-tall);
+  margin-bottom: 64px;
+}
+.rationale h1 { margin: 0 0 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.rationale .tag {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent-sage); margin-bottom: 12px;
+}
+.rationale p { margin: 8px 0 0; color: var(--ink-1); font-size: 13px; line-height: 1.6; }
+.rationale .key {
+  margin-top: 16px; display: grid;
+  grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.rationale .key div {
+  background: var(--surface-2); border-radius: 10px; padding: 10px 12px;
+  font-size: 11px; color: var(--ink-1);
+}
+.rationale .key strong { color: var(--ink-0); display: block; margin-bottom: 2px; font-weight: 600; font-size: 11.5px; }
+
+.mode-label {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink-1);
+  margin: 56px 0 20px;
+}
+.mode-label::before { content: ""; flex: 0 0 28px; height: 1px; background: var(--line); }
+.mode-label::after  { content: ""; flex: 1; height: 1px; background: var(--line); }
+.mode-label .num {
+  display: inline-flex; width: 22px; height: 22px;
+  align-items: center; justify-content: center;
+  background: var(--bg-sage); color: var(--accent-sage);
+  border-radius: 50%; font-size: 11px; letter-spacing: 0;
+}
+
+.stage {
+  display: flex; justify-content: center;
+  padding: 36px 24px;
+  background: linear-gradient(180deg,
+    oklch(15% 0.014 270) 0%,
+    oklch(11% 0.010 270) 100%);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  position: relative;
+}
+.stage::before {
+  content: attr(data-size);
+  position: absolute; top: 12px; right: 16px;
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--ink-2); letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   The vessel — segmented zones
+   ============================================================ */
+.bubble {
+  background: var(--surface-1);
+  border-radius: 22px;
+  box-shadow: var(--shadow-inner), var(--shadow-float-tall);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  /* Promote — every change is transform/opacity inside */
+  will-change: transform;
+}
+.bubble::before {
+  content: ""; position: absolute; inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg,
+    oklch(100% 0 0 / 0.045),
+    transparent 42%,
+    oklch(0% 0 0 / 0.075));
+}
+
+/* ============================================================
+   COMPACT — pill shape, status zone is the only visible "tab"
+   ============================================================ */
+.bubble.compact {
+  width: 124px; height: 42px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-inner), var(--shadow-float);
+}
+.compact-row {
+  display: flex; align-items: center;
+  height: 100%;
+  padding: 0 14px 0 8px;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+.orb {
+  flex: 0 0 26px; height: 26px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) 0 calc(var(--ctx, 60) * 1%), oklch(35% 0 0 / 0.5) 0);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.orb::before {
+  content: ""; position: absolute; inset: 1.5px;
+  border-radius: 50%; background: var(--inner-well);
+}
+.orb-emoji { position: relative; font-size: 13.5px; z-index: 1; }
+.compact .text {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 600;
+  color: var(--ink-0);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* hover-revealed strip */
+.compact .controls {
+  display: flex; gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
+  opacity: 0; transform: translateX(6px);
+  transition: opacity 220ms var(--ease-zone), transform 220ms var(--ease-zone);
+}
+.bubble.compact:hover { width: 248px; }
+.bubble.compact:hover .controls,
+.bubble.compact.show-controls .controls { opacity: 1; transform: none; }
+.ctl {
+  width: 24px; height: 24px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--ink-1); font-size: 13px;
+  position: relative;
+  transition: background 160ms var(--ease-zone), color 160ms var(--ease-zone);
+}
+.ctl:hover { background: color-mix(in oklch, var(--ink-0), transparent 90%); color: var(--ink-0); }
+.ctl-swatch {
+  display: inline-block; width: 12px; height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-warm));
+}
+.cards-badge {
+  position: absolute; top: -3px; right: -3px;
+  min-width: 14px; height: 14px;
+  padding: 0 4px;
+  background: var(--accent-warm-hi); color: oklch(20% 0 0);
+  border-radius: 7px;
+  font-size: 9px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ============================================================
+   APPROVAL — header status zone is COMPRESSED, body is the focus
+   ============================================================ */
+.bubble.approval { width: 360px; height: 238px; }
+.bubble.question { width: 360px; height: 300px; }
+.bubble.cards    { width: 460px; height: 600px; }
+.bubble.settings { width: 440px; height: 580px; }
+
+/* The compressed status header — same orb, same text, smaller padding.
+   This is the SAME element as the compact bubble's status — it just
+   compressed when the approval zone took focus. */
+.zone-header {
+  display: flex; align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--inner-well);
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-1);
+  position: relative; z-index: 1;
+}
+.zone-header .orb { flex: 0 0 22px; height: 22px; }
+.zone-header .orb-emoji { font-size: 11.5px; }
+.zone-header .lede {
+  font-weight: 600;
+  color: var(--ink-0);
+  font-size: 12px;
+}
+.zone-header .meta {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-2);
+  display: flex; gap: 10px;
+}
+.zone-header .ctl-mini {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  transition: background 160ms var(--ease-zone), color 160ms var(--ease-zone);
+}
+.zone-header .ctl-mini:hover { background: var(--surface-3); color: var(--ink-0); }
+
+.zone-body {
+  padding: 16px 18px;
+  display: flex; flex-direction: column;
+  position: relative; z-index: 1;
+  height: calc(100% - 44px);
+}
+.zone-body.tight { padding-top: 14px; }
+
+/* Risk + tool name typography — strict hierarchy */
+.approval-head {
+  display: flex; align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.approval-head .left .eyebrow {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 2px;
+}
+.approval-head .left .tool-name {
+  font-size: 17px; font-weight: 600;
+  margin: 0; letter-spacing: -0.005em;
+}
+.risk-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-warm-hi);
+  color: var(--accent-warm-hi);
+  background: var(--bg-warm);
+}
+.risk-pill[data-risk="low"]  { border-color: var(--accent-sage); color: var(--accent-sage); background: var(--bg-sage); }
+.risk-pill[data-risk="high"] { border-color: var(--accent-rose); color: var(--accent-rose); background: var(--bg-rose); }
+.cmd-preview {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-1);
+  margin-bottom: 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: var(--shadow-inner);
+}
+.meta-grid {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  row-gap: 6px;
+  font-size: 11.5px;
+  margin: 0 0 10px;
+}
+.meta-grid dt {
+  margin: 0; font-weight: 500;
+  color: var(--ink-2);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+}
+.meta-grid dd { margin: 0; color: var(--ink-1); }
+
+.actions {
+  margin-top: auto;
+  display: flex; gap: 8px;
+}
+.btn {
+  flex: 1; height: 34px;
+  border-radius: 10px;
+  font-weight: 600; font-size: 13px;
+  background: var(--surface-2);
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+  transition: transform 160ms var(--ease-zone), background 160ms var(--ease-zone);
+}
+.btn:hover { transform: translateY(-1px); background: var(--surface-3); }
+.btn.approve { background: oklch(22% 0.025 150); color: var(--accent-sage); }
+.btn.deny    { background: oklch(22% 0.025 25);  color: var(--accent-rose); }
+.btn.suggest { background: oklch(22% 0.025 70);  color: var(--accent-warm); flex: 0.7; }
+
+/* ============================================================
+   SATELLITES — same as before, below bubble
+   ============================================================ */
+.satellites {
+  position: absolute;
+  left: 50%; bottom: -38px;
+  transform: translateX(-50%);
+  display: flex; gap: 14px;
+}
+.sat {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+  color: oklch(20% 0 0);
+  box-shadow: 0 6px 18px oklch(0% 0 0 / 0.45), var(--shadow-inner);
+  animation: satSplit 540ms var(--ease-spring);
+}
+.sat-approve { background: var(--accent-sage); }
+.sat-deny    { background: var(--accent-rose); }
+@keyframes satSplit {
+  0%   { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* ============================================================
+   QUESTION
+   ============================================================ */
+.question-body h2 {
+  font-size: 15.5px; font-weight: 600;
+  margin: 6px 0 12px;
+}
+.option-list {
+  display: flex; flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink-0);
+  cursor: pointer;
+  transition: background 160ms var(--ease-zone);
+}
+.opt:hover { background: var(--surface-3); }
+.opt-bullet {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-2);
+  flex: 0 0 14px;
+}
+.opt.is-active .opt-bullet { border-color: var(--accent); background: var(--accent); }
+.other-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-0);
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 160ms var(--ease-zone);
+  font-family: var(--font-ui);
+}
+.other-input:focus { border-color: var(--accent); }
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.cards-tabs {
+  display: flex; gap: 2px;
+  background: var(--surface-2);
+  padding: 3px;
+  border-radius: 11px;
+  margin-bottom: 16px;
+}
+.cards-tab {
+  flex: 1; padding: 7px 10px;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px; font-weight: 500;
+  color: var(--ink-1);
+  position: relative;
+  transition: color 160ms var(--ease-zone), background 240ms var(--ease-zone);
+}
+.cards-tab.is-active {
+  background: var(--surface-3); color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+}
+.cards-tab .pill {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px; height: 14px; line-height: 14px;
+  background: var(--bg-warm); color: var(--accent-warm);
+  border-radius: 7px;
+  font-size: 9.5px; font-weight: 700;
+}
+.inner-card {
+  background: var(--surface-2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-inner);
+  margin-bottom: 12px;
+}
+.inner-card:last-of-type { margin-bottom: 0; }
+.abstract-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.abstract-date {
+  font-size: 11px; color: var(--ink-1);
+  letter-spacing: 0.06em;
+}
+.streak {
+  margin-left: auto;
+  background: oklch(28% 0.04 70);
+  color: var(--accent-warm-hi);
+  font-size: 11px; font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.inner-card h2 {
+  margin: 0 0 6px;
+  font-size: 14.5px; font-weight: 600;
+}
+.inner-card p {
+  margin: 0;
+  font-size: 12.5px; color: var(--ink-1); line-height: 1.55;
+}
+.progress-block { display: flex; flex-direction: column; gap: 8px; }
+.progress-label-row {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--ink-1);
+}
+.progress-label-row strong { color: var(--ink-0); font-weight: 600; }
+.bar-shell {
+  height: 6px; background: var(--inner-well);
+  border-radius: 999px; overflow: hidden;
+  position: relative;
+}
+.bar-fill {
+  position: absolute; inset: 0;
+  width: 60%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-sage));
+  border-radius: inherit;
+}
+.cta-row { display: flex; gap: 8px; margin-top: auto; }
+.btn-cta {
+  flex: 1; height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-0);
+  font-weight: 600; font-size: 14px;
+  display: inline-flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  box-shadow: var(--shadow-inner);
+  transition: transform 160ms var(--ease-zone), background 160ms var(--ease-zone);
+}
+.btn-cta:hover { background: var(--surface-3); transform: translateY(-1px); }
+.btn-cta .arrow { font-size: 12px; color: var(--ink-1); font-weight: 500; }
+.btn-cta-ghost {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2); color: var(--ink-1);
+  font-size: 16px;
+  box-shadow: var(--shadow-inner);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ============================================================
+   SETTINGS — command palette: searchable flat list
+   The flagship change: NO expanders. Every setting is one row.
+   Group headers are sticky labels, not collapsible sections.
+   ============================================================ */
+.cmd-search {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--inner-well);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-inner);
+}
+.cmd-search .glyph {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.cmd-search input {
+  flex: 1;
+  background: transparent;
+  border: 0; outline: 0;
+  color: var(--ink-0);
+  font-size: 13px;
+  font-family: var(--font-ui);
+}
+.cmd-search input::placeholder { color: var(--ink-2); }
+.cmd-search .kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.cmd-section-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding: 14px 4px 6px;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+.cmd-section-label:first-of-type {
+  border-top: 0; padding-top: 0; margin-top: 0;
+}
+
+.cmd-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  transition: background 160ms var(--ease-zone);
+  cursor: pointer;
+}
+.cmd-row:hover {
+  background: color-mix(in oklch, var(--ink-0), transparent 92%);
+}
+.cmd-row.is-focused {
+  background: var(--surface-2);
+  box-shadow: var(--shadow-inner);
+}
+.cmd-row .glyph {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-accent);
+  color: var(--accent);
+  border-radius: 6px;
+  font-size: 11px;
+  flex: 0 0 22px;
+}
+.cmd-row .text { flex: 1; min-width: 0; }
+.cmd-row .label { display: block; font-size: 12.5px; color: var(--ink-0); }
+.cmd-row .meta  { display: block; font-size: 10.5px; color: var(--ink-2); margin-top: 1px; }
+.cmd-row .ctrl { color: var(--ink-1); font-size: 11px; flex-shrink: 0; }
+.cmd-row .ctrl .toggle {
+  width: 28px; height: 16px;
+  background: var(--surface-3);
+  border-radius: 999px;
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  transition: background 200ms var(--ease-zone);
+}
+.cmd-row .ctrl .toggle::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  border-radius: 50%; background: var(--ink-0);
+  transition: transform 200ms var(--ease-zone);
+}
+.cmd-row .ctrl .toggle.on { background: var(--accent); }
+.cmd-row .ctrl .toggle.on::after { transform: translateX(12px); }
+.cmd-row .ctrl .seg-mini {
+  display: inline-flex;
+  background: var(--inner-well);
+  border-radius: 6px;
+  padding: 2px;
+}
+.cmd-row .ctrl .seg-mini button {
+  padding: 3px 7px;
+  font-size: 10px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.cmd-row .ctrl .seg-mini button.is-active {
+  background: var(--surface-3); color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+}
+.cmd-row .ctrl .value-pill {
+  background: var(--bg-accent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.settings-body-cmd {
+  padding: 18px 18px 18px;
+  height: 100%;
+  display: flex; flex-direction: column;
+  position: relative; z-index: 1;
+}
+.cmd-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+  gap: 1px;
+}
+
+/* ============================================================
+   ZONE-SCALE animation — the signature motion of this direction.
+   When focus moves between zones, the active one scales 1 → 1.04 →
+   1 with the body opacity-fading on the same curve.
+   ============================================================ */
+.zone-body { transition: opacity 220ms var(--ease-zone); }
+
+/* Demo: zone scale */
+.demo-controls { margin: 16px 0 0; display: flex; gap: 8px; justify-content: center; }
+.demo-btn {
+  background: var(--surface-2); color: var(--ink-0);
+  padding: 8px 14px; border-radius: 10px;
+  font-size: 12px; font-weight: 500;
+  box-shadow: var(--shadow-inner);
+}
+.demo-btn:hover { background: var(--surface-3); }
+
+/* The demo bubble — show the zone scale-up effect.
+   Active zone scales 1 → 1.04 once, then settles. */
+@keyframes zonePop {
+  0%   { transform: scale(1);    }
+  35%  { transform: scale(1.04); }
+  100% { transform: scale(1);    }
+}
+.zone-pop { animation: zonePop 360ms var(--ease-spring); transform-origin: center; }
+.zone-pop-header { animation: zonePop 360ms var(--ease-spring); transform-origin: top; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <section class="rationale">
+    <span class="tag">Direction C · Spatial Tabs</span>
+    <h1>Zones, not modes. Scale, not morph.</h1>
+    <p>
+      The bubble is one container with stacked zones — a status header on top, a body underneath. When mode
+      changes, the active zone simply <em>scales up by 4%</em> while content cross-fades on the same curve.
+      No shape morph, no border-radius interpolation, no fighting transitions. Total motion budget per
+      mode-switch is ~360ms of one composited animation. Settings ditches expanders entirely for a
+      command-palette-style flat list — searchable, every setting one click away. Power users live here.
+    </p>
+    <div class="key">
+      <div><strong>Fixes jank</strong>Smallest motion budget — only scale + opacity. No layout property is animated, ever.</div>
+      <div><strong>Fixes partitioning</strong>Status header is a permanent thin bar on every panel — you always know where you are.</div>
+      <div><strong>Risk</strong>Less drama — the polish wins are invisible to users who expected "pop". Settings palette is a learning curve.</div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       MODE: COMPACT
+       ======================================================== -->
+  <div class="mode-label"><span class="num">1</span>Mode: compact</div>
+  <div class="stage" data-size="124 × 42 → 248 × 42 on hover">
+    <div class="bubble compact show-controls">
+      <div class="compact-row">
+        <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🤔</span></span>
+        <span class="text">Thinking…</span>
+        <span class="controls">
+          <button class="ctl" title="Power">⏻</button>
+          <button class="ctl" title="Theme"><span class="ctl-swatch"></span></button>
+          <button class="ctl" title="Cards">📚<span class="cards-badge">3</span></button>
+          <button class="ctl" title="Settings">⚙</button>
+          <button class="ctl" title="Minimize">−</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: APPROVAL — status zone compresses to header strip
+       ======================================================== -->
+  <div class="mode-label"><span class="num">2</span>Mode: approval</div>
+  <div class="stage" data-size="360 × 238 + 44 px satellite gutter">
+    <div style="position:relative; padding-bottom: 44px;">
+      <div class="bubble approval">
+        <header class="zone-header">
+          <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🛂</span></span>
+          <span class="lede">1 pending</span>
+          <span class="meta">
+            <button class="ctl-mini" title="Theme"><span class="ctl-swatch" style="width:11px;height:11px;"></span></button>
+            <button class="ctl-mini" title="Cards">📚</button>
+            <button class="ctl-mini" title="Settings">⚙</button>
+          </span>
+        </header>
+        <div class="zone-body">
+          <div class="approval-head">
+            <div class="left">
+              <div class="eyebrow">Bash · approval</div>
+              <h2 class="tool-name">git push --force-with-lease</h2>
+            </div>
+            <div class="risk-pill" data-risk="medium">Medium</div>
+          </div>
+          <div class="cmd-preview">git push origin main --force-with-lease</div>
+          <dl class="meta-grid">
+            <dt>cwd</dt><dd>~/work/companion</dd>
+            <dt>reason</dt><dd>destructive history rewrite — verify branch state first</dd>
+          </dl>
+          <div class="actions">
+            <button class="btn approve">Approve</button>
+            <button class="btn suggest">Suggest…</button>
+            <button class="btn deny">Deny</button>
+          </div>
+        </div>
+      </div>
+      <div class="satellites">
+        <button class="sat sat-approve">✓</button>
+        <button class="sat sat-deny">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: QUESTION
+       ======================================================== -->
+  <div class="mode-label"><span class="num">3</span>Mode: question</div>
+  <div class="stage" data-size="360 × 300 + 44 px satellite gutter">
+    <div style="position:relative; padding-bottom: 44px;">
+      <div class="bubble question">
+        <header class="zone-header">
+          <span class="orb" style="--ctx: 60; background: conic-gradient(var(--accent-warm) 0 60%, oklch(35% 0 0 / 0.5) 0);"><span class="orb-emoji">❓</span></span>
+          <span class="lede">Awaiting answer</span>
+          <span class="meta">
+            <button class="ctl-mini" title="Theme"><span class="ctl-swatch" style="width:11px;height:11px;"></span></button>
+            <button class="ctl-mini" title="Settings">⚙</button>
+          </span>
+        </header>
+        <div class="zone-body">
+          <div class="approval-head">
+            <div class="left">
+              <div class="eyebrow">Question</div>
+              <h2 class="tool-name" style="font-size:15.5px;">Which migration strategy?</h2>
+            </div>
+            <div class="risk-pill" data-risk="low" style="border-color:var(--accent-slate);color:var(--accent-slate);background:transparent;">Awaiting</div>
+          </div>
+          <div class="option-list">
+            <div class="opt is-active"><span class="opt-bullet"></span>Generate a new migration file</div>
+            <div class="opt"><span class="opt-bullet"></span>Edit the latest unmerged migration</div>
+            <div class="opt"><span class="opt-bullet"></span>Manually update the schema and let me know</div>
+          </div>
+          <input class="other-input" placeholder="Other answer…" />
+          <div class="actions">
+            <button class="btn approve">Answer</button>
+          </div>
+        </div>
+      </div>
+      <div class="satellites">
+        <button class="sat sat-approve">✓</button>
+        <button class="sat sat-deny">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: CARDS
+       ======================================================== -->
+  <div class="mode-label"><span class="num">4</span>Mode: cards</div>
+  <div class="stage" data-size="460 × 600">
+    <div class="bubble cards">
+      <header class="zone-header">
+        <span class="orb" style="--ctx: 60;"><span class="orb-emoji">📚</span></span>
+        <span class="lede">5 cards · 2 left</span>
+        <span class="meta">
+          <button class="ctl-mini" title="Theme"><span class="ctl-swatch" style="width:11px;height:11px;"></span></button>
+          <button class="ctl-mini" title="Settings">⚙</button>
+        </span>
+      </header>
+      <div class="zone-body">
+        <nav class="cards-tabs">
+          <button class="cards-tab is-active">Today</button>
+          <button class="cards-tab">History</button>
+          <button class="cards-tab">Wrong<span class="pill">2</span></button>
+          <button class="cards-tab">Record</button>
+        </nav>
+
+        <section class="inner-card">
+          <div class="abstract-head">
+            <span class="abstract-date">Sun · May 3</span>
+            <span class="streak">🔥 12 days</span>
+          </div>
+          <h2>Hooks, OKLCH, and timeout asymmetry</h2>
+          <p>
+            You explored why the hook timeout must outlive the daemon's approval timeout, and how OKLCH
+            lets the four themes share one accent ladder. Today's deck pulls 5 cards from those threads.
+          </p>
+        </section>
+
+        <section class="inner-card">
+          <div class="progress-block">
+            <div class="progress-label-row">
+              <span>Today's goal</span>
+              <span><strong>3</strong> / 5 reviewed · 2 left</span>
+            </div>
+            <div class="bar-shell"><div class="bar-fill"></div></div>
+            <div class="progress-label-row" style="margin-top:2px;">
+              <span style="color:var(--ink-2);font-size:10.5px;">2 easy · 2 medium · 1 hard</span>
+              <span style="color:var(--ink-2);font-size:10.5px;">est. 4 min</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="cta-row">
+          <button class="btn-cta">
+            <span>Start review</span>
+            <span class="arrow">2 left →</span>
+          </button>
+          <button class="btn-cta-ghost" title="Regenerate">↻</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: SETTINGS — command palette flat list
+       ======================================================== -->
+  <div class="mode-label"><span class="num">5</span>Mode: settings <span style="margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-2);font-size:11px;">command palette · flat searchable list</span></div>
+  <div class="stage" data-size="440 × 580">
+    <div class="bubble settings">
+      <header class="zone-header">
+        <span class="orb" style="--ctx: 60;"><span class="orb-emoji">⚙</span></span>
+        <span class="lede">Settings</span>
+        <span class="meta">
+          <button class="ctl-mini" title="Theme"><span class="ctl-swatch" style="width:11px;height:11px;"></span></button>
+          <button class="ctl-mini" title="Cards">📚</button>
+        </span>
+      </header>
+      <div class="settings-body-cmd">
+        <div class="cmd-search">
+          <span class="glyph">⌕</span>
+          <input placeholder="Search settings… (try: difficulty, hook, export)" value=""/>
+          <span class="kbd">⌘K</span>
+        </div>
+        <div class="cmd-list">
+
+          <div class="cmd-section-label">Quick</div>
+          <button class="cmd-row">
+            <span class="glyph">↻</span>
+            <span class="text">
+              <span class="label">Generate today's deck now</span>
+              <span class="meta">5 cards · last gen 14 min ago</span>
+            </span>
+            <span class="ctrl"><span class="value-pill">Run</span></span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">↗</span>
+            <span class="text">
+              <span class="label">Open cards review</span>
+              <span class="meta">2 cards remaining</span>
+            </span>
+          </button>
+
+          <div class="cmd-section-label">Generation</div>
+          <button class="cmd-row is-focused">
+            <span class="glyph">✦</span>
+            <span class="text">
+              <span class="label">Difficulty preference</span>
+              <span class="meta">Balanced ≈ 50% easy · 35% medium · 15% hard</span>
+            </span>
+            <span class="ctrl">
+              <span class="seg-mini">
+                <button>Casual</button>
+                <button class="is-active">Balanced</button>
+                <button>Deep</button>
+              </span>
+            </span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">#</span>
+            <span class="text">
+              <span class="label">Cards per generation</span>
+              <span class="meta">model best-effort</span>
+            </span>
+            <span class="ctrl"><span class="value-pill">5</span></span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">📅</span>
+            <span class="text">
+              <span class="label">Generation scope</span>
+              <span class="meta">Auto top-3 days · 14d window</span>
+            </span>
+            <span class="ctrl"><span class="value-pill">Auto</span></span>
+          </button>
+
+          <div class="cmd-section-label">Behavior</div>
+          <button class="cmd-row">
+            <span class="glyph">✓</span>
+            <span class="text">
+              <span class="label">Auto-generate on first open</span>
+              <span class="meta">runs once per day</span>
+            </span>
+            <span class="ctrl"><span class="toggle on"></span></span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">↻</span>
+            <span class="text">
+              <span class="label">Auto-add wrong cards</span>
+              <span class="meta">missed cards return tomorrow</span>
+            </span>
+            <span class="ctrl"><span class="toggle on"></span></span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">⏰</span>
+            <span class="text">
+              <span class="label">Streak notifications</span>
+              <span class="meta">remind before 23:00 if not done</span>
+            </span>
+            <span class="ctrl"><span class="toggle"></span></span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">🌐</span>
+            <span class="text">
+              <span class="label">Allow web fallback</span>
+              <span class="meta">use WebSearch + cite URL when transcript empty</span>
+            </span>
+            <span class="ctrl"><span class="toggle on"></span></span>
+          </button>
+
+          <div class="cmd-section-label">Storage · Export</div>
+          <button class="cmd-row">
+            <span class="glyph">🗂</span>
+            <span class="text">
+              <span class="label">Cards folder</span>
+              <span class="meta">~/.claude-companion/cards/</span>
+            </span>
+            <span class="ctrl"><span class="value-pill">Open</span></span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">↓</span>
+            <span class="text">
+              <span class="label">Export today.md</span>
+              <span class="meta">imports cleanly into Obsidian</span>
+            </span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">↓</span>
+            <span class="text">
+              <span class="label">Export wrong-book.md</span>
+              <span class="meta">2 missed cards</span>
+            </span>
+          </button>
+
+          <div class="cmd-section-label">Companion</div>
+          <button class="cmd-row">
+            <span class="glyph">🔌</span>
+            <span class="text">
+              <span class="label">Approval hook status</span>
+              <span class="meta">connected · 4317</span>
+            </span>
+            <span class="ctrl"><span class="value-pill" style="background:var(--bg-sage);color:var(--accent-sage);">OK</span></span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">🌍</span>
+            <span class="text">
+              <span class="label">Language</span>
+              <span class="meta">UI + cards generator follow this</span>
+            </span>
+            <span class="ctrl">
+              <span class="seg-mini">
+                <button class="is-active">EN</button>
+                <button>中文</button>
+              </span>
+            </span>
+          </button>
+          <button class="cmd-row">
+            <span class="glyph">🎨</span>
+            <span class="text">
+              <span class="label">Theme</span>
+              <span class="meta">Midnight Teal</span>
+            </span>
+            <span class="ctrl"><span class="value-pill">Pick…</span></span>
+          </button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       Live demo: zone scale-up
+       ======================================================== -->
+  <div class="mode-label"><span class="num">▶</span>Live zone-scale demo · simulate mode focus</div>
+  <div class="stage" data-size="watch the body subtly pop on focus change">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
+      <div id="demoBubble" class="bubble approval">
+        <header class="zone-header" id="demoHeader">
+          <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🛂</span></span>
+          <span class="lede">1 pending</span>
+          <span class="meta">
+            <button class="ctl-mini" title="Cards">📚</button>
+            <button class="ctl-mini" title="Settings">⚙</button>
+          </span>
+        </header>
+        <div class="zone-body" id="demoBody">
+          <div class="approval-head">
+            <div class="left">
+              <div class="eyebrow">Bash · approval</div>
+              <h2 class="tool-name">git push --force-with-lease</h2>
+            </div>
+            <div class="risk-pill" data-risk="medium">Medium</div>
+          </div>
+          <div class="cmd-preview">git push origin main --force-with-lease</div>
+          <dl class="meta-grid">
+            <dt>cwd</dt><dd>~/work/companion</dd>
+            <dt>reason</dt><dd>destructive history rewrite</dd>
+          </dl>
+          <div class="actions">
+            <button class="btn approve">Approve</button>
+            <button class="btn suggest">Suggest…</button>
+            <button class="btn deny">Deny</button>
+          </div>
+        </div>
+      </div>
+      <div class="demo-controls">
+        <button class="demo-btn" id="popHeader">▶ Focus header zone</button>
+        <button class="demo-btn" id="popBody">▶ Focus body zone</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const header = document.getElementById('demoHeader');
+const body = document.getElementById('demoBody');
+document.getElementById('popHeader').addEventListener('click', () => {
+  header.classList.remove('zone-pop-header');
+  // force reflow to restart anim
+  void header.offsetWidth;
+  header.classList.add('zone-pop-header');
+});
+document.getElementById('popBody').addEventListener('click', () => {
+  body.classList.remove('zone-pop');
+  void body.offsetWidth;
+  body.classList.add('zone-pop');
+});
+</script>
+</body>
+</html>

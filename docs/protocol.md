@@ -689,6 +689,298 @@ Response:
 
 Returns the last 100 local audit events. This is only a developer aid in Stage 0.
 
+## Knowledge Cards Endpoints (Stage 1.5)
+
+All `/cards/*` and the new `/sessions/*` endpoints are loopback-only (require local request) and respond with `application/json`. Decision rationale is in [ADR-20260503-knowledge-cards](decisions/ADR-20260503-knowledge-cards.md).
+
+### `GET /cards/today`
+
+Returns today's deck plus the live generation status. When today has no real sessions, the daemon engages **empty-day fallback** — pulls from the wrong book + past N days. The replay metadata travels in the `replay` field.
+
+Response:
+
+```json
+{
+  "payload": {
+    "schemaVersion": 1,
+    "date": "2026-05-04",
+    "state": "ready",
+    "abstract": "## Today's title\n\nMarkdown body…",
+    "focusSnapshot": "OKLCH derivations",
+    "focusCoverage": 70,
+    "difficultyPreference": "balanced",
+    "sourceSessionIds": ["sess_a", "sess_b"],
+    "sourceCounts": { "session": 4, "web": 1 },
+    "stats": { "sessions": 2, "durationMin": 0 },
+    "cards": [ /* see card schema below */ ],
+    "generationRecord": { /* see below */ },
+    "replay": null
+  },
+  "generation": {
+    "state": "idle",
+    "stage": null,
+    "message": null,
+    "scanned": []
+  }
+}
+```
+
+When the deck is replayed:
+
+```json
+"replay": {
+  "engaged": true,
+  "fromWrongBook": 3,
+  "fromPastDays": 2,
+  "lookbackDays": 7,
+  "shieldUsed": false
+}
+```
+
+### `GET /cards/history?limit=N`
+
+List of past decks (default 30). Each entry is a `summarize()` of a stored `<date>.json` (or `<date>-HHMMSS.json` archive). Most-recent first.
+
+```json
+{
+  "history": [
+    {
+      "date": "2026-05-03",
+      "state": "ready",
+      "abstract": "## …",
+      "focusSnapshot": "…",
+      "cardCount": 5,
+      "answeredCount": 3,
+      "correctCount": 2,
+      "updatedAt": "2026-05-03T22:14:00Z",
+      "isArchive": false,
+      "archivedAt": null,
+      "archivedFile": null,
+      "generationRecord": { /* see below */ }
+    }
+  ]
+}
+```
+
+Same-day re-generation archives the prior file as `<date>-HHMMSS.json`; archive entries have `isArchive: true` and `archivedAt: "HH:MM:SS"`.
+
+### `GET /cards/wrong-book`
+
+Aggregate across all dates. Cards stay until the user answers them correctly N times in a row (`easy`/`medium`: 2, `hard`: 3 — see ADR §"Decision 9").
+
+```json
+{
+  "wrongBook": [
+    { /* full card object incl. attempts[] + sourceDate */ }
+  ],
+  "count": 7
+}
+```
+
+### `POST /cards/answer`
+
+Records one attempt. Body:
+
+```json
+{
+  "cardId": "card_abc",
+  "picked": 2,           // index for choice cards, string for cloze
+  "durationMs": 4200,    // optional
+  "historyDate": "2026-04-28",   // optional — replay against an old deck
+  "historyArchiveId": null
+}
+```
+
+Response:
+
+```json
+{
+  "ok": true,
+  "correct": false,
+  "replay": false,
+  "answer": 1,
+  "explanation": { "fromSession": true, "snippet": "…" },
+  "attempts": [ { "ts": "…", "picked": 2, "correct": false } ]
+}
+```
+
+### `POST /cards/generate`
+
+Manual trigger. Body fields (all optional):
+
+```json
+{
+  "focus": "OKLCH derivations",
+  "difficulty": "balanced",        // "casual" | "balanced" | "deep"
+  "windowDays": 1,
+  "targetDate": "2026-04-28",      // backfill into a specific date file
+  "cardCount": 5,                  // 1..20
+  "webFallback": true,
+  "transcriptBudget": 60000,       // 10k..1M chars total fed to claude -p
+  "selectedSessionIds": ["sess_a"], // empty/missing = scan window; non-empty = restrict to these
+  "locale": "en"                   // "en" | "zh" — selects bilingual prompt template
+}
+```
+
+Returns the same shape as `/cards/today` once generation completes. First-ever call returns `403 { error: "consent_required", consentVersion: 1 }` — see `/cards/consent`.
+
+### `GET /cards/generation-status`
+
+Polled by the bubble's controls-strip 📚 icon to render the live progress pulse. Same shape as the `generation` field in `/cards/today`.
+
+### `GET /cards/consent` · `POST /cards/consent`
+
+GET returns `{ given: bool, givenAt: iso|null, consentVersion: 1 }`. POST body `{ given: true|false }` sets the flag. The first generation requires `given=true` (see ADR §"Decision 11").
+
+### `GET /cards/streak`
+
+Stateless walk over `cards/<date>.json` files. Returns:
+
+```json
+{
+  "asOf": "2026-05-04",
+  "count": 12,
+  "todayState": "completed",          // "completed" | "empty" | "missing" | "in-progress"
+  "todayProtected": false,            // true when today is using the 1-day shield
+  "lastCompletedDate": "2026-05-04"
+}
+```
+
+A "completed" day = every card has `attempts.length >= 1`. The chain allows ONE empty/missing day as a shield; a second consecutive empty day resets the streak (per ADR §"Decision 8").
+
+### `GET /cards/export?scope=today|history|wrong-book[&date=…&archive=…]`
+
+Returns a `.md` file with `content-disposition: attachment`. Frontmatter carries `date`, `focusSnapshot`, `difficulty mix`, `accuracy`, `streak`. Card Q/A pairs use `**Q**` / `**A**` so they convert to Anki .csv with one regex.
+
+### `GET /sessions/scan-candidates?limit=N[&windowDays=N]`
+
+Enumerates every Claude Code session JSONL under `~/.claude/projects/`, peeks the first ~64 KB of each for the real `cwd` + the first user message uuid (`firstUserMsgId`), and groups `claude --resume` forks by that uuid. Newest-first, capped at `limit` (clamped to `[1, 10000]`, default 20).
+
+Each item:
+
+```json
+{
+  "sessionId": "uuid",
+  "cwd": "/Users/x/projects/foo",
+  "lastSeenAt": "2026-05-04T10:30:00Z",
+  "groupSize": 3,
+  "sizeBytes": 18234,
+  "preview": "fix the layout bug in main.css"
+}
+```
+
+### `POST /sessions/delete`
+
+Body `{ sessionIds: [string, ...] }`. Each matching JSONL is moved (not unlinked) into `<DATA_DIR>/trash/manual/<ts>-<id>.jsonl` so the user can recover. The bubble gates this behind the `Allow session deletion` setting; the daemon itself is loopback-only and will accept any local POST.
+
+Response:
+
+```json
+{
+  "requested": 2,
+  "trashed": 2,
+  "results": [
+    { "sessionId": "uuid", "ok": true, "trashedPath": "C:\\…\\trash\\manual\\…jsonl" }
+  ]
+}
+```
+
+The generator separately auto-trashes the JSONL its own `claude -p` subprocess creates each run, into `<DATA_DIR>/trash/generator/`. Each trash category is auto-pruned to the last 50 entries.
+
+## Persistent File Schemas (Stage 1.5)
+
+### `<DATA_DIR>/cards/<YYYY-MM-DD>.json`
+
+```json
+{
+  "schemaVersion": 1,
+  "date": "2026-05-04",
+  "state": "ready",                  // "ready" | "empty" | "generating"
+  "abstract": "## Markdown title\n\n…",
+  "focusSnapshot": "OKLCH derivations",
+  "focusCoverage": 70,
+  "difficultyPreference": "balanced",
+  "sourceSessionIds": ["uuid1"],
+  "sourceCounts": { "session": 4, "web": 1 },
+  "stats": { "sessions": 2, "durationMin": 0 },
+  "cards": [
+    {
+      "id": "card_abc",
+      "type": "choice",              // "choice" | "cloze"
+      "difficulty": "medium",        // "easy" | "medium" | "hard"
+      "question": "…",
+      "options": ["A","B","C","D"],   // choice only
+      "answer": 1,                   // index for choice, string for cloze
+      "source": {
+        "kind": "session",           // "session" | "web"
+        "sessionId": "uuid",         // or "web"
+        "snippet": "verbatim quote, ≥10 chars",
+        "fileRef": "src/foo.js:42",   // or full https URL for web cards
+        "webTitle": "Page title"     // web only
+      },
+      "explanation": { "fromSession": true, "snippet": "…" },
+      "attempts": [
+        { "ts": "2026-05-04T11:00:00Z", "picked": 1, "correct": true, "durationMs": 3200 }
+      ]
+    }
+  ],
+  "generationRecord": {
+    "generatedAt": "2026-05-04T08:00:00Z",
+    "finishedAt": "2026-05-04T08:01:24Z",
+    "durationMs": 84000,
+    "windowDays": 1,
+    "targetDate": null,
+    "cardCount": 5,
+    "difficulty": "balanced",
+    "webFallback": true,
+    "transcriptBudget": 60000,
+    "selectedSessionIds": null,      // null = scan-by-window; array = explicit allowlist
+    "stub": false,
+    "scannedSessions": [
+      { "sessionId": "uuid", "cwd": "…", "source": "indexed", "status": "included", "chars": 8200 }
+    ],
+    "totalCharsInPrompt": 42000,
+    "cardsAccepted": 5,
+    "cardsDropped": 0
+  },
+  "updatedAt": "2026-05-04T11:00:00Z"
+}
+```
+
+Same-day overwrites archive the prior file as `<date>-HHMMSS.json` (or `<date>-HHMMSS-N.json` if multiple within the same second). All other shapes are identical.
+
+### `<DATA_DIR>/wrong-book.json`
+
+```json
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "card": { /* card object */ },
+      "sourceDate": "2026-05-02",
+      "consecutiveCorrect": 1,
+      "addedAt": "2026-05-02T22:00:00Z"
+    }
+  ]
+}
+```
+
+A card is removed when `consecutiveCorrect` hits the per-difficulty threshold (`easy`/`medium`: 2, `hard`: 3).
+
+### `<DATA_DIR>/cards-consent.json`
+
+```json
+{ "given": true, "givenAt": "2026-05-03T14:00:00Z", "consentVersion": 1 }
+```
+
+### `<DATA_DIR>/cards-storage-config.json`
+
+```json
+{ "schemaVersion": 1, "cardsDir": "C:\\Users\\me\\Vault\\cards", "configuredAt": "2026-05-03T14:00:00Z" }
+```
+
+User-relocated cards directory. `cardsDir` is an absolute path; daemon ignores the override if it can't write there at startup.
+
 ## Hook Failure Behavior
 
 The command hooks are fail-closed by default.

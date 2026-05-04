@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Cards · v0 mockup — Claude Code Companion</title>
+<style>
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --surface-0: oklch(13% 0.012 270);
+  --surface-1: oklch(17% 0.014 270);
+  --surface-2: oklch(22% 0.016 270);
+  --surface-glass: oklch(20% 0.014 270 / 0.86);
+  --inner-well: oklch(11% 0.01 270);
+
+  /* ink */
+  --ink-0: oklch(95% 0.014 80);
+  --ink-1: oklch(70% 0.012 250);
+  --ink-2: oklch(50% 0.010 250);
+  --line: oklch(60% 0 0 / 0.10);
+
+  /* accents */
+  --accent: oklch(72% 0.06 195);
+  --accent-slate: oklch(60% 0.03 250);
+  --accent-warm: oklch(78% 0.08 70);
+  --accent-warm-hi: oklch(82% 0.10 70);
+  --accent-sage: oklch(72% 0.06 150);
+  --accent-rose: oklch(70% 0.07 25);
+
+  /* depth */
+  --shadow-inner-highlight:
+    0 1px 0 inset oklch(100% 0 0 / 0.04),
+    0 0 0 1px inset oklch(100% 0 0 / 0.05);
+  --shadow-float:
+    0 12px 28px -10px oklch(0% 0 0 / 0.55),
+    0 2px 6px -2px oklch(0% 0 0 / 0.45);
+  --shadow-float-tall:
+    0 22px 44px -14px oklch(0% 0 0 / 0.62),
+    0 4px 10px -4px oklch(0% 0 0 / 0.5);
+
+  /* type */
+  --font-ui: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+
+  /* motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background:
+    radial-gradient(ellipse 1200px 800px at 50% -10%, oklch(20% 0.02 280) 0%, transparent 55%),
+    var(--surface-0);
+  min-height: 100vh;
+  color: var(--ink-0);
+  font-family: var(--font-ui);
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.005em;
+  padding: 56px 48px 96px;
+}
+
+code, .mono {
+  font-family: var(--font-mono);
+}
+
+.page { max-width: 1320px; margin: 0 auto; }
+
+/* ============================================================
+   Page header
+   ============================================================ */
+.page-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 24px;
+  margin-bottom: 64px;
+}
+
+.page-head h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  letter-spacing: 0;
+}
+
+.page-head h1 .small {
+  color: var(--ink-2);
+  font-weight: 500;
+  font-size: 16px;
+  margin-left: 6px;
+}
+
+.page-head p {
+  color: var(--ink-1);
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 760px;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.page-head p code {
+  font-size: 12px;
+  color: var(--ink-0);
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.page-head .meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  text-align: right;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   Section
+   ============================================================ */
+.section { margin-bottom: 56px; }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.section-head .num {
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+}
+
+.section-head h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink-1);
+  letter-spacing: 0.005em;
+}
+
+.section-head .h2-detail {
+  color: var(--ink-2);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+/* Panel grid */
+.grid { display: grid; gap: 20px; }
+.grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.panel {
+  background:
+    linear-gradient(180deg, oklch(15% 0.013 270) 0%, oklch(13% 0.012 270) 100%);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 36px 24px 18px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 16px;
+  min-height: 280px;
+}
+
+.panel-stage {
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.panel-caption {
+  border-top: 1px dashed var(--line);
+  padding-top: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.panel-caption .label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.panel-caption .desc {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-1);
+  text-wrap: pretty;
+}
+
+.panel-caption .desc code {
+  font-size: 11px;
+  color: var(--ink-0);
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ============================================================
+   Status orb (shared)
+   ============================================================ */
+.status-orb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  padding: 1.5px;
+  background: conic-gradient(
+    var(--orb-color, var(--accent)) var(--orb-angle, 0deg),
+    oklch(40% 0 0 / 0.18) 0deg
+  );
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.status-orb-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--inner-well);
+  display: grid;
+  place-items: center;
+  font-size: 13.5px;
+  line-height: 1;
+}
+
+/* ============================================================
+   Compact bubble (124×42) and hover (224×42)
+   ============================================================ */
+.bubble {
+  position: relative;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 9px;
+}
+
+.bubble-compact { width: 124px; height: 42px; }
+.bubble-hover   { width: 224px; height: 42px; }
+
+.bubble-text {
+  color: var(--ink-0);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+}
+
+/* card-count badge on compact */
+.bubble-badge {
+  position: absolute;
+  bottom: -5px;
+  right: -6px;
+  background: var(--inner-well);
+  border: 1.5px solid var(--accent-sage);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent-sage);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  letter-spacing: 0.005em;
+  box-shadow: 0 2px 6px oklch(0% 0 0 / 0.5);
+}
+
+/* breathing for the badge so it stays catchable */
+@keyframes badgeBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+.bubble-badge { animation: badgeBreathe 4s ease-in-out infinite; }
+
+/* generating state */
+@keyframes orbHaloPulse {
+  0%, 100% { transform: scale(1);    opacity: 1;    }
+  50%      { transform: scale(1.05); opacity: 0.85; }
+}
+@keyframes textPulse {
+  0%, 100% { opacity: 0.78; }
+  50%      { opacity: 1;    }
+}
+.bubble-generating .status-orb { animation: orbHaloPulse 2.4s ease-in-out infinite; }
+.bubble-generating .bubble-text { animation: textPulse 2.4s ease-in-out infinite; }
+
+/* ============================================================
+   Dashboard
+   ============================================================ */
+.dashboard {
+  width: 420px;
+  background: var(--surface-1);
+  border-radius: 18px;
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float-tall);
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.dash-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dash-status-bar .label {
+  flex: 1 1 auto;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dash-status-bar .label .sub {
+  display: block;
+  color: var(--ink-2);
+  font-size: 10.5px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+.dash-section { display: grid; gap: 8px; }
+
+.dash-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.dash-section-title {
+  margin: 0;
+  color: var(--ink-1);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.dash-count {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.dash-section-action {
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.dash-section-action:hover { color: var(--accent-warm); }
+
+/* highlight the new review section */
+.dash-section-review {
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklch, var(--accent-sage), transparent 92%),
+      transparent 70%);
+  border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 80%);
+  border-radius: 12px;
+  padding: 10px 12px;
+  position: relative;
+}
+
+.dash-section-review::after {
+  content: "新增";
+  position: absolute;
+  right: 10px;
+  top: -8px;
+  background: var(--accent-sage);
+  color: oklch(15% 0.012 270);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.10em;
+}
+
+.review-cta {
+  width: 100%;
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+  border: 0;
+  border-radius: 10px;
+  min-height: 40px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  box-shadow: var(--shadow-inner-highlight);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-family: inherit;
+}
+.review-cta:hover { background: oklch(26% 0.030 150); }
+
+.review-cta .arrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.review-cta-meta {
+  color: var(--ink-2);
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+/* placeholder dash rows */
+.dash-row {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--ink-1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-inner-highlight);
+}
+
+.dash-row .row-tool {
+  font-weight: 600;
+  color: var(--ink-0);
+  font-size: 11.5px;
+}
+
+.dash-row .row-meta {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.dash-empty {
+  font-size: 11px;
+  color: var(--ink-2);
+  text-align: center;
+  padding: 10px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+
+.dash-chip {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+}
+.dash-chip.warm {
+  background: oklch(22% 0.025 70);
+  color: var(--accent-warm);
+}
+
+.dash-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--ink-2);
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.dash-footer-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-footer-label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-sage);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-sage), transparent 80%);
+}
+
+/* ============================================================
+   Review card (360 wide)
+   ============================================================ */
+.review-card {
+  width: 360px;
+  background: var(--surface-1);
+  border-radius: 18px;
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float-tall);
+  padding: 16px 16px 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eyebrow {
+  color: var(--ink-1);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.progress-bar { display: flex; gap: 4px; }
+.progress-bar .dot {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: oklch(40% 0 0 / 0.18);
+}
+.progress-bar .dot.done    { background: var(--accent-sage); }
+.progress-bar .dot.current { background: var(--accent); }
+.progress-bar .dot.wrong   { background: var(--accent-rose); }
+
+.review-question {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-0);
+  font-weight: 500;
+  text-wrap: pretty;
+}
+
+.review-question .pill {
+  background: oklch(22% 0.030 70);
+  color: var(--accent-warm);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.review-source {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+  line-height: 1.5;
+  box-shadow: var(--shadow-inner-highlight);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-source .source-label {
+  color: var(--ink-2);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+/* options */
+.option-list { display: grid; gap: 6px; }
+
+.option {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+  background: oklch(20% 0.014 270);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-0);
+  text-align: left;
+  font-family: inherit;
+  text-wrap: pretty;
+}
+.option:hover { background: oklch(24% 0.016 270); }
+
+.option .option-key {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.option.selected {
+  border-color: color-mix(in oklch, var(--accent), transparent 30%);
+  background: oklch(28% 0.030 195);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.option.selected .option-key { color: var(--accent); }
+
+.option.correct {
+  border-color: color-mix(in oklch, var(--accent-sage), transparent 30%);
+  background: oklch(24% 0.025 150);
+}
+.option.correct .option-key { color: var(--accent-sage); }
+
+.option.wrong {
+  border-color: color-mix(in oklch, var(--accent-rose), transparent 30%);
+  background: oklch(24% 0.025 25);
+}
+.option.wrong .option-key { color: var(--accent-rose); }
+
+/* cloze block */
+.cloze-block {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner-highlight);
+  white-space: pre-wrap;
+}
+
+.cloze-blank {
+  display: inline-block;
+  min-width: 88px;
+  height: 18px;
+  margin: 0 4px;
+  vertical-align: -3px;
+  border-bottom: 2px dashed var(--accent-warm);
+  text-align: center;
+  color: var(--accent-warm);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.cloze-input-row { display: flex; gap: 6px; }
+
+.cloze-input {
+  flex: 1 1 auto;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: oklch(15% 0.012 270);
+  color: var(--ink-0);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.cloze-input::placeholder { color: var(--ink-2); }
+.cloze-input:focus {
+  outline: none;
+  border-color: color-mix(in oklch, var(--accent), transparent 40%);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent), transparent 60%);
+}
+
+.btn-submit {
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+  border: 0;
+  border-radius: 10px;
+  height: 36px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.005em;
+  box-shadow: var(--shadow-inner-highlight);
+  font-family: inherit;
+}
+.btn-submit:hover { background: oklch(26% 0.030 150); }
+
+.review-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.foot-link {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.foot-link:hover { color: var(--ink-1); }
+
+/* feedback header */
+.feedback-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0 2px;
+}
+.feedback-head .icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+.feedback-head .icon.correct {
+  background: oklch(24% 0.025 150);
+  color: var(--accent-sage);
+  border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 50%);
+}
+.feedback-head .icon.wrong {
+  background: oklch(24% 0.025 25);
+  color: var(--accent-rose);
+  border: 1px solid color-mix(in oklch, var(--accent-rose), transparent 50%);
+}
+
+.feedback-head .verdict { display: flex; flex-direction: column; }
+.feedback-head .verdict .top {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+.feedback-head .verdict.correct .top { color: var(--accent-sage); }
+.feedback-head .verdict.wrong   .top { color: var(--accent-rose); }
+.feedback-head .verdict .sub {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
+
+.feedback-explanation {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  color: var(--ink-1);
+  line-height: 1.55;
+  box-shadow: var(--shadow-inner-highlight);
+  text-wrap: pretty;
+}
+
+.feedback-explanation .by-ai {
+  color: var(--ink-2);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.feedback-explanation .by-ai::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.btn-next {
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+  border: 0;
+  border-radius: 10px;
+  height: 36px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+  font-family: inherit;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.btn-next:hover { background: oklch(26% 0.030 150); }
+
+/* ============================================================
+   Side notes / decision strip
+   ============================================================ */
+.notes {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.notes .label {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.notes ul {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.notes li {
+  font-size: 12px;
+  color: var(--ink-1);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.notes li code {
+  font-size: 11px;
+  color: var(--ink-0);
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ============================================================
+   Decision table
+   ============================================================ */
+.decision-card {
+  background: var(--surface-1);
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float);
+  border: 1px solid var(--line);
+}
+
+.decision-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.decision-card thead th {
+  text-align: left;
+  color: var(--ink-2);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 0 12px 12px 0;
+}
+
+.decision-card tbody td {
+  padding: 13px 12px 13px 0;
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.decision-card tbody tr {
+  border-bottom: 1px solid var(--line);
+}
+.decision-card tbody tr:last-child { border-bottom: 0; }
+
+.decision-card td:first-child {
+  color: var(--ink-1);
+  font-weight: 600;
+  width: 18%;
+}
+.decision-card td:nth-child(2) { color: var(--ink-0); width: 44%; }
+.decision-card td:nth-child(3) { color: var(--ink-2); }
+
+.decision-card td code {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+@media (max-width: 1100px) {
+  .grid.cols-2 { grid-template-columns: 1fr; }
+  body { padding: 32px 24px 64px; }
+  .page-head { grid-template-columns: 1fr; }
+  .page-head .meta { text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ====================================================================
+     Header
+     ==================================================================== -->
+<header class="page-head">
+  <div>
+    <h1>Knowledge Cards <span class="small">· v0 mockup</span></h1>
+    <p>过去 3 天的 Claude Code session 由本机 <code>claude -p</code> headless 子进程整理成卡片，复习入口和答题流全部收纳在桌面 bubble 里 —— 不新增 API key、不引入第三方模型订阅。下面 7 个 panel 展示从入口到答题到反馈的完整链路。</p>
+  </div>
+  <div class="meta">
+    docs/knowledge-cards-v0.html<br>
+    Stage 1.5 candidate<br>
+    2026-05-03
+  </div>
+</header>
+
+<!-- ====================================================================
+     SECTION 01 — Entry points
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <h2>入口</h2>
+    <span class="h2-detail">/ entry — 用户从哪里看到 / 触发复习</span>
+  </div>
+
+  <div class="grid cols-2">
+
+    <!-- Panel 1: Compact bubble + 卡片提示徽章 -->
+    <div class="panel">
+      <div class="panel-stage">
+        <div class="bubble bubble-compact">
+          <span class="status-orb" style="--orb-color: var(--ink-2); --orb-angle: 280deg;">
+            <span class="status-orb-inner">💤</span>
+          </span>
+          <span class="bubble-text">Idle</span>
+          <span class="bubble-badge">📚 5</span>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">01 / 静默提示</span>
+        <span class="desc">Compact bubble 右下挂一颗 sage 描边的小徽章，提示当前还有 5 张卡未做。胶囊本身保持原样，状态字仍是 <code>Idle</code>，不打扰当前工作流 —— 用户偶尔扫一眼 bubble 时被注意到即可。</span>
+      </div>
+    </div>
+
+    <!-- Panel 2: Generating state -->
+    <div class="panel">
+      <div class="panel-stage">
+        <div class="bubble bubble-hover bubble-generating">
+          <span class="status-orb" style="--orb-color: var(--accent-warm); --orb-angle: 200deg;">
+            <span class="status-orb-inner">🎴</span>
+          </span>
+          <span class="bubble-text">Generating cards…</span>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">02 / 生成中</span>
+        <span class="desc">每天首次启动 bubble 或定时（默认 22:00）触发时，daemon spawn <code>claude -p</code> 处理过去 24h 的 session 摘要。bubble status 切换为 <code>generating_cards</code>，emoji 用 🎴，外圈环柔和呼吸。一次约 10–30 秒，期间不阻塞批准流。</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 02 — Dashboard integration
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <h2>Dashboard 集成</h2>
+    <span class="h2-detail">/ integration — 在已有 dashboard mode 中如何呈现</span>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1fr 380px; gap: 20px; align-items: stretch;">
+
+    <!-- Dashboard panel -->
+    <div class="panel">
+      <div class="panel-stage" style="padding: 16px 0;">
+        <div class="dashboard">
+
+          <div class="dash-status-bar">
+            <span class="status-orb" style="--orb-color: var(--accent-sage); --orb-angle: 300deg;">
+              <span class="status-orb-inner">✅</span>
+            </span>
+            <div class="label">
+              Done
+              <span class="sub">2 sessions · ctx 78%</span>
+            </div>
+          </div>
+
+          <!-- ★ The new Review section -->
+          <div class="dash-section dash-section-review">
+            <div class="dash-section-head">
+              <h3 class="dash-section-title">Today&#39;s review</h3>
+              <span class="dash-count">3 / 5 待复习</span>
+              <button class="dash-section-action" title="重新生成（会调用 claude，~3k token）">↻</button>
+            </div>
+            <button class="review-cta">
+              <span>Start review</span>
+              <span class="arrow">5 cards →</span>
+            </button>
+            <div class="review-cta-meta">
+              <span>from 3 sessions · past 24h · last gen 22:14</span>
+            </div>
+          </div>
+
+          <!-- existing pending queue (placeholder) -->
+          <div class="dash-section">
+            <div class="dash-section-head">
+              <h3 class="dash-section-title">Pending queue</h3>
+              <span class="dash-count">0</span>
+            </div>
+            <div class="dash-empty">No pending requests.</div>
+          </div>
+
+          <!-- existing sessions (placeholder) -->
+          <div class="dash-section">
+            <div class="dash-section-head">
+              <h3 class="dash-section-title">Claude sessions</h3>
+              <span class="dash-count">2</span>
+            </div>
+            <div class="dash-row">
+              <div>
+                <div class="row-tool">claude · companion repo</div>
+                <div class="row-meta">14:23 · stage 1 bug fix</div>
+              </div>
+              <span class="dash-chip">done</span>
+            </div>
+            <div class="dash-row">
+              <div>
+                <div class="row-tool">claude · vibecodingTest</div>
+                <div class="row-meta">11:02 · vault update</div>
+              </div>
+              <span class="dash-chip warm">waiting</span>
+            </div>
+          </div>
+
+          <div class="dash-footer">
+            <span class="dash-footer-label">live</span>
+            <span class="mono">2 sessions · 127.0.0.1:4317</span>
+          </div>
+
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">03 / 入口位置</span>
+        <span class="desc">"Today&#39;s review" 作为 dashboard 最上方的高亮 section（顶部"新增"标签），和 pending queue / sessions 同级但抢占视觉重心。空状态时 CTA 按钮 disable 并显示"今日已复习 ✓"，避免持续骚扰。</span>
+      </div>
+    </div>
+
+    <!-- Side notes -->
+    <aside class="notes">
+      <span class="label">为什么这样放</span>
+      <ul>
+        <li>Section 头加了 <code>↻</code> 按钮 —— 用户主动重生成。第一次点击弹层提醒"会调用 claude，预计 ~3k token"。</li>
+        <li>"5 cards →" 用 mono 小字，和 sage CTA 形成"主按钮 + 补充元数据"的层次。</li>
+        <li><code>from 3 sessions · past 24h · last gen 22:14</code> 一行 mono 元数据，让来源完全透明 —— 隐私敏感的用户能够直接看到模型读了什么。</li>
+        <li>顶层开关：bubble 设置面板里加一个 toggle <code>Auto-generate cards</code>。OFF 时此 section 整个隐藏，dashboard 看不到任何卡片相关 UI。</li>
+        <li>哨兵文件 <code>~/.claude-companion/cards-disabled</code>，与现有 <code>disabled</code> 同模式。</li>
+      </ul>
+    </aside>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 03 — Review modes
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <h2>答题界面</h2>
+    <span class="h2-detail">/ review modes — 选择题 + 填空题，复用 approval 卡片体系</span>
+  </div>
+
+  <div class="grid cols-2">
+
+    <!-- Choice question -->
+    <div class="panel" style="min-height: 480px;">
+      <div class="panel-stage">
+        <div class="review-card">
+          <div class="review-head">
+            <span class="eyebrow">Card 02 / 05</span>
+            <div class="progress-bar">
+              <span class="dot done"></span>
+              <span class="dot current"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+
+          <div class="review-question">
+            为什么 <span class="pill">setup-hooks.js</span> 把 PowerShell 限定在 Windows？
+          </div>
+
+          <div class="review-source">
+            <span class="source-label">from</span>
+            <span>session @ 14:23 · scripts/setup-hooks.js#L7-13</span>
+          </div>
+
+          <div class="option-list">
+            <button class="option">
+              <span class="option-key">A</span>
+              <span>Claude Code 在 macOS 上没把 PATH 透传给 hook 进程</span>
+            </button>
+            <button class="option selected">
+              <span class="option-key">B</span>
+              <span>Claude Code 启动时校验 permissions.ask 里的工具名，列出未知工具会让 CLI 直接拒绝运行</span>
+            </button>
+            <button class="option">
+              <span class="option-key">C</span>
+              <span>PowerShell Core 在 macOS 能跑但太慢，不适合 hook 路径</span>
+            </button>
+            <button class="option">
+              <span class="option-key">D</span>
+              <span>Apple sandbox 阻止 PowerShell 派生子进程</span>
+            </button>
+          </div>
+
+          <div class="review-foot">
+            <button class="foot-link">Skip</button>
+            <button class="btn-submit">Submit</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">04 / 选择题（默认题型）</span>
+        <span class="desc">复用 approval 卡的尺寸节奏：360 宽，eyebrow + progress dots 头部、问题居中、来源块用 mono、选项块沿用现有 <code>.option-list</code>。点中后描边变 accent，再点 Submit 进入反馈。Skip 不算错也不算对，留给"看到题就不想答"的场景。</span>
+      </div>
+    </div>
+
+    <!-- Cloze question -->
+    <div class="panel" style="min-height: 480px;">
+      <div class="panel-stage">
+        <div class="review-card">
+          <div class="review-head">
+            <span class="eyebrow">Card 03 / 05</span>
+            <div class="progress-bar">
+              <span class="dot done"></span>
+              <span class="dot done"></span>
+              <span class="dot current"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+
+          <div class="review-question">
+            填空：<span class="pill">compactPeekBounds</span> 里 capsuleSpan 的 X 轴公式
+          </div>
+
+          <div class="review-source">
+            <span class="source-label">from</span>
+            <span>packages/desktop/main.js#L365-L368</span>
+          </div>
+
+          <div class="cloze-block">const capsuleSpan = (axis) =&gt; axis === &quot;x&quot;
+  ? full.width - 2 * BUBBLE_PADDING - <span class="cloze-blank">___</span>
+  : full.height - 2 * BUBBLE_PADDING - PEEK_VISIBLE_PX;</div>
+
+          <div class="cloze-input-row">
+            <input class="cloze-input" type="text" placeholder="把空填进来 …">
+            <button class="btn-submit">Submit</button>
+          </div>
+
+          <div class="review-foot">
+            <button class="foot-link">Skip</button>
+            <button class="foot-link">Show hint</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">05 / 填空题（cloze）</span>
+        <span class="desc">命令 / 公式 / 常量类记忆点最适合 cloze。代码块直接来自 session 里出现过的位置，挖一个 <code>___</code> 空，warm 色虚线让缺口显眼。验收逻辑：精确字符串匹配（case-sensitive 可配）。Hint 按钮可选展开一行解释，但消耗本题分数。</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 04 — Feedback
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <h2>反馈</h2>
+    <span class="h2-detail">/ feedback — 答完后的两种状态</span>
+  </div>
+
+  <div class="grid cols-2">
+
+    <!-- Correct -->
+    <div class="panel" style="min-height: 380px;">
+      <div class="panel-stage">
+        <div class="review-card">
+          <div class="review-head">
+            <span class="eyebrow">Card 02 / 05</span>
+            <div class="progress-bar">
+              <span class="dot done"></span>
+              <span class="dot done"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+
+          <div class="feedback-head">
+            <div class="icon correct">✓</div>
+            <div class="verdict correct">
+              <span class="top">Correct</span>
+              <span class="sub">Card 02/05 · 1.8s</span>
+            </div>
+          </div>
+
+          <div class="option-list">
+            <div class="option correct">
+              <span class="option-key">B</span>
+              <span>Claude Code 启动时校验 permissions.ask 里的工具名，列出未知工具会让 CLI 直接拒绝运行</span>
+            </div>
+          </div>
+
+          <div class="review-foot">
+            <button class="foot-link">Why this is right</button>
+            <button class="btn-next">Next →</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">06 / 反馈 · 答对</span>
+        <span class="desc">sage 圆形勾选 + "Correct"。原选项框转 sage 描边，其他选项被收起，让用户专注于正确答案再扫一眼。无强制解释，节奏快。"Why this is right" 折叠按钮按需展开。</span>
+      </div>
+    </div>
+
+    <!-- Wrong -->
+    <div class="panel" style="min-height: 380px;">
+      <div class="panel-stage">
+        <div class="review-card">
+          <div class="review-head">
+            <span class="eyebrow">Card 02 / 05</span>
+            <div class="progress-bar">
+              <span class="dot done"></span>
+              <span class="dot wrong"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+
+          <div class="feedback-head">
+            <div class="icon wrong">✕</div>
+            <div class="verdict wrong">
+              <span class="top">Not quite</span>
+              <span class="sub">queued for tomorrow · 1 retry left</span>
+            </div>
+          </div>
+
+          <div class="option-list">
+            <div class="option wrong">
+              <span class="option-key">A</span>
+              <span>你选的：Claude Code 在 macOS 上没把 PATH 透传给 hook 进程</span>
+            </div>
+            <div class="option correct">
+              <span class="option-key">B</span>
+              <span>正解：Claude Code 启动时校验 permissions.ask 里的工具名…</span>
+            </div>
+          </div>
+
+          <div class="feedback-explanation">
+            <span class="by-ai">AI explanation</span>
+            <span>PATH 是 shell 启动相关问题，跟 permissions 系统无关。Companion 这次把 PowerShell 从 macOS 移除，是因为 Claude Code 维护一份内置工具白名单，permissions.ask 里指向它没认识的工具会触发启动校验失败。</span>
+          </div>
+
+          <div class="review-foot">
+            <button class="foot-link">Skip explanation</button>
+            <button class="btn-next">Next →</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">07 / 反馈 · 答错</span>
+        <span class="desc">rose 圆形 ✕ + "Not quite"。错选 + 正解并排展示，下面挂一段 AI 生成的简短解释（生成卡片时一并存好，避免再调一次模型）。错题自动入"明天重做"队列，sub 文案明示。</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 05 — Decision summary
+     ==================================================================== -->
+<section class="section" style="margin-top: 64px;">
+  <div class="section-head">
+    <span class="num">05</span>
+    <h2>关键决策对照</h2>
+    <span class="h2-detail">/ at-a-glance — v0 取向 vs 留待 Stage 2</span>
+  </div>
+
+  <div class="decision-card">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>v0 取向</th>
+          <th>舍弃 / 留待 Stage 2</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>生成时机</td>
+          <td>每次首次开 bubble + 22:00 自动 + dashboard <code>↻</code> 手动；首次有同意确认</td>
+          <td>session 结束实时生成成本不可控，留 Stage 2 看必要性</td>
+        </tr>
+        <tr>
+          <td>模型来源</td>
+          <td><code>claude -p</code> 子进程，复用本地 Claude Code 已认证的会话</td>
+          <td>不直接调 Anthropic API，无需让用户配 key</td>
+        </tr>
+        <tr>
+          <td>题型</td>
+          <td>选择题（默认） + 填空题（命令 / 公式 / 常量）</td>
+          <td>简答题需二次调模型，token 翻倍；Stage 2 再加</td>
+        </tr>
+        <tr>
+          <td>复习节奏</td>
+          <td>每张卡有 attempts 历史；错题自动入"明天"队列</td>
+          <td>完整 Anki 式 SRS（间隔重复）等用一两周再说</td>
+        </tr>
+        <tr>
+          <td>UI 入口</td>
+          <td>Dashboard "Today&#39;s review" section + 复用 approval 模式 360 ×~330 卡片</td>
+          <td>Done attention 之后顺势弹卡片留 Stage 2</td>
+        </tr>
+        <tr>
+          <td>隐私</td>
+          <td>送给 <code>claude -p</code> 前先脱敏：去 .env 路径段落、token-like 字符串、绝对路径用户名</td>
+          <td>明确把 review 数据流标为 docs/security.md 的 opt-in 例外</td>
+        </tr>
+        <tr>
+          <td>总开关</td>
+          <td><code>~/.claude-companion/cards-disabled</code> 哨兵 + bubble 设置 toggle</td>
+          <td>跟现有 <code>disabled</code> 哨兵同模式，第一原则是用户能轻松停掉</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

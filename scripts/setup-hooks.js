@@ -5,7 +5,12 @@ const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..");
 const SETTINGS_RELATIVE_PATH = path.join(".claude", "settings.local.json");
-const ASK_RULES = ["Bash", "PowerShell"];
+// PowerShell is a Windows-only Claude Code tool — including it in `permissions`
+// or as a hook matcher on macOS/Linux makes Claude Code error on every prompt
+// (no such tool registered), which bricks the entire CLI for the user.
+const SHELL_TOOLS = process.platform === "win32" ? ["Bash", "PowerShell"] : ["Bash"];
+const ASK_RULES = SHELL_TOOLS;
+const SHELL_MATCHER = SHELL_TOOLS.join("|");
 const DENY_RULES = ["Read(./.env)", "Read(./.env.*)", "Read(./secrets/**)"];
 const MANAGED_SCRIPT_NAMES = ["event.js", "pre-tool-use.js", "permission-request.js"];
 
@@ -104,7 +109,7 @@ function desiredHookConfig(options = {}) {
   if (installApproval) {
     config.PermissionRequest = [
       {
-        matcher: "Bash|PowerShell",
+        matcher: SHELL_MATCHER,
         hooks: [permissionHook]
       }
     ];

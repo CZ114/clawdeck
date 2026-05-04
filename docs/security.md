@@ -33,6 +33,7 @@ The Electron desktop companion is a loopback-only local client of the same daemo
 - Do not allow non-loopback approval connections unless they present a paired device token.
 - Do not use wildcard CORS for the local approval API.
 - Use `PermissionRequest` as the primary remote approval path. Matcher `""` covers every tool whose permission Claude Code would normally gate (Read/Edit/Write/Glob/Grep/WebFetch/MCP servers/Bash/PowerShell when not pre-approved).
+- Cross-platform tool surface: `setup-hooks.js` and `setup-user-hooks.js` register `Bash` plus `PowerShell` only on Windows (`process.platform === "win32"`). On macOS / Linux they register `Bash` alone — listing `PowerShell` in `permissions.ask` or in a `PermissionRequest` matcher on a non-Windows host makes Claude Code refuse to start (no such tool registered), which would brick the entire CLI.
 - Keep `PreToolUse` for preflight validation, emergency deny behavior, and the `ExitPlanMode` / `AskUserQuestion` flows where `PermissionRequest` does not fire.
 - Keep lifecycle status hooks non-blocking; status capture must not decide whether Claude Code may continue.
 - Allow explicit local bypass switches for returning to Claude Code's native UI.
@@ -178,6 +179,47 @@ Medium-risk examples:
 Low risk:
 
 - No rule matched.
+
+## Knowledge Cards Data Policy (Stage 1.5)
+
+Knowledge Cards is the **first feature in this repo that intentionally feeds session transcript content to a model**. Everything below is an exception to the broader "do not surface transcripts" rule, scoped to this feature only.
+
+### Opt-in consent
+
+The first time a user triggers `POST /cards/generate`, the daemon returns `403 { error: "consent_required", consentVersion: 1 }`. The bubble shows a one-time modal that explains exactly what is piped + where it goes. State persists in `<DATA_DIR>/cards-consent.json`. Declining preserves prior behavior — no cards are generated, transcripts are never read.
+
+### What is piped
+
+The generator reads the user's `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` files. Per-session content is capped (default 12k chars, configurable via `CCC_CARDS_TRANSCRIPT_PER_SESSION`); total prompt budget is also capped (default 60k chars, configurable per-run via `transcriptBudget` body field, daemon-side clamp `[10k, 1M]`). The capped + redacted text is piped over stdin to a local `claude -p` subprocess.
+
+### Redaction
+
+Every transcript chunk passes through `redact()` in [packages/daemon/src/transcript-reader.js](../packages/daemon/src/transcript-reader.js) before reaching the prompt:
+
+- Lines mentioning `.env`, `.envrc`, `secrets/`, `credentials/` paths are replaced with `(redacted: …)`
+- Token-shaped strings are replaced with `(redacted: token)`:
+  - `sk-ant-…` (Anthropic), `sk-…` (OpenAI), `ghp_…` / `gho_…` (GitHub), `AKIA…` (AWS), `Bearer …`
+- The user's home directory + `%USERPROFILE%` + `$HOME` get replaced with `~`
+
+### Strict-source rule (no hallucination)
+
+Every card the model generates MUST carry a `source.snippet` containing a verbatim quote (≥10 chars) from either the piped transcript or — if `webFallback: true` and the user set a `focus` with no transcript match — a fetched web page (in which case `source.kind = "web"` + `source.fileRef = <URL>`). Cards without a verifiable source are dropped by [packages/shared/cards.js validateCard](../packages/shared/cards.js) before the deck is persisted. There is **no user toggle** for this — disabling it would let the model invent plausible-looking review questions about the user's own work, defeating the entire feature.
+
+### Web fallback
+
+When enabled, the generator launches `claude -p --allowedTools WebSearch,WebFetch …`. Web cards are tagged `source.kind="web"` and the question is prefixed with `(no matching session content — sourced from web)` so the user knows exactly which cards left the local transcript boundary. Disabling `Allow web fallback` in Settings → Behavior means a focus with no matching transcript content yields an empty deck rather than an external lookup.
+
+### Session trash
+
+Every `claude -p` run creates its own JSONL session under `~/.claude/projects/`. The daemon snapshots the projects dir before/after each run and **moves new files** into `<DATA_DIR>/trash/generator/<ts>-<id>.jsonl` so the generator's own meta-noise never feeds the next run. Manual session deletion (Settings → Behavior → "Allow session deletion" + 🗑 in Live mode) moves files into `<DATA_DIR>/trash/manual/`. Both categories are auto-pruned to the last 50 files; deletion is recoverable until prune.
+
+### Locale + bilingual prompt
+
+The renderer's selected locale (en/zh) is passed in the `/cards/generate` body and selects the prompt template in [packages/shared/i18n.js PROMPT_TEMPLATES](../packages/shared/i18n.js). Output natural-language card text follows the locale; **JSON keys stay English** so parsing is locale-invariant.
+
+### Cards storage
+
+By default `<DATA_DIR>/cards/<YYYY-MM-DD>.json`. The user can relocate via Settings → Storage → Change…; the override lives in `<DATA_DIR>/cards-storage-config.json` (NOT inside the cards dir, so changing the cards dir doesn't orphan its own pointer). The daemon validates writability at startup and silently falls back to the default if the override is broken.
 
 ## Surface Data Policy
 

@@ -67,9 +67,11 @@ Scope:
 - Transparent, frameless, movable, always-on-top window. All Win11 rectangle sources opted out (`thickFrame: false`, `roundedCorners: false`, `backgroundMaterial: "none"`, `hasShadow: false`) so the visible surface is a pure capsule.
 - Two-tier sizing: CAPSULE_BOUNDS for the visible bubble, MODE_BOUNDS = capsule + `BUBBLE_PADDING` (12 px gutter) for the BrowserWindow. Snap and peek math operates in capsule coords.
 - Resting compact state shows the status emoji + conic context-usage ring + status label.
-- Hover compact state reveals the controls strip (toggle / capsule color / settings / expand / minimize).
+- Hover compact state reveals the controls strip (toggle / capsule color / settings / minimize). The strip is gated on a `window:hover-expanded-changed` IPC so it only paints once the bubble has actually animated to the wider hover size — preventing the brief overlap with the status during the 170 ms expand. The strip itself is transparent (no pill chip) so it always blends with the bubble's current background color.
+- A single gear button toggles dashboard mode for "settings" and "expand"; pending requests auto-expand to approval / question without a separate button.
 - Native window bounds animation expands from compact capsule to approval / question panel, or to **dashboard mode** (`420 × 540`) — a vertical feed of pending queue, sessions, devices, pairing token, audit events, and health footer that replaces the legacy browser dashboard at `http://127.0.0.1:4317/` (now a small notice page).
-- Screen-edge snapping with a context-only peek slit on drag-to-edge.
+- Single-axis screen-edge snapping with a context-only peek slit on drag-to-edge — the closest edge wins, so dragging to top preserves the user's X and dragging to right preserves the user's Y instead of pinning the bubble into a corner.
+- `window:set-hold` IPC pins the bubble open while system-modal pickers are showing (currently the macOS color picker), so the modal can't trigger the auto-collapse + controls-hide timers out from under the user.
 - Slit hover detection via main-process cursor polling (browser hover state is stale after the BrowserWindow slides off-screen).
 - Done-state attention cue: capsule slides out for `DONE_ATTENTION_MS = 10 min` with a sage→warm sweep; after re-tucking, the slit pulses with sage glow until acknowledged.
 - Desktop placement persistence in `~/.claude-companion/desktop-state.json` for bounds, mode, snapped edge, and tucked state, with startup clamping for monitor/resolution changes.
@@ -109,9 +111,91 @@ Docs to update:
 - `docs/desktop-companion.md`
 - `docs/security.md`
 
-## Stage 2: Desktop Personality Layer
+## Stage 1.5: Knowledge Cards
 
-Goal: Add optional personality after the minimal approval loop feels right.
+Goal: Turn each day's Claude Code work into a small set of review cards the user can self-test, so Companion has daily-use value even on days with no approval activity. Decided in [ADR-20260503-knowledge-cards](decisions/ADR-20260503-knowledge-cards.md).
+
+Scope:
+
+- New bubble mode `cards` (460 × 600) reachable from a 📚 button in the controls strip and from a sage badge on the compact bubble. Three tabs: **Today** / **History** / **Wrong book**.
+- Daily abstract: a markdown-rendered summary (h2 / h3 / lists / inline code / blockquote) of what the user worked on, generated together with the cards.
+- Card generator: spawns the user's local `claude -p` CLI as a subprocess; pipes a redacted session transcript to stdin, parses cards JSON from stdout. **No direct Anthropic API call**, no new API key for the user to configure.
+- Trigger: first bubble open of the day, OR a configurable scheduled time (default 22:00), OR manual "Generate now" button in Settings. Generation runs detached from the bubble's main loop — approvals continue to work during generation.
+- Generation-progress UI: **only** the controls-strip 📚 button reflects generation. Idle = faint icon; has-cards = sage + count badge; generating = 🎴 + warm pulse. The bubble's main status orb keeps reporting real Claude Code state.
+- Learning focus: Settings · Cards has a multi-line "What do you want to learn?" textarea. Whatever the user types is prepended to every generation prompt as a weighting hint. Empty focus = generic "consequential decisions over trivia." Each day's focus snapshot is stored alongside the cards for History.
+- Difficulty tiers: every card carries `easy` (conceptual), `medium` (mechanism / implementation), or `hard` (foundation / math / OS-level). User picks Casual / Balanced / Deep preference in Settings; each card displays a difficulty chip; Today tab shows the day's distribution.
+- Strict source attribution (hard-coded, not user-configurable): every card MUST carry a `source.snippet` containing a verbatim quote from the original session. Cards without verifiable source are discarded by the daemon before reaching the bubble. Source is rendered as an expandable quote block (user / assistant / edit each in a different accent color). Wrong feedback shows `From session: <verbatim quote>` instead of an AI explanation.
+- Wrong book (Duolingo-inspired): missed cards return to a separate tab. Mastery thresholds: easy needs 2 consecutive correct, medium 2, hard 3. Auto-add toggle in Settings (default ON).
+- Empty-day fallback: when today has zero new sessions, Today tab switches to a replay state — pull cards from the wrong book first, then from the past N days (default 7, configurable 3 / 7 / 14 / 30 / off). All replay cards still come from real historical sessions; never fabricated.
+- Streak: daily completion of the daily-goal increments a 🔥 counter visible on Today + Daily-complete screens. **Streak protection rules**: 1st consecutive empty day = `🛡 protected` (streak preserved); 2nd consecutive empty day = streak resets.
+- Markdown export: three buttons in Settings · Export — `Today.md`, `All abstracts.md`, `Wrong book.md`. Each `.md` includes YAML frontmatter (date, focus snapshot, difficulty mix, accuracy, streak). Card Q/A pairs use `**Q**` / `**A**` two-line shape so they're trivially convertible to Anki .csv.
+- Privacy / opt-in: this is the first feature in the repo that intentionally feeds session transcript to a model. First time the user triggers it (auto or manual), a one-shot consent dialog explains what's piped and the estimated token count. State persists in `~/.claude-companion/cards-disabled` (same pattern as the global `disabled` flag).
+- Redaction pass before piping: strip `.env` / `.envrc` / `secrets/` mentions, replace token-shaped strings (40+ char hex, JWT, `ghp_*`, AWS prefix, bearer), replace `%USERPROFILE%` / `$HOME` with `~`.
+- `dashboard` mode is **removed** in this stage. Pending queue auto-expands to `approval` mode; sessions, audit events, devices, and pairing all migrate into Settings as expandable sections (default-collapsed).
+
+Non-goals:
+
+- Do not call the Anthropic API directly (use the user's installed `claude` CLI).
+- Do not let cards exist without a verbatim source snippet (no hallucination, hard rule).
+- Do not ship a full SM-2 / FSRS spaced-repetition scheduler in v0 — wrong-book + per-difficulty mastery counts is the v0 model.
+- Do not auto-trigger generation more than once per day without user action.
+- Do not surface card content on the future iPhone app's lock screen — Stage 5 (Live Activity) is for status only, not transcript-derived content.
+- Do not block the bubble's main loop during generation; approvals must continue to work.
+
+Required APIs:
+
+- `GET /cards/today` — today's abstract + cards array, plus replay metadata when empty-day fallback is active.
+- `GET /cards/history` — list of stored daily abstracts (paginated).
+- `GET /cards/streak` — current streak count, today's classification (`completed` / `empty` / `missing` / `in-progress`), and whether today is using the 1-day shield. Stateless — re-derived from `cards/<date>.json` files on each request.
+- `GET /cards/wrong-book` — current wrong-book contents.
+- `POST /cards/answer` — record an attempt (card id + picked / typed answer + correct boolean + timestamp).
+- `POST /cards/generate` — manual trigger from Settings · "Generate now" or controls strip. Returns 202 + status; subsequent `GET /cards/generation-status` polls progress for the controls strip pulse.
+- `GET /cards/export?scope=today|history|wrong-book` — returns a `.md` file with the agreed frontmatter shape.
+
+Required daemon capabilities:
+
+- Subprocess management: spawn `claude -p`, time out cleanly, surface "claude not on PATH" as a structured error.
+- Redaction pass: regex-based replacements before piping to the subprocess.
+- Per-day storage in `~/.claude-companion/cards/<YYYY-MM-DD>.json` plus a wrong-book aggregate.
+- Cron-like daily trigger (configurable time, default 22:00) without external dependencies.
+- Strict source verification: drop any card whose `source.snippet` does not appear verbatim in the piped transcript.
+
+Exit criteria (all shipped 2026-05-04):
+
+- ✅ A real day of Claude Code work produces at least one card with a verifiable source snippet that the user can answer correctly.
+- ✅ The same flow works on a day with zero new sessions (empty-day fallback engages, replay cards appear, streak shield is shown).
+- ✅ Generating cards does not block a concurrent approval flow — verified by triggering generation while a Bash approval is pending.
+- ✅ Each of the three markdown exports produces a valid file that opens cleanly in Obsidian.
+- ✅ The first generation triggers a consent dialog; declining preserves prior behavior (no cards, bubble unchanged).
+- ✅ A card with no verifiable source is rejected by the daemon and never appears in the bubble.
+- ✅ The wrong book correctly removes a card after the per-difficulty mastery threshold is met (2 / 2 / 3 consecutive correct).
+- ✅ Streak survives one empty day with `🛡 protected`, resets on the second consecutive empty day.
+
+Docs status:
+
+- ✅ `docs/protocol.md` — cards endpoints + `cards/<date>.json` schema + `/sessions/scan-candidates` + `/sessions/delete` + `/cards/streak` + persisted file shapes.
+- ✅ `docs/security.md` — Knowledge Cards Data Policy section: consent gate, redaction, strict-source rule, web fallback policy, session trash, locale + bilingual prompt, cards storage relocation.
+- ✅ `docs/dev-setup.md` — `CCC_CARDS_*` env vars, stub mode, generation troubleshooting (timeouts, empty deck, claude not on PATH, picker priming, trash recovery).
+- ✅ `docs/desktop-companion.md` — Stage 1.5 modes (Cards / Settings / Live + satellite gutter), liquid water-droplet morph, themes, bilingual UI.
+- ✅ `docs/user-guide.md` — controls strip update (theme cycle / cards / live / minimize semantics), Knowledge Cards section (daily flow / generation scope picker / themes + language / export).
+- ✅ `docs/stages.md` — this section.
+- ✅ `README.md` — Stage 1.5 status block with 5 modes + liquid morph note.
+
+Items that landed beyond the original ADR scope (delivered in Stage 1.5 but not in the original Decision list):
+
+- 4 theme presets (Midnight Teal / Amber Hearth / Paper Light / Aurora Indigo) with token-based switching and a controls-strip cycle button.
+- en / 中文 bilingual UI driven by `data-i18n` DOM walker + cards-generator prompt template branching on locale.
+- Liquid water-droplet morph for mode → mode transitions (synchronised OS window resize + renderer border-radius animation, both on `cubic-bezier(0.34, 1.56, 0.64, 1)`).
+- Satellite ✓ / ✕ approve/deny chips floating below the bubble in approval / question modes.
+- Dedicated **Live monitor** mode (⤢ controls-strip button) — separate from settings, hosts the breathing-window with sessions + today's deck + cards entry.
+- Settings rail-nav (replaces wall-of-expanders) with a collapsible left rail.
+- Generator auto-trash for its own `claude -p` session noise; user-facing 🗑 manual session deletion gated by an `Allow session deletion` toggle.
+
+## Stage 2: Desktop Personality Layer (deferred)
+
+> **Status (2026-05-03):** Deferred. Stage 1.5 (Knowledge Cards) takes the slot Stage 2 originally held. After Stage 1.5 has shipped and seen a few weeks of real use, re-evaluate whether the personality layer is still worth pursuing or whether Stage 3 (iOS local-network MVP) takes priority. Rationale recorded in [ADR-20260503-knowledge-cards](decisions/ADR-20260503-knowledge-cards.md) §"Consequences → Stage 2 deferral."
+
+Goal (when revisited): Add optional personality after the minimal approval loop feels right.
 
 Scope:
 

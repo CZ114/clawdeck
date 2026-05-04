@@ -4,13 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Scope
 
-Claude Code Companion is an approval-loop layer for Claude Code on Windows. The eventual product is an iPhone companion, but the repo currently sits at **Stage 0**: a Windows-only Node.js daemon plus a `PreToolUse` hook script, with a manual CLI standing in for the phone.
+Claude Code Companion is an approval-loop layer for Claude Code on Windows. The eventual product is an iPhone companion. The repo currently sits at **Stage 1 complete + Stage 1.5 planned**:
 
-There is no iOS app, no WebSocket, no pairing, and no cloud relay yet. Do not add those layers without first updating `docs/stages.md` — stages are gated and the staged plan is intentional (see `docs/stages.md` "Stage Gate Rule").
+- Stage 0 (approval daemon + hooks) and Stage 1 (Electron desktop bubble for status / approvals) have shipped.
+- Stage 1.5 (Knowledge Cards — daily review of past Claude Code sessions) is the next stage; design captured in [docs/decisions/ADR-20260503-knowledge-cards.md](docs/decisions/ADR-20260503-knowledge-cards.md), mockups in [docs/knowledge-cards-v1.html](docs/knowledge-cards-v1.html).
+- Stage 2 (desktop personality / pet) is **deferred** — re-evaluated only after Stage 1.5 ships.
+- Stages 3+ (iOS app, pairing, cloud relay) remain unbuilt.
+
+Do not add iOS / WebSocket-pairing / cloud layers without first updating `docs/stages.md` — stages are gated and the staged plan is intentional (see `docs/stages.md` "Stage Gate Rule").
 
 ## Common Commands
 
-Stage 0 has no external npm dependencies — `node_modules/` is intentionally empty. Requires Node.js 20+.
+The daemon and hooks have no external npm dependencies — `node_modules/` for those is intentionally empty. The Electron desktop bubble pulls Electron via `npm install`. Requires Node.js 20+.
 
 ```powershell
 npm run smoke              # End-to-end test: spawns daemon on port 54317, runs hook, approves, asserts allow
@@ -30,7 +35,7 @@ Three pieces, all local:
 2. **`packages/daemon/src/index.js`** — Node `http` server. Receives hook payloads on `POST /hook/pre-tool-use`, builds a permission request, parks it in an in-memory `pendingRequests` Map, and resolves the awaiting hook response when a decision arrives via `POST /permission-decisions` (or on timeout). Also exposes `GET /health`, `GET /pending-requests`, `GET /events`.
 3. **`packages/shared/`** — `protocol.js` (id/JSON helpers, `claudePreToolUseDecision`, `normalizeDecision`, `PROTOCOL_VERSION`) and `risk.js` (regex-based `low`/`medium`/`high` classifier for Bash commands).
 
-The decision channel is purely in-memory: a `Promise` returned by `waitForDecision` is held by the open HTTP request and resolved by either `/permission-decisions` or the timeout. **Do not add disk persistence in Stage 0** (`docs/security.md` explicitly rules this out).
+The decision channel is purely in-memory: a `Promise` returned by `waitForDecision` is held by the open HTTP request and resolved by either `/permission-decisions` or the timeout. **Do not add disk persistence to the decision channel itself** (`docs/security.md` rules this out — approvals must not survive a daemon crash, otherwise stale decisions could fire later). Other on-disk surfaces are intentional and small: `~/.claude-companion/devices.json`, `~/.claude-companion/desktop-state.json`, `~/.claude-companion/learned-context.json`, and (Stage 1.5) `~/.claude-companion/cards/<date>.json`.
 
 Manual approval CLI (`scripts/decide.js`) and the smoke test (`scripts/smoke-test.js`) are stand-ins for the future iOS app — they exercise the same `/permission-decisions` endpoint that the phone will use later.
 

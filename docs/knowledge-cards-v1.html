@@ -1,0 +1,2708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Cards · v1 mockup — Claude Code Companion</title>
+<style>
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --surface-0: oklch(13% 0.012 270);
+  --surface-1: oklch(17% 0.014 270);
+  --surface-2: oklch(22% 0.016 270);
+  --surface-3: oklch(26% 0.018 270);
+  --surface-glass: oklch(20% 0.014 270 / 0.86);
+  --inner-well: oklch(11% 0.01 270);
+
+  /* ink */
+  --ink-0: oklch(95% 0.014 80);
+  --ink-1: oklch(70% 0.012 250);
+  --ink-2: oklch(50% 0.010 250);
+  --line: oklch(60% 0 0 / 0.10);
+  --line-strong: oklch(60% 0 0 / 0.18);
+
+  /* accents */
+  --accent: oklch(72% 0.06 195);
+  --accent-slate: oklch(60% 0.03 250);
+  --accent-warm: oklch(78% 0.08 70);
+  --accent-warm-hi: oklch(82% 0.10 70);
+  --accent-sage: oklch(72% 0.06 150);
+  --accent-rose: oklch(70% 0.07 25);
+
+  /* depth */
+  --shadow-inner-highlight:
+    0 1px 0 inset oklch(100% 0 0 / 0.04),
+    0 0 0 1px inset oklch(100% 0 0 / 0.05);
+  --shadow-float:
+    0 12px 28px -10px oklch(0% 0 0 / 0.55),
+    0 2px 6px -2px oklch(0% 0 0 / 0.45);
+  --shadow-float-tall:
+    0 22px 44px -14px oklch(0% 0 0 / 0.62),
+    0 4px 10px -4px oklch(0% 0 0 / 0.5);
+
+  /* type */
+  --font-ui: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+
+  /* motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background:
+    radial-gradient(ellipse 1200px 800px at 50% -10%, oklch(20% 0.02 280) 0%, transparent 55%),
+    var(--surface-0);
+  min-height: 100vh;
+  color: var(--ink-0);
+  font-family: var(--font-ui);
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.005em;
+  padding: 56px 48px 96px;
+}
+
+code, .mono {
+  font-family: var(--font-mono);
+}
+
+.page { max-width: 1320px; margin: 0 auto; }
+
+/* ============================================================
+   Page header
+   ============================================================ */
+.page-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 24px;
+  margin-bottom: 56px;
+}
+
+.page-head h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  letter-spacing: 0;
+}
+
+.page-head h1 .small {
+  color: var(--ink-2);
+  font-weight: 500;
+  font-size: 16px;
+  margin-left: 6px;
+}
+
+.page-head h1 .iter {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: oklch(22% 0.025 70);
+  color: var(--accent-warm);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  border-radius: 999px;
+  vertical-align: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.page-head p {
+  color: var(--ink-1);
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 820px;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.page-head p code {
+  font-size: 12px;
+  color: var(--ink-0);
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.page-head .meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  text-align: right;
+  line-height: 1.7;
+}
+
+/* changes-from-v0 strip */
+.diff-strip {
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklch, var(--accent-warm), transparent 92%),
+      transparent 60%);
+  border: 1px solid color-mix(in oklch, var(--accent-warm), transparent 80%);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 56px;
+  display: grid;
+  gap: 8px;
+}
+
+.diff-strip .label {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--accent-warm);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diff-strip .label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-warm);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-warm), transparent 80%);
+}
+
+.diff-strip ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.diff-strip li {
+  font-size: 12px;
+  color: var(--ink-1);
+  line-height: 1.55;
+}
+
+.diff-strip li code {
+  font-size: 11px;
+  color: var(--ink-0);
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ============================================================
+   Section
+   ============================================================ */
+.section { margin-bottom: 56px; }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.section-head .num {
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+}
+
+.section-head h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink-1);
+  letter-spacing: 0.005em;
+}
+
+.section-head .h2-detail {
+  color: var(--ink-2);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+/* Panel grid */
+.grid { display: grid; gap: 20px; }
+.grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.panel {
+  background:
+    linear-gradient(180deg, oklch(15% 0.013 270) 0%, oklch(13% 0.012 270) 100%);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 36px 24px 18px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 16px;
+  min-height: 280px;
+}
+
+.panel-stage {
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.panel-caption {
+  border-top: 1px dashed var(--line);
+  padding-top: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.panel-caption .label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.panel-caption .desc {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-1);
+  text-wrap: pretty;
+}
+
+.panel-caption .desc code {
+  font-size: 11px;
+  color: var(--ink-0);
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ============================================================
+   Status orb (shared)
+   ============================================================ */
+.status-orb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  padding: 1.5px;
+  background: conic-gradient(
+    var(--orb-color, var(--accent)) var(--orb-angle, 0deg),
+    oklch(40% 0 0 / 0.18) 0deg
+  );
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.status-orb-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--inner-well);
+  display: grid;
+  place-items: center;
+  font-size: 13.5px;
+  line-height: 1;
+}
+
+/* ============================================================
+   Compact bubble (124×42) and hover (224×42)
+   ============================================================ */
+.bubble {
+  position: relative;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 9px;
+}
+
+.bubble-compact { width: 124px; height: 42px; }
+.bubble-hover   { width: 224px; height: 42px; }
+
+.bubble-text {
+  color: var(--ink-0);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+}
+
+/* card-count badge on compact */
+.bubble-badge {
+  position: absolute;
+  bottom: -5px;
+  right: -6px;
+  background: var(--inner-well);
+  border: 1.5px solid var(--accent-sage);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent-sage);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  letter-spacing: 0.005em;
+  box-shadow: 0 2px 6px oklch(0% 0 0 / 0.5);
+}
+
+@keyframes badgeBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+.bubble-badge { animation: badgeBreathe 4s ease-in-out infinite; }
+
+/* ============================================================
+   Controls strip — INSIDE the hover bubble
+   ============================================================ */
+.controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 8px;
+}
+
+.ctrl-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-1);
+  border: 0;
+  font-size: 11px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  position: relative;
+  font-family: inherit;
+}
+.ctrl-btn:hover { background: oklch(100% 0 0 / 0.07); color: var(--ink-0); }
+
+/* the cards button — STATE-BEARING in v1.
+   Idle = faint icon. Has-cards = bright + sage badge. Generating = warm pulse. */
+.ctrl-cards { color: var(--ink-1); }
+.ctrl-cards.has-cards { color: var(--accent-sage); }
+.ctrl-cards.generating { color: var(--accent-warm); animation: ctrlPulse 1.8s ease-in-out infinite; }
+
+@keyframes ctrlPulse {
+  0%, 100% { opacity: 1;    transform: scale(1);    }
+  50%      { opacity: 0.55; transform: scale(0.92); }
+}
+
+.ctrl-cards .ctrl-badge {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--accent-sage);
+  color: oklch(15% 0.012 270);
+  font-size: 9px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  border: 1.5px solid var(--surface-1);
+}
+
+/* swatch chip for color button */
+.ctrl-color-chip {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: oklch(80% 0.10 50);
+  box-shadow:
+    0 0 0 1px oklch(100% 0 0 / 0.26),
+    0 1px 2px oklch(0% 0 0 / 0.45);
+}
+
+/* ============================================================
+   Generic expanded "card surface" — used by cards / settings
+   ============================================================ */
+.surface {
+  background: var(--surface-1);
+  border-radius: 18px;
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float-tall);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.surface-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.surface-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  color: var(--ink-0);
+}
+
+.surface-eyebrow {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.surface-close {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.surface-close:hover { background: oklch(100% 0 0 / 0.07); color: var(--ink-0); }
+
+/* tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-left: 8px;
+  border-bottom: 0;
+}
+
+.tab {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  position: relative;
+  font-family: inherit;
+  letter-spacing: 0.005em;
+}
+.tab:hover { color: var(--ink-1); }
+
+.tab.active { color: var(--ink-0); }
+.tab.active::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -13px;
+  height: 2px;
+  background: var(--accent-sage);
+  border-radius: 999px;
+}
+
+.tab .count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+  padding: 0 5px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  height: 14px;
+  font-weight: 600;
+}
+.tab.active .count {
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+}
+
+/* ============================================================
+   Settings panel
+   ============================================================ */
+.settings {
+  width: 440px;
+  height: 580px;
+}
+
+.settings .surface-body {
+  padding: 0;
+  overflow-y: auto;
+}
+
+.settings-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+}
+.settings-section:last-child { border-bottom: 0; }
+
+.settings-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-section-title .pill-tag {
+  font-size: 9px;
+  background: oklch(22% 0.025 70);
+  color: var(--accent-warm);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+}
+
+/* row patterns */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+}
+
+.row .row-label {
+  font-size: 12.5px;
+  color: var(--ink-0);
+  font-weight: 500;
+}
+
+.row .row-meta {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-top: 1px;
+  font-family: var(--font-mono);
+}
+
+.row .row-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* toggle */
+.toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: oklch(30% 0 0);
+  position: relative;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 200ms var(--ease-standard);
+}
+.toggle::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ink-1);
+  top: 2px;
+  left: 2px;
+  transition: transform 200ms var(--ease-standard), background 200ms var(--ease-standard);
+}
+.toggle.on { background: oklch(36% 0.040 150); }
+.toggle.on::after { transform: translateX(16px); background: var(--accent-sage); }
+
+/* difficulty chip (sage / warm / rose) */
+.difficulty-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  text-transform: lowercase;
+  border: 1px solid transparent;
+}
+.difficulty-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.difficulty-chip.easy {
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+  border-color: color-mix(in oklch, var(--accent-sage), transparent 60%);
+}
+.difficulty-chip.easy::before { background: var(--accent-sage); }
+.difficulty-chip.medium {
+  background: oklch(22% 0.025 70);
+  color: var(--accent-warm);
+  border-color: color-mix(in oklch, var(--accent-warm), transparent 60%);
+}
+.difficulty-chip.medium::before { background: var(--accent-warm); }
+.difficulty-chip.hard {
+  background: oklch(22% 0.025 25);
+  color: var(--accent-rose);
+  border-color: color-mix(in oklch, var(--accent-rose), transparent 60%);
+}
+.difficulty-chip.hard::before { background: var(--accent-rose); }
+
+/* difficulty mix line (today tab + history rows) */
+.difficulty-mix {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+}
+.difficulty-mix .num { font-weight: 700; }
+.difficulty-mix .easy-n   { color: var(--accent-sage); }
+.difficulty-mix .medium-n { color: var(--accent-warm); }
+.difficulty-mix .hard-n   { color: var(--accent-rose); }
+
+/* segmented control */
+.segmented {
+  display: inline-flex;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 3px;
+  box-shadow: var(--shadow-inner-highlight);
+  gap: 2px;
+}
+.segment {
+  background: transparent;
+  border: 0;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 7px;
+  font-family: inherit;
+}
+.segment:hover { color: var(--ink-1); }
+.segment.active {
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+}
+
+/* expandable source block (replaces the static source pill on cards) */
+.source-expand {
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+  overflow: hidden;
+}
+.source-expand-head {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+}
+.source-expand-head .source-label-tag {
+  color: var(--ink-2);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.source-expand-head .chevron {
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 10px;
+  transition: transform 200ms var(--ease-standard);
+}
+.source-expand.open .chevron { transform: rotate(90deg); color: var(--ink-1); }
+
+.source-quote {
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  background: var(--inner-well);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--ink-1);
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.source-quote .speaker {
+  color: var(--accent);
+  font-weight: 700;
+  display: block;
+  margin: 8px 0 2px 0;
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.source-quote .speaker:first-child { margin-top: 0; }
+.source-quote .speaker.assistant { color: var(--accent-sage); }
+.source-quote .speaker.edit      { color: var(--accent-warm); }
+
+/* empty day banner */
+.empty-day-banner {
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--accent), transparent 92%), transparent 75%);
+  border: 1px dashed color-mix(in oklch, var(--accent), transparent 60%);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.empty-day-banner .icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: oklch(22% 0.025 195);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid color-mix(in oklch, var(--accent), transparent 60%);
+  flex: 0 0 auto;
+}
+.empty-day-banner .text-block {
+  flex: 1 1 auto;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.empty-day-banner .text {
+  font-size: 12.5px;
+  color: var(--ink-0);
+  font-weight: 600;
+}
+.empty-day-banner .text-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
+
+.streak-shield {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: oklch(22% 0.025 195);
+  color: var(--accent);
+  border: 1px solid color-mix(in oklch, var(--accent), transparent 60%);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  flex: 0 0 auto;
+}
+
+/* learning-focus textarea (Settings → Cards) */
+.focus-block {
+  display: grid;
+  gap: 6px;
+  background: var(--inner-well);
+  border: 1px dashed color-mix(in oklch, var(--accent-warm), transparent 60%);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.focus-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.focus-label .lhs {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-0);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.focus-label .lhs .icon {
+  color: var(--accent-warm);
+  font-size: 11px;
+}
+
+.focus-label .hint {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+
+.focus-textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  background: transparent;
+  border: 0;
+  color: var(--ink-0);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  padding: 0;
+  outline: none;
+}
+.focus-textarea::placeholder { color: var(--ink-2); }
+
+.focus-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.focus-chip {
+  background: var(--surface-2);
+  color: var(--ink-1);
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 10.5px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+}
+.focus-chip:hover { background: var(--surface-3); color: var(--ink-0); }
+.focus-chip::before { content: "+ "; color: var(--ink-2); }
+
+/* focus pill shown in cards mode (Today abstract) and in export preview header */
+.focus-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: oklch(22% 0.030 70);
+  color: var(--accent-warm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  font-family: var(--font-mono);
+  border: 1px solid color-mix(in oklch, var(--accent-warm), transparent 60%);
+}
+.focus-pill::before {
+  content: "✦";
+  font-size: 9px;
+}
+
+/* slider — daily-goal style */
+.slider {
+  display: grid;
+  gap: 6px;
+}
+.slider-rail {
+  position: relative;
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.slider-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  background: var(--accent-sage);
+  border-radius: 999px;
+}
+.slider-thumb {
+  position: absolute;
+  top: 50%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ink-0);
+  box-shadow: 0 1px 4px oklch(0% 0 0 / 0.4);
+  border: 2px solid var(--accent-sage);
+}
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+}
+.slider-ticks .active { color: var(--accent-sage); font-weight: 700; }
+
+/* primary action (sage) */
+.btn-primary {
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+  border: 0;
+  border-radius: 10px;
+  height: 34px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.005em;
+  box-shadow: var(--shadow-inner-highlight);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary:hover { background: oklch(26% 0.030 150); }
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--ink-0);
+  border: 0;
+  border-radius: 10px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.btn-secondary:hover { background: var(--surface-3); }
+
+/* expandable sub-list */
+.expander {
+  display: grid;
+  gap: 0;
+}
+.expander-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.expander-head .chevron {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  transition: transform 200ms var(--ease-standard);
+}
+.expander.open .chevron { transform: rotate(90deg); color: var(--ink-1); }
+
+.expander-body {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+/* mini session row */
+.mini-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--surface-2);
+  border-radius: 9px;
+  font-size: 11px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.mini-row .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-sage);
+  flex: 0 0 auto;
+}
+.mini-row .dot.warm { background: var(--accent-warm); }
+.mini-row .dot.rose { background: var(--accent-rose); }
+.mini-row .row-tool {
+  font-weight: 600;
+  color: var(--ink-0);
+  font-size: 11.5px;
+}
+.mini-row .row-meta {
+  margin-left: auto;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* export section */
+.export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ============================================================
+   Cards mode
+   ============================================================ */
+.cards {
+  width: 460px;
+  height: 600px;
+}
+
+.cards .surface-body {
+  padding: 16px;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+}
+
+/* daily abstract block (markdown-rendered) */
+.abstract {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-inner-highlight);
+  position: relative;
+}
+
+.abstract-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.abstract-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-0);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.abstract-meta {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+
+/* markdown theme */
+.md { color: var(--ink-1); font-size: 12px; line-height: 1.6; text-wrap: pretty; }
+.md > * + * { margin-top: 8px; }
+.md h2 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-0);
+  margin: 0 0 4px 0;
+  letter-spacing: 0.005em;
+}
+.md h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-0);
+  margin: 12px 0 4px 0;
+  letter-spacing: 0.005em;
+}
+.md p { margin: 0; }
+.md ul, .md ol { margin: 4px 0; padding-left: 18px; }
+.md li { margin: 2px 0; }
+.md li::marker { color: var(--ink-2); }
+.md strong { font-weight: 700; color: var(--ink-0); }
+.md em { font-style: italic; color: var(--ink-1); }
+.md code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--inner-well);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--ink-0);
+}
+.md a { color: var(--accent); text-decoration: none; }
+.md a:hover { text-decoration: underline; }
+.md blockquote {
+  margin: 6px 0;
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid color-mix(in oklch, var(--accent-sage), transparent 40%);
+  color: var(--ink-2);
+  font-style: italic;
+}
+.md hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 10px 0;
+}
+
+/* progress + streak strip */
+.progress-strip {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+
+.progress-block { display: grid; gap: 6px; }
+.progress-label {
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.progress-bar-shell {
+  height: 8px;
+  border-radius: 999px;
+  background: oklch(30% 0 0);
+  overflow: hidden;
+  position: relative;
+}
+.progress-bar-fill {
+  height: 100%;
+  width: 60%;
+  background: linear-gradient(90deg, var(--accent-sage), color-mix(in oklch, var(--accent-sage), var(--accent-warm) 30%));
+  border-radius: 999px;
+}
+.progress-num {
+  font-family: var(--font-mono);
+  color: var(--ink-1);
+  font-size: 11px;
+}
+.progress-num strong {
+  color: var(--ink-0);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.streak {
+  display: grid;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+  text-align: right;
+}
+.streak-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-warm);
+  line-height: 1;
+  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.streak-label {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* CTA */
+.card-cta-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-cta {
+  flex: 1;
+  background: oklch(22% 0.025 150);
+  color: var(--accent-sage);
+  border: 0;
+  border-radius: 12px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-inner-highlight);
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+.btn-cta:hover { background: oklch(26% 0.030 150); }
+.btn-cta .arrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.btn-cta-secondary {
+  flex: 0 0 auto;
+  background: var(--surface-2);
+  color: var(--ink-1);
+  border: 0;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-inner-highlight);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-cta-secondary:hover { background: var(--surface-3); color: var(--ink-0); }
+
+/* history list (cards mode History tab) */
+.history-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+  cursor: pointer;
+}
+.history-row:hover { background: var(--surface-3); }
+.history-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+  font-weight: 600;
+}
+.history-title {
+  color: var(--ink-0);
+  font-size: 12px;
+  font-weight: 500;
+  text-wrap: pretty;
+  line-height: 1.4;
+}
+.history-stat {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  text-align: right;
+  display: grid;
+  gap: 2px;
+}
+.history-stat .accuracy { color: var(--accent-sage); font-weight: 600; }
+
+/* wrong book row */
+.wrong-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.wrong-tag {
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: oklch(22% 0.025 25);
+  color: var(--accent-rose);
+}
+.wrong-tag.cloze { background: oklch(22% 0.025 70); color: var(--accent-warm); }
+.wrong-attempts {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  text-align: right;
+}
+.wrong-attempts .miss { color: var(--accent-rose); }
+
+/* ============================================================
+   Active review card (used inside cards mode)
+   ============================================================ */
+.review-active {
+  width: 460px;
+  height: 600px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.review-active-body {
+  padding: 16px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+}
+
+/* progress dots inside review */
+.review-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.progress-dots { display: flex; gap: 4px; }
+.progress-dots .dot {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: oklch(40% 0 0 / 0.18);
+}
+.progress-dots .dot.done    { background: var(--accent-sage); }
+.progress-dots .dot.wrong   { background: var(--accent-rose); }
+.progress-dots .dot.current { background: var(--accent); }
+.review-progress-label {
+  margin-left: auto;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.review-question {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-0);
+  font-weight: 500;
+  text-wrap: pretty;
+}
+.review-question .pill {
+  background: oklch(22% 0.030 70);
+  color: var(--accent-warm);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.review-source {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.review-source .source-label {
+  color: var(--ink-2);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.option-list { display: grid; gap: 6px; }
+.option {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+  background: oklch(20% 0.014 270);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-0);
+  text-align: left;
+  font-family: inherit;
+  text-wrap: pretty;
+}
+.option:hover { background: oklch(24% 0.016 270); }
+.option .option-key {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+.option.selected {
+  border-color: color-mix(in oklch, var(--accent), transparent 30%);
+  background: oklch(28% 0.030 195);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.option.selected .option-key { color: var(--accent); }
+.option.correct {
+  border-color: color-mix(in oklch, var(--accent-sage), transparent 30%);
+  background: oklch(24% 0.025 150);
+}
+.option.correct .option-key { color: var(--accent-sage); }
+.option.wrong {
+  border-color: color-mix(in oklch, var(--accent-rose), transparent 30%);
+  background: oklch(24% 0.025 25);
+}
+.option.wrong .option-key { color: var(--accent-rose); }
+
+/* review footer */
+.review-foot {
+  border-top: 1px solid var(--line);
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-1);
+}
+
+.foot-link {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.foot-link:hover { color: var(--ink-1); }
+
+/* completion screen */
+.completion {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  gap: 12px;
+}
+.completion-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side,
+      color-mix(in oklch, var(--accent-sage), transparent 50%),
+      transparent 70%),
+    oklch(20% 0.025 150);
+  border: 1.5px solid var(--accent-sage);
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  color: var(--accent-sage);
+}
+.completion h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink-0);
+  margin: 0;
+  letter-spacing: 0;
+}
+.completion .sub {
+  font-size: 12px;
+  color: var(--ink-1);
+  font-family: var(--font-mono);
+}
+.completion-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+}
+.stat {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 12px 8px;
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.stat-num {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.stat.correct .stat-num { color: var(--accent-sage); }
+.stat.wrong .stat-num   { color: var(--accent-rose); }
+.stat.streak .stat-num  { color: var(--accent-warm); }
+.stat-label {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* ============================================================
+   Markdown export modal
+   ============================================================ */
+.export-modal {
+  width: 460px;
+  background: var(--surface-1);
+  border-radius: 18px;
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float-tall);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  max-height: 580px;
+}
+
+.export-preview {
+  background: var(--inner-well);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.export-preview .h-token { color: var(--accent); }
+.export-preview .b-token { color: var(--accent-warm); font-weight: 600; }
+.export-preview .c-token { color: var(--accent-sage); }
+.export-preview .l-token { color: var(--ink-2); }
+
+.export-foot {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.export-foot .btn-row {
+  display: flex;
+  gap: 6px;
+}
+
+.export-foot .file-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+/* ============================================================
+   Decision card (table)
+   ============================================================ */
+.decision-card {
+  background: var(--surface-1);
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float);
+  border: 1px solid var(--line);
+}
+.decision-card table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.decision-card thead th {
+  text-align: left;
+  color: var(--ink-2);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 0 12px 12px 0;
+}
+.decision-card tbody td {
+  padding: 13px 12px 13px 0;
+  vertical-align: top;
+  line-height: 1.55;
+}
+.decision-card tbody tr { border-bottom: 1px solid var(--line); }
+.decision-card tbody tr:last-child { border-bottom: 0; }
+.decision-card td:first-child { color: var(--ink-1); font-weight: 600; width: 18%; }
+.decision-card td:nth-child(2) { color: var(--ink-0); width: 44%; }
+.decision-card td:nth-child(3) { color: var(--ink-2); }
+.decision-card td code {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+@media (max-width: 1100px) {
+  .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; }
+  body { padding: 32px 24px 64px; }
+  .page-head { grid-template-columns: 1fr; }
+  .page-head .meta { text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ====================================================================
+     Header
+     ==================================================================== -->
+<header class="page-head">
+  <div>
+    <h1>Knowledge Cards <span class="small">· v1 mockup</span><span class="iter">v1</span></h1>
+    <p>多邻国式的复习节奏（每日目标、错题本、连击数）+ 每日 markdown abstract + 全量 markdown 导出。生成进度从 bubble 主状态撤出，收进 controls 区里 📚 按钮自身的 pulse；dashboard 模式被砍掉，sessions / 审计 / pairing 全部进入 settings 的可折叠 section。</p>
+  </div>
+  <div class="meta">
+    docs/knowledge-cards-v1.html<br>
+    Stage 1.5 candidate · supersedes v0<br>
+    2026-05-03
+  </div>
+</header>
+
+<!-- diff strip vs v0 -->
+<div class="diff-strip">
+  <span class="label">v1 ↔ v0 主要变化</span>
+  <ul>
+    <li>生成不再占用 bubble 主状态 — <code>generating_cards</code> 状态删除。controls 里的 📚 按钮自身 pulse 即正在生成，主流不阻塞。</li>
+    <li><code>dashboard</code> 模式整个砍掉。pending queue 在有请求时自动展开为 <code>approval</code>；sessions / 审计 / pairing 全部纳入 <code>settings</code> 的可折叠 section。</li>
+    <li>Knowledge Cards 单开为 <code>cards</code> 模式（460 × 600），三 tab：<code>Today / History / Wrong book</code>。多邻国式的每日目标 + 连击数。</li>
+    <li>每天的 abstract 用 markdown theme 渲染；可一键导出 .md（today / 全量历史 / 错题本三种）。</li>
+    <li>所有 Duolingo 借鉴项均用户可关：daily goal 滑块（1-15）、auto-add 错题本、auto-generate、连击通知。</li>
+    <li><strong>Settings · Cards 顶部新增 <span class="focus-pill" style="font-size:9px;padding:1px 6px;">✦ Learning focus</span> 多行输入</strong> —— 用户写一段"我想学什么"，prompt 生成时拼到 <code>claude -p</code> 前面，让 abstract 和卡片都带这个 bias。空着 = 让 AI 自己挑。abstract 顶部有 focus 小胶囊提示当时用了什么 focus；导出 markdown 顶部 yaml frontmatter 也写一行。</li>
+    <li><strong>难度三档</strong>：<span class="difficulty-chip easy" style="font-size:8.5px;padding:1px 6px;">easy</span> 概念性 / <span class="difficulty-chip medium" style="font-size:8.5px;padding:1px 6px;">medium</span> 基础理论 + 实现方式 / <span class="difficulty-chip hard" style="font-size:8.5px;padding:1px 6px;">hard</span> 数学基础 + 底层原理。每张卡贴 chip；Settings 里 segmented control 选生成时的偏好（Casual / Balanced / Deep）；Today tab 进度条旁显示当日难度分布。</li>
+    <li><strong>强制溯源（hard-coded）</strong>：source 区从静态一行升级为可展开 quote block，里面是 session 当时的真实对话片段（user / assistant / edit 三种说话方角色色区分）。Wrong feedback 的 "AI explanation" 删掉，改为 <code>From session: &lt;verbatim quote&gt;</code>。实现层硬约束每张卡 JSON 必须有 <code>source.snippet</code> verbatim 字段，没有就丢弃；不向用户暴露关闭开关 —— 防止误关后看到假题。</li>
+    <li><strong>空白日 fallback</strong>：今天没 session 时 Today tab 自动切到 "No new sessions" 变体，从过去 N 天（用户可设 3/7/14/30）+ 错题本里抽题，CTA 文案变 "Start replay"。Streak 显示 <span class="streak-shield" style="font-size:9px;padding:1px 6px;">🛡 protected</span> 不算断（多邻国 streak freeze 借鉴）。题源仍 100% 来自历史真实 session。</li>
+  </ul>
+</div>
+
+<!-- ====================================================================
+     SECTION 01 — Bubble + controls strip
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <h2>入口</h2>
+    <span class="h2-detail">/ entry — 生成进度收进 controls 区，主状态干净</span>
+  </div>
+
+  <div class="grid cols-3">
+
+    <!-- 1: Compact bubble + 📚 badge -->
+    <div class="panel">
+      <div class="panel-stage">
+        <div class="bubble bubble-compact">
+          <span class="status-orb" style="--orb-color: var(--ink-2); --orb-angle: 280deg;">
+            <span class="status-orb-inner">💤</span>
+          </span>
+          <span class="bubble-text">Idle</span>
+          <span class="bubble-badge">📚 5</span>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">01 / Compact 静默提示</span>
+        <span class="desc">右下挂 sage 描边小徽章，提示有 5 张未做。bubble 主状态保持 <code>Idle</code>，不打扰当前工作流。点击徽章直接跳进 cards 模式。</span>
+      </div>
+    </div>
+
+    <!-- 2: Hover bubble — controls strip with 📚 button (idle) -->
+    <div class="panel">
+      <div class="panel-stage">
+        <div class="bubble bubble-hover">
+          <span class="status-orb" style="--orb-color: var(--ink-2); --orb-angle: 280deg;">
+            <span class="status-orb-inner">💤</span>
+          </span>
+          <span class="bubble-text">Idle</span>
+          <div class="controls">
+            <button class="ctrl-btn" title="Power">⏻</button>
+            <button class="ctrl-btn" title="Color"><span class="ctrl-color-chip"></span></button>
+            <button class="ctrl-btn ctrl-cards has-cards" title="Knowledge cards">
+              📚<span class="ctrl-badge">5</span>
+            </button>
+            <button class="ctrl-btn" title="Settings">⚙</button>
+            <button class="ctrl-btn" title="Minimize">−</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">02 / Hover · 控件区</span>
+        <span class="desc">悬停展开后多了 <code>📚</code> 按钮，旁边小徽章显示当前未做卡数（mono 数字、贴在按钮右上角）。<code>⚙</code> 现在打开的是 settings，不再是 dashboard（dashboard 模式被删）。</span>
+      </div>
+    </div>
+
+    <!-- 3: Hover bubble — 📚 in generating state -->
+    <div class="panel">
+      <div class="panel-stage">
+        <div class="bubble bubble-hover">
+          <span class="status-orb" style="--orb-color: var(--accent-sage); --orb-angle: 300deg;">
+            <span class="status-orb-inner">✅</span>
+          </span>
+          <span class="bubble-text">Done</span>
+          <div class="controls">
+            <button class="ctrl-btn" title="Power">⏻</button>
+            <button class="ctrl-btn" title="Color"><span class="ctrl-color-chip"></span></button>
+            <button class="ctrl-btn ctrl-cards generating" title="Generating cards…">
+              🎴
+            </button>
+            <button class="ctrl-btn" title="Settings">⚙</button>
+            <button class="ctrl-btn" title="Minimize">−</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">03 / 生成中（不阻塞）</span>
+        <span class="desc">📚 切成 🎴 + warm 色 pulse —— <em>仅 controls 区有变化</em>，bubble 主状态仍旧报告真实 Claude Code 状态（这里是 <code>Done</code>）。后台 spawn <code>claude -p</code> 子进程，主进程继续处理 approval / question 不受影响。</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 02 — Settings panel
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <h2>Settings</h2>
+    <span class="h2-detail">/ settings mode — 取代旧 dashboard，所有运行时配置 + sessions / 审计 / pairing 在此</span>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1fr 380px; gap: 20px; align-items: stretch;">
+
+    <div class="panel">
+      <div class="panel-stage" style="padding: 16px 0; align-items: start;">
+        <div class="surface settings">
+
+          <div class="surface-head">
+            <span class="surface-eyebrow">⚙</span>
+            <span class="surface-title">Settings</span>
+            <button class="surface-close">×</button>
+          </div>
+
+          <div class="surface-body">
+
+            <!-- KNOWLEDGE CARDS section -->
+            <div class="settings-section">
+              <h3 class="settings-section-title">
+                Knowledge Cards
+                <span class="pill-tag">新</span>
+              </h3>
+
+              <!-- Learning focus — drives both abstract weighting and card selection -->
+              <div class="focus-block">
+                <div class="focus-label">
+                  <span class="lhs">
+                    <span class="icon">✦</span>
+                    What do you want to learn?
+                  </span>
+                  <span class="hint">prepended to every prompt</span>
+                </div>
+                <textarea class="focus-textarea" placeholder="留空 = 让 AI 自己挑重点。例如：&#10;Electron BrowserWindow 的 IPC / setBounds 行为；&#10;OKLCH 色彩空间；&#10;Claude Code hook 的 timeout / 失败语义">Electron BrowserWindow IPC 与 setBounds 行为；OKLCH 色彩空间；Claude Code hook 的 timeout 与失败语义。</textarea>
+                <div class="focus-chips">
+                  <button class="focus-chip">from this week's commits</button>
+                  <button class="focus-chip">from open files</button>
+                  <button class="focus-chip">clear</button>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="row-text">
+                  <span class="row-label">Auto-generate cards</span>
+                  <span class="row-meta">first open of the day · or 22:00</span>
+                </div>
+                <div class="toggle on"></div>
+              </div>
+
+              <div class="slider">
+                <div class="row" style="min-height: 22px;">
+                  <span class="row-label" style="font-size: 12px;">Daily goal</span>
+                  <span class="mono" style="color: var(--accent-sage); font-size: 11px; font-weight: 700;">5 cards</span>
+                </div>
+                <div class="slider-rail">
+                  <div class="slider-fill"></div>
+                  <div class="slider-thumb"></div>
+                </div>
+                <div class="slider-ticks">
+                  <span>1</span>
+                  <span>3</span>
+                  <span class="active">5</span>
+                  <span>10</span>
+                  <span>15</span>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="row-text">
+                  <span class="row-label">Difficulty preference</span>
+                  <span class="row-meta">Balanced ≈ 50% easy · 35% medium · 15% hard</span>
+                </div>
+                <div class="segmented">
+                  <button class="segment">Casual</button>
+                  <button class="segment active">Balanced</button>
+                  <button class="segment">Deep</button>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="row-text">
+                  <span class="row-label">Auto-add wrong cards to book</span>
+                  <span class="row-meta">missed cards return tomorrow</span>
+                </div>
+                <div class="toggle on"></div>
+              </div>
+
+              <div class="slider">
+                <div class="row" style="min-height: 22px;">
+                  <span class="row-label" style="font-size: 12px;">Empty-day fallback window</span>
+                  <span class="mono" style="color: var(--accent); font-size: 11px; font-weight: 700;">past 7 days</span>
+                </div>
+                <div class="slider-rail">
+                  <div class="slider-fill" style="width: 33%; background: var(--accent);"></div>
+                  <div class="slider-thumb" style="left: 33%; border-color: var(--accent);"></div>
+                </div>
+                <div class="slider-ticks">
+                  <span>off</span>
+                  <span>3d</span>
+                  <span class="active" style="color: var(--accent);">7d</span>
+                  <span>14d</span>
+                  <span>30d</span>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="row-text">
+                  <span class="row-label">Streak notifications</span>
+                  <span class="row-meta">remind before 23:00 if not done</span>
+                </div>
+                <div class="toggle"></div>
+              </div>
+
+              <div class="row" style="margin-top: 4px;">
+                <button class="btn-primary">
+                  ↻ Generate now
+                </button>
+                <span class="row-meta" style="font-family: var(--font-mono);">last gen 22:14 · 3k tokens</span>
+              </div>
+            </div>
+
+            <!-- SESSIONS section (expandable) -->
+            <div class="settings-section">
+              <div class="expander open">
+                <div class="expander-head">
+                  <h3 class="settings-section-title" style="margin: 0;">
+                    Sessions
+                    <span class="mono" style="color: var(--ink-2); font-weight: 500; letter-spacing: 0;">2 active · 4 today</span>
+                  </h3>
+                  <span class="chevron">▶</span>
+                </div>
+                <div class="expander-body">
+                  <div class="mini-row">
+                    <span class="dot"></span>
+                    <span class="row-tool">claude · companion repo</span>
+                    <span class="row-meta">14:23 · done</span>
+                  </div>
+                  <div class="mini-row">
+                    <span class="dot warm"></span>
+                    <span class="row-tool">claude · vibecodingTest</span>
+                    <span class="row-meta">11:02 · waiting</span>
+                  </div>
+                  <div class="mini-row">
+                    <span class="dot rose"></span>
+                    <span class="row-tool">claude · scratch</span>
+                    <span class="row-meta">09:48 · failed</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ACTIVITY (audit events) section -->
+            <div class="settings-section">
+              <div class="expander">
+                <div class="expander-head">
+                  <h3 class="settings-section-title" style="margin: 0;">
+                    Activity
+                    <span class="mono" style="color: var(--ink-2); font-weight: 500; letter-spacing: 0;">last 30</span>
+                  </h3>
+                  <span class="chevron">▶</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- DEVICES section -->
+            <div class="settings-section">
+              <div class="expander">
+                <div class="expander-head">
+                  <h3 class="settings-section-title" style="margin: 0;">
+                    Devices &amp; pairing
+                    <span class="mono" style="color: var(--ink-2); font-weight: 500; letter-spacing: 0;">0 paired</span>
+                  </h3>
+                  <span class="chevron">▶</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- EXPORT section -->
+            <div class="settings-section">
+              <h3 class="settings-section-title">Export</h3>
+              <div class="export-row">
+                <button class="btn-secondary">↓ Today.md</button>
+                <button class="btn-secondary">↓ All abstracts.md</button>
+                <button class="btn-secondary">↓ Wrong book.md</button>
+              </div>
+              <span class="row-meta">导出后可直接导入 Obsidian / Notion 等笔记软件</span>
+            </div>
+
+            <!-- COMPANION section -->
+            <div class="settings-section">
+              <h3 class="settings-section-title">Companion</h3>
+              <div class="row">
+                <span class="row-label">Approval hook</span>
+                <div class="toggle on"></div>
+              </div>
+              <div class="row">
+                <span class="row-label">Status hook</span>
+                <div class="toggle on"></div>
+              </div>
+              <div class="row">
+                <span class="row-label">Capsule color</span>
+                <span class="ctrl-color-chip" style="width: 16px; height: 16px;"></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">04 / Settings 模式（440 × 580）</span>
+        <span class="desc">取代了旧 dashboard。section 标题级别用 sage / 中性灰区分；新增 section（Knowledge Cards）顶部带"新"小标。Sessions / Activity / Devices 三块默认折叠 —— 默认状态下 settings 看上去清爽，需要时一点即开。</span>
+      </div>
+    </div>
+
+    <!-- side notes -->
+    <aside style="background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; align-self: start; display: grid; gap: 10px;">
+      <span style="font-size: 9.5px; letter-spacing: 0.10em; text-transform: uppercase; font-weight: 600; color: var(--ink-2);">为什么这样改</span>
+      <ul style="margin: 0; padding-left: 16px; display: grid; gap: 8px;">
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">旧 dashboard 把 sessions / pending / 审计 / pairing 全部展开，420 × 540 屏被填得密密麻麻。Pending 反正会自动展开 approval 卡，没必要再列一遍。</li>
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">Sessions 信息高频但不关键 —— 折叠默认隐藏。你要点开看，1 次点击。</li>
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">Cards 配置放在 settings 顶部 + "新"标签，引导新用户先看到这一块。</li>
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">"Generate now" 旁边的元数据 <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">last gen 22:14 · 3k tokens</code> 让 token 消耗永远在同一行眼睛能扫到的地方。</li>
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">导出按钮放 Export 单独 section，点击触发文件保存对话框（见 Section 06）。</li>
+      </ul>
+    </aside>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 03 — Cards mode (3 tabs)
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <h2>Knowledge Cards 模式</h2>
+    <span class="h2-detail">/ cards mode (460 × 600) — Today / History / Wrong book 三 tab</span>
+  </div>
+
+  <div class="grid cols-3">
+
+    <!-- Tab 1: Today -->
+    <div class="panel">
+      <div class="panel-stage" style="padding: 16px 0; align-items: start;">
+        <div class="surface cards">
+
+          <div class="surface-head">
+            <span class="surface-eyebrow">📚</span>
+            <div class="tabs">
+              <button class="tab active">Today</button>
+              <button class="tab">History</button>
+              <button class="tab">Wrong book<span class="count">3</span></button>
+            </div>
+            <button class="surface-close">×</button>
+          </div>
+
+          <div class="surface-body">
+
+            <div class="abstract">
+              <div class="abstract-head">
+                <span class="abstract-date">2026-05-03 · Sun</span>
+                <span class="abstract-meta">3 sessions · 47 min · ↓ md</span>
+              </div>
+              <div style="margin: 4px 0 8px;">
+                <span class="focus-pill" title="From your learning focus in Settings">Focus: Electron IPC · OKLCH · hook timeout</span>
+              </div>
+              <div class="md">
+                <h2>Stage 1 收尾 + Stage 1.5 设计</h2>
+                <p>主要在 <strong>companion repo</strong> 修了 6 个 bug，开始设计 Knowledge Cards 功能。</p>
+                <h3>关键决定</h3>
+                <ul>
+                  <li>Snap 改为单轴吸附（最近边缘胜出），保留用户位置</li>
+                  <li><code>setup-hooks.js</code> 平台感知 —— PowerShell 仅 Windows</li>
+                  <li>新增 <code>setHold</code> IPC，macOS 颜色选择器期间钉住 bubble</li>
+                </ul>
+                <h3>触及文件</h3>
+                <ul>
+                  <li><code>packages/desktop/main.js</code> +82</li>
+                  <li><code>scripts/setup-hooks.js</code> +8</li>
+                  <li><code>docs/desktop-companion.md</code> +34</li>
+                </ul>
+                <blockquote>下次：写 ADR 决定 Stage 2 是否仍含桌面宠物。</blockquote>
+              </div>
+            </div>
+
+            <div class="progress-strip">
+              <div class="progress-block">
+                <span class="progress-label">Today's goal</span>
+                <div class="progress-bar-shell"><div class="progress-bar-fill"></div></div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <span class="progress-num"><strong>3</strong> / 5 cards</span>
+                  <span class="difficulty-mix">
+                    <span><span class="num easy-n">2</span> easy</span>
+                    <span>·</span>
+                    <span><span class="num medium-n">2</span> mid</span>
+                    <span>·</span>
+                    <span><span class="num hard-n">1</span> hard</span>
+                  </span>
+                </div>
+              </div>
+              <div class="streak">
+                <span class="streak-num">🔥 7</span>
+                <span class="streak-label">day streak</span>
+              </div>
+            </div>
+
+            <div class="card-cta-row">
+              <button class="btn-cta">
+                <span>Start review</span>
+                <span class="arrow">2 left →</span>
+              </button>
+              <button class="btn-cta-secondary">↓ md</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">05 / Today tab</span>
+        <span class="desc">最上面是当日 abstract（markdown 渲染：h2 / h3 / list / code / blockquote 全用项目暗色主题）。中间是多邻国式 daily goal 进度条 + 连击数。底部 sage CTA 按钮主导 + 旁边 <code>↓ md</code> 即时导出按钮。</span>
+      </div>
+    </div>
+
+    <!-- Tab 2: History -->
+    <div class="panel">
+      <div class="panel-stage" style="padding: 16px 0; align-items: start;">
+        <div class="surface cards">
+
+          <div class="surface-head">
+            <span class="surface-eyebrow">📚</span>
+            <div class="tabs">
+              <button class="tab">Today</button>
+              <button class="tab active">History</button>
+              <button class="tab">Wrong book<span class="count">3</span></button>
+            </div>
+            <button class="surface-close">×</button>
+          </div>
+
+          <div class="surface-body" style="gap: 8px;">
+
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 2px;">
+              <span style="font-size:11px;color:var(--ink-2);font-family:var(--font-mono);">past 14 days · 9 abstracts</span>
+              <button class="foot-link">↓ Export all</button>
+            </div>
+
+            <div class="history-row">
+              <span class="history-date">05-02</span>
+              <span class="history-title">Stage 1 desktop bubble · 单轴吸附 + 颜色选择器 hold</span>
+              <div class="history-stat">
+                <span class="accuracy">5/5</span>
+                <span>4 cards</span>
+              </div>
+            </div>
+
+            <div class="history-row">
+              <span class="history-date">05-01</span>
+              <span class="history-title">Compact bubble peek 修复 + 控件区 z-index 调整</span>
+              <div class="history-stat">
+                <span class="accuracy">3/4</span>
+                <span>4 cards</span>
+              </div>
+            </div>
+
+            <div class="history-row">
+              <span class="history-date">04-30</span>
+              <span class="history-title">浏览器 dashboard 迁移到 bubble · 重命名为 Clawdeck</span>
+              <div class="history-stat">
+                <span class="accuracy">5/6</span>
+                <span>6 cards</span>
+              </div>
+            </div>
+
+            <div class="history-row">
+              <span class="history-date">04-29</span>
+              <span class="history-title">desktop pet 实现前的 baseline 提交</span>
+              <div class="history-stat">
+                <span style="color: var(--ink-2);">— skipped</span>
+                <span>0 cards</span>
+              </div>
+            </div>
+
+            <div class="history-row">
+              <span class="history-date">04-28</span>
+              <span class="history-title">悬停控件 / 完成提示 / 多源上下文窗口</span>
+              <div class="history-stat">
+                <span class="accuracy">4/5</span>
+                <span>5 cards</span>
+              </div>
+            </div>
+
+            <div style="text-align:center;padding:8px;color:var(--ink-2);font-size:10.5px;font-family:var(--font-mono);">— end of stored history —</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">06 / History tab</span>
+        <span class="desc">每天一行，左边日期、中间 abstract 标题（一行 truncate）、右边正确率 + 卡数。点击行打开当日 abstract 全文。"skipped" 是用户当日没复习也没生成（quote: <code>0 cards</code>）。"Export all" 一次性导出所有 abstracts 到一份 .md。</span>
+      </div>
+    </div>
+
+    <!-- Tab 3: Wrong book -->
+    <div class="panel">
+      <div class="panel-stage" style="padding: 16px 0; align-items: start;">
+        <div class="surface cards">
+
+          <div class="surface-head">
+            <span class="surface-eyebrow">📚</span>
+            <div class="tabs">
+              <button class="tab">Today</button>
+              <button class="tab">History</button>
+              <button class="tab active">Wrong book<span class="count">3</span></button>
+            </div>
+            <button class="surface-close">×</button>
+          </div>
+
+          <div class="surface-body">
+
+            <div class="abstract" style="background: var(--inner-well); padding: 10px 14px;">
+              <div class="md">
+                <p style="color: var(--ink-1); font-size: 11.5px;">
+                  错过的卡片在这里排队，按多邻国规则下次复习时混入 today 队列。连续答对 2 次后从本中移出。
+                </p>
+              </div>
+            </div>
+
+            <div class="wrong-row">
+              <span class="wrong-tag">choice</span>
+              <div>
+                <div style="font-size:12px;color:var(--ink-0);font-weight:500;line-height:1.4;text-wrap:pretty;">
+                  为什么 setup-hooks.js 把 PowerShell 限定在 Windows？
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                  <span class="difficulty-chip medium">medium</span>
+                  <span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-2);">first wrong 05-03 · scripts/setup-hooks.js</span>
+                </div>
+              </div>
+              <div class="wrong-attempts">
+                <span class="miss">✕✕</span>
+                <span>2 misses</span>
+              </div>
+            </div>
+
+            <div class="wrong-row">
+              <span class="wrong-tag cloze">cloze</span>
+              <div>
+                <div style="font-size:12px;color:var(--ink-0);font-weight:500;line-height:1.4;text-wrap:pretty;">
+                  compactPeekBounds 里 capsuleSpan 的 X 轴公式
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                  <span class="difficulty-chip easy">easy</span>
+                  <span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-2);">first wrong 05-02 · packages/desktop/main.js</span>
+                </div>
+              </div>
+              <div class="wrong-attempts">
+                <span class="miss">✕</span>
+                <span>1 miss</span>
+              </div>
+            </div>
+
+            <div class="wrong-row">
+              <span class="wrong-tag">choice</span>
+              <div>
+                <div style="font-size:12px;color:var(--ink-0);font-weight:500;line-height:1.4;text-wrap:pretty;">
+                  为什么 OKLCH 在感知均匀性上比 HSL 更好？
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                  <span class="difficulty-chip hard">hard</span>
+                  <span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-2);">first wrong 04-30 · docs/design-language.md</span>
+                </div>
+              </div>
+              <div class="wrong-attempts">
+                <span class="miss">✕</span>
+                <span>1 miss</span>
+              </div>
+            </div>
+
+            <div class="card-cta-row" style="margin-top: 4px;">
+              <button class="btn-cta">
+                <span>Review wrong book</span>
+                <span class="arrow">3 cards →</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">07 / Wrong book tab（多邻国式错题本）</span>
+        <span class="desc">错题挂在这里。左边题型 tag（choice / cloze），中间难度 chip（sage easy · warm medium · rose hard），右边连续错次数。规则：连续答对 2 次后自动移除，开关在 settings 里。</span>
+      </div>
+    </div>
+
+    <!-- Today (empty day) variant -->
+    <div class="panel">
+      <div class="panel-stage" style="padding: 16px 0; align-items: start;">
+        <div class="surface cards">
+
+          <div class="surface-head">
+            <span class="surface-eyebrow">📚</span>
+            <div class="tabs">
+              <button class="tab active">Today</button>
+              <button class="tab">History</button>
+              <button class="tab">Wrong book<span class="count">3</span></button>
+            </div>
+            <button class="surface-close">×</button>
+          </div>
+
+          <div class="surface-body">
+
+            <div class="empty-day-banner">
+              <div class="icon">○</div>
+              <div class="text-block">
+                <span class="text">No new sessions today</span>
+                <span class="text-meta">last session 05-02 16:14 · pulling from past 7 days + wrong book</span>
+              </div>
+              <span class="streak-shield">🛡 streak保护中</span>
+            </div>
+
+            <div class="abstract">
+              <div class="abstract-head">
+                <span class="abstract-date">2026-05-04 · Mon</span>
+                <span class="abstract-meta">review-only · ↓ md</span>
+              </div>
+              <div style="margin: 4px 0 8px;">
+                <span class="focus-pill">Focus: Electron IPC · OKLCH · hook timeout</span>
+              </div>
+              <div class="md">
+                <h2>没动手的复习日</h2>
+                <p>今天没有新 session。下面 4 张卡来自<strong>过去 7 天</strong>的内容 + 错题本，按你的 focus 排序。所有题目都来自真实历史 session，不会凭空生成。</p>
+                <h3>抽到的来源</h3>
+                <ul>
+                  <li><code>05-03</code> · Stage 1.5 设计（2 cards · focus 命中）</li>
+                  <li><code>05-02</code> · 单轴吸附实现（1 card · wrong book 挑回）</li>
+                  <li><code>04-30</code> · 浏览器 dashboard 迁移（1 card · focus 命中）</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="progress-strip">
+              <div class="progress-block">
+                <span class="progress-label">Today's review</span>
+                <div class="progress-bar-shell"><div class="progress-bar-fill" style="width: 0%;"></div></div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <span class="progress-num"><strong>0</strong> / 4 cards (replay)</span>
+                  <span class="difficulty-mix">
+                    <span><span class="num easy-n">2</span> easy</span>
+                    <span>·</span>
+                    <span><span class="num medium-n">1</span> mid</span>
+                    <span>·</span>
+                    <span><span class="num hard-n">1</span> hard</span>
+                  </span>
+                </div>
+              </div>
+              <div class="streak">
+                <span class="streak-num">🔥 7</span>
+                <span class="streak-label">day streak</span>
+              </div>
+            </div>
+
+            <div class="card-cta-row">
+              <button class="btn-cta">
+                <span>Start replay</span>
+                <span class="arrow">4 cards →</span>
+              </button>
+              <button class="btn-cta-secondary">↓ md</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">08 / 空白日变体（Today tab）</span>
+        <span class="desc">今天没新 session 时 Today tab 自动切到此状态：顶部 banner 明示 "No new sessions"，markdown 区列出 fallback 来源（过去 7 天 + 错题本），CTA 文案改为 "Start replay"。Streak 显示 <span class="streak-shield" style="font-size:9px;padding:1px 6px;">🛡 protected</span>（多邻国 streak freeze 借鉴）不算断。所有题目仍 100% 来自历史真实 session。</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 04 — Active review (inside cards mode)
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <h2>答题进行中</h2>
+    <span class="h2-detail">/ active review — 点 "Start review" 后接管 cards 模式的内容区</span>
+  </div>
+
+  <div class="grid cols-2">
+
+    <!-- Choice question (active) -->
+    <div class="panel" style="min-height: 620px;">
+      <div class="panel-stage" style="padding: 16px 0; align-items: start;">
+        <div class="surface cards review-active">
+
+          <div class="surface-head">
+            <button class="ctrl-btn" title="Back" style="color: var(--ink-2); width: auto; padding: 0 4px;">←</button>
+            <span class="surface-title" style="font-size: 12px; color: var(--ink-1);">Reviewing · Card 02 / 05</span>
+            <button class="surface-close">×</button>
+          </div>
+
+          <div class="review-active-body">
+
+            <div class="review-progress">
+              <div class="progress-dots">
+                <span class="dot done"></span>
+                <span class="dot current"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+                <span class="difficulty-chip medium">medium</span>
+                <span class="review-progress-label" style="margin-left: 0;">streak today: 1 ✓</span>
+              </div>
+            </div>
+
+            <div class="review-question">
+              为什么 <span class="pill">setup-hooks.js</span> 把 PowerShell 限定在 Windows？
+            </div>
+
+            <div class="source-expand open">
+              <div class="source-expand-head">
+                <span class="source-label-tag">source</span>
+                <span>session @ 14:23 · scripts/setup-hooks.js#L7-13</span>
+                <span class="chevron">▶</span>
+              </div>
+              <div class="source-quote"><span class="speaker">user</span>4. mac 上测试出现问题：安装 hook 后 Claude Code 报错没有 power shell
+指令，导致 Claude Code 根本用不了
+
+<span class="speaker assistant">assistant</span>The setup-hooks.js code has:
+  ASK_RULES = ["Bash", "PowerShell"]
+On Mac, PowerShell isn't a recognized tool in Claude Code,
+so adding it likely causes an error... Make it platform-aware.
+
+<span class="speaker edit">edit</span>scripts/setup-hooks.js:7-13
++ const SHELL_TOOLS = process.platform === "win32"
++   ? ["Bash", "PowerShell"]
++   : ["Bash"];</div>
+            </div>
+
+            <div class="option-list">
+              <button class="option">
+                <span class="option-key">A</span>
+                <span>Claude Code 在 macOS 上没把 PATH 透传给 hook 进程</span>
+              </button>
+              <button class="option selected">
+                <span class="option-key">B</span>
+                <span>Claude Code 启动时校验 permissions.ask 里的工具名，列出未知工具会让 CLI 直接拒绝运行</span>
+              </button>
+              <button class="option">
+                <span class="option-key">C</span>
+                <span>PowerShell Core 在 macOS 能跑但太慢，不适合 hook 路径</span>
+              </button>
+              <button class="option">
+                <span class="option-key">D</span>
+                <span>Apple sandbox 阻止 PowerShell 派生子进程</span>
+              </button>
+            </div>
+
+          </div>
+
+          <div class="review-foot">
+            <button class="foot-link">Skip</button>
+            <button class="btn-primary">Submit ↵</button>
+          </div>
+
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">08 / 答题中 · 选择题</span>
+        <span class="desc">沿用 cards 模式的尺寸（460 × 600），surface-head 把 tab 替换成 "Reviewing · Card N/M"。底部 sticky footer 一直 visible（Skip 左 · Submit 右）。复用 v0 的 option / source / question 样式。</span>
+      </div>
+    </div>
+
+    <!-- Completion screen -->
+    <div class="panel" style="min-height: 620px;">
+      <div class="panel-stage" style="padding: 16px 0; align-items: start;">
+        <div class="surface cards">
+
+          <div class="surface-head">
+            <span class="surface-title" style="font-size: 12px; color: var(--ink-1);">Reviewing · Complete</span>
+            <button class="surface-close">×</button>
+          </div>
+
+          <div class="surface-body" style="padding: 0;">
+            <div class="completion">
+              <div class="completion-icon">✓</div>
+              <h2>Daily goal reached!</h2>
+              <span class="sub">5 / 5 cards · 4 min 12s</span>
+
+              <div class="completion-stats">
+                <div class="stat correct">
+                  <span class="stat-num">4</span>
+                  <span class="stat-label">correct</span>
+                </div>
+                <div class="stat wrong">
+                  <span class="stat-num">1</span>
+                  <span class="stat-label">missed</span>
+                </div>
+                <div class="stat streak">
+                  <span class="stat-num">🔥 8</span>
+                  <span class="stat-label">streak</span>
+                </div>
+              </div>
+
+              <div class="abstract" style="margin-top: 14px; width: 100%; padding: 10px 12px;">
+                <div class="md">
+                  <p style="font-size: 11.5px;">
+                    错过的 1 张已加入 <strong>Wrong book</strong>，明天复习时会混入 today 队列。
+                  </p>
+                </div>
+              </div>
+
+              <div class="card-cta-row" style="margin-top: 12px; width: 100%;">
+                <button class="btn-cta">
+                  <span>Review wrong now</span>
+                  <span class="arrow">1 card →</span>
+                </button>
+                <button class="btn-cta-secondary">Back to today</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">09 / Daily complete（Duolingo 借鉴）</span>
+        <span class="desc">完成全部 daily goal 后的庆祝屏。圈勾 + sage 渐变 + 连击数 +1 + 三个统计块 + 直接跳错题本的快捷 CTA。无 Disney 弹跳，仅一次 380ms 入场。</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 05 — Markdown export
+     ==================================================================== -->
+<section class="section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <h2>Markdown 导出</h2>
+    <span class="h2-detail">/ export — 点 settings 或 cards 里的 ↓ md 按钮触发</span>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1fr 380px; gap: 20px; align-items: stretch;">
+
+    <div class="panel">
+      <div class="panel-stage" style="padding: 16px 0; align-items: start;">
+        <div class="export-modal">
+          <div class="surface-head">
+            <span class="surface-eyebrow">↓</span>
+            <span class="surface-title">Export · Today's abstract</span>
+            <button class="surface-close">×</button>
+          </div>
+
+          <div class="export-preview"><span class="l-token">---
+date: 2026-05-03
+sessions: 3
+duration_min: 47
+focus: |
+  Electron BrowserWindow IPC 与 setBounds 行为；
+  OKLCH 色彩空间；
+  Claude Code hook 的 timeout 与失败语义。
+cards: 5
+correct: 4
+streak: 8
+---</span>
+
+<span class="h-token"># 2026-05-03 · Sun</span>
+
+<span class="l-token">_3 sessions · 47 min · focus_kept_</span>
+
+<span class="h-token">## Stage 1 收尾 + Stage 1.5 设计</span>
+
+主要在 <span class="b-token">**companion repo**</span> 修了 6 个 bug，开始设计
+Knowledge Cards 功能。
+
+<span class="h-token">### 关键决定</span>
+
+- Snap 改为单轴吸附（最近边缘胜出），保留用户位置
+- <span class="c-token">`setup-hooks.js`</span> 平台感知 — PowerShell 仅 Windows
+- 新增 <span class="c-token">`setHold`</span> IPC，macOS 颜色选择器期间钉住 bubble
+
+<span class="h-token">### 触及文件</span>
+
+- <span class="c-token">`packages/desktop/main.js`</span> +82
+- <span class="c-token">`scripts/setup-hooks.js`</span> +8
+- <span class="c-token">`docs/desktop-companion.md`</span> +34
+
+<span class="l-token">> 下次：写 ADR 决定 Stage 2 是否仍含桌面宠物。</span>
+
+<span class="l-token">---</span>
+
+<span class="h-token">## Reviewed cards (4/5)</span>
+
+1. <span class="b-token">**Q**</span>: 为什么 setup-hooks.js 把 PowerShell 限定在 Windows？
+   <span class="b-token">**A**</span>: B ✓
+2. <span class="b-token">**Q**</span>: compactPeekBounds 的 capsuleSpan X 轴公式
+   <span class="b-token">**A**</span>: PEEK_VISIBLE_PX ✓
+3. ...
+</div>
+
+          <div class="export-foot">
+            <span class="file-name">~/Downloads/companion-2026-05-03.md</span>
+            <div class="btn-row">
+              <button class="btn-secondary">Copy</button>
+              <button class="btn-primary">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-caption">
+        <span class="label">10 / 导出对话框</span>
+        <span class="desc">点击任意 <code>↓ md</code> 按钮弹出预览模态。代码块用 mono 字体高亮 token（accent / warm / sage 区分 markdown 句法）。底部显示推断的文件名 + Copy / Save 二选一。直接落盘 <code>~/Downloads/</code> 或者复制到剪贴板贴进 Obsidian / Notion。</span>
+      </div>
+    </div>
+
+    <aside style="background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; align-self: start; display: grid; gap: 10px;">
+      <span style="font-size: 9.5px; letter-spacing: 0.10em; text-transform: uppercase; font-weight: 600; color: var(--ink-2);">导出格式约定</span>
+      <ul style="margin: 0; padding-left: 16px; display: grid; gap: 8px;">
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">日期作为 H1 (<code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">#</code>)，session 概要为 H2 (<code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">##</code>)，子分类 H3。</li>
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">每张卡用 <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">**Q**</code> + <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">**A**</code> 双行格式，方便后续导入 Anki 时简单拆分。</li>
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">All-history 导出用 <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">---</code> 横线分隔每天，方便 Obsidian 单文件 outline。</li>
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">导出前再过一次脱敏：去掉 .env 路径段落、token-like 字符串、绝对路径里的用户名。</li>
+        <li style="font-size: 12px; color: var(--ink-1); line-height: 1.55;">默认文件名 <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">companion-YYYY-MM-DD.md</code> / <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">companion-history.md</code> / <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:5px;">companion-wrong-book.md</code>。</li>
+      </ul>
+    </aside>
+
+  </div>
+</section>
+
+<!-- ====================================================================
+     SECTION 06 — Decision summary
+     ==================================================================== -->
+<section class="section" style="margin-top: 64px;">
+  <div class="section-head">
+    <span class="num">06</span>
+    <h2>v1 决策对照</h2>
+    <span class="h2-detail">/ at-a-glance — v1 取向 vs v0 / 还未确定</span>
+  </div>
+
+  <div class="decision-card">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>v1 取向</th>
+          <th>v0 → v1 变化 / 未定</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Learning focus</td>
+          <td>Settings · Cards 顶部多行输入；空着 = AI 自挑；填入后拼进每次 <code>claude -p</code> prompt 前缀</td>
+          <td>v0 / v1 早期都没有；新增后让 abstract + 卡片都能向用户当下的学习重心倾斜</td>
+        </tr>
+        <tr>
+          <td>难度三档</td>
+          <td><code>easy</code> 概念性 / <code>medium</code> 基础理论 + 实现方式 / <code>hard</code> 数学基础 + 底层原理；卡片贴 chip + Settings 偏好 segmented + Today 难度分布</td>
+          <td>v1 早期所有卡片同等难度；新增后用户能调"我今天想脑补还是硬啃"</td>
+        </tr>
+        <tr>
+          <td>强制溯源</td>
+          <td>Source 可展开为 verbatim quote（user/assistant/edit 三色）；Wrong feedback 也用 quote 而非 AI 改写；硬约束每卡必须有 <code>source.snippet</code>，没有就丢弃；<strong>不向用户暴露关闭 toggle</strong></td>
+          <td>v1 早期靠 file:line 一行 + AI explanation 文本，可能 hallucinate；强化后实现层硬约束</td>
+        </tr>
+        <tr>
+          <td>空白日</td>
+          <td>过去 N 天（默认 7） + 错题本 fallback；CTA "Start replay"；streak <span class="streak-shield" style="font-size:9px;padding:1px 6px;">🛡 protected</span> 不算断</td>
+          <td>v1 早期没考虑；现在确保连续没干活也能保留学习节奏</td>
+        </tr>
+        <tr>
+          <td>生成进度位置</td>
+          <td>controls 区里 📚 按钮自身 pulse；bubble 主状态不变</td>
+          <td>v0 是 bubble 主状态切到 <code>generating_cards</code>，会盖掉真正的 Claude Code 状态。改</td>
+        </tr>
+        <tr>
+          <td>Dashboard 模式</td>
+          <td>砍掉。pending 自动展开 approval；其他归 settings</td>
+          <td>v0 仍保留 dashboard 并往里塞 review section。改</td>
+        </tr>
+        <tr>
+          <td>Cards 入口</td>
+          <td>controls strip 多一个 <code>📚</code> 按钮 + 徽章；bubble 上 badge 也可点</td>
+          <td>v0 是 dashboard 里一个 section，要先开 dashboard 再二次定位。改</td>
+        </tr>
+        <tr>
+          <td>每日 abstract</td>
+          <td>cards 模式 Today tab 顶部 markdown 渲染（h2/h3/list/code/quote）</td>
+          <td>v0 没有；新增</td>
+        </tr>
+        <tr>
+          <td>历史</td>
+          <td>History tab 一行一天，点开看全文</td>
+          <td>v0 没有；新增</td>
+        </tr>
+        <tr>
+          <td>错题本</td>
+          <td>独立 Wrong book tab + 多邻国规则（连答 2 次正确移除）；可关</td>
+          <td>v0 仅"错题入明天队列"模糊提及；明确化</td>
+        </tr>
+        <tr>
+          <td>每日目标</td>
+          <td>1 / 3 / 5 / 10 / 15 滑块，默认 5</td>
+          <td>v0 写死 5；改为可调</td>
+        </tr>
+        <tr>
+          <td>连击数</td>
+          <td>Today / Complete 屏 + settings 通知开关</td>
+          <td>v0 无；新增</td>
+        </tr>
+        <tr>
+          <td>导出 markdown</td>
+          <td>Today / All abstracts / Wrong book 三种 .md 导出 + 模态预览</td>
+          <td>v0 无；新增</td>
+        </tr>
+        <tr>
+          <td>主进程阻塞</td>
+          <td>不阻塞 — <code>claude -p</code> 子进程在后台跑，pending 请求随时正常 approval</td>
+          <td>v0 暗示也不阻塞，但生成时主状态被占；v1 强化此承诺</td>
+        </tr>
+        <tr>
+          <td>session 状态</td>
+          <td>从 dashboard 撤出，进 settings <code>Sessions</code> 折叠 section</td>
+          <td>v0 仍在 dashboard；改</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

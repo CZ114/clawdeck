@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redesign A — Liquid Capsule</title>
+<style>
+/* =============================================================
+   Direction A — "Liquid Capsule"
+   Single-shape morph + content cross-fade keyed to ONE master easing.
+   Inspired by Apple's Dynamic Island. Mode change reads as one motion.
+   ============================================================= */
+:root {
+  color-scheme: dark;
+
+  /* Midnight Teal tokens (hardcoded for self-contained preview) */
+  --bg:               oklch(13% 0.012 270);
+  --surface-0:        oklch(13% 0.012 270);
+  --surface-1:        oklch(17% 0.014 270 / 0.96);
+  --surface-2:        oklch(22% 0.016 270);
+  --surface-3:        oklch(26% 0.018 270);
+  --inner-well:       oklch(11% 0.010 270);
+  --ink-0:            oklch(95% 0.014 80);
+  --ink-1:            oklch(70% 0.012 250);
+  --ink-2:            oklch(50% 0.010 250);
+  --line:             oklch(60% 0 0 / 0.10);
+  --accent:           oklch(74% 0.07 195);
+  --accent-warm:      oklch(78% 0.08 70);
+  --accent-warm-hi:   oklch(82% 0.10 70);
+  --accent-sage:      oklch(72% 0.06 150);
+  --accent-rose:      oklch(70% 0.07 25);
+  --accent-slate:     oklch(60% 0.03 250);
+
+  --bg-accent:       color-mix(in oklch, var(--accent),       transparent 82%);
+  --bg-sage:         color-mix(in oklch, var(--accent-sage),  transparent 82%);
+  --bg-warm:         color-mix(in oklch, var(--accent-warm),  transparent 82%);
+  --bg-rose:         color-mix(in oklch, var(--accent-rose),  transparent 82%);
+
+  --shadow-inner:
+    0 1px 0 inset oklch(100% 0 0 / 0.055),
+    0 -1px 0 inset oklch(0% 0 0 / 0.18),
+    0 0 0 1px inset oklch(100% 0 0 / 0.045);
+  --shadow-float:
+    0 1px 1px oklch(0% 0 0 / 0.34),
+    0 4px 8px -6px oklch(0% 0 0 / 0.52),
+    0 8px 12px -11px oklch(0% 0 0 / 0.30);
+  --shadow-float-tall:
+    0 1px 2px oklch(0% 0 0 / 0.34),
+    0 8px 16px -10px oklch(0% 0 0 / 0.52),
+    0 14px 24px -18px oklch(0% 0 0 / 0.34);
+
+  /* THE master curve — every mode-switch animation uses this exact curve
+     so size morph and content fade arrive at the same tempo. */
+  --ease-master: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --font-ui: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: radial-gradient(ellipse at top, oklch(18% 0.018 270), var(--bg));
+  color: var(--ink-0);
+  font-family: var(--font-ui);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.005em;
+  min-height: 100vh;
+  padding: 48px 24px 96px;
+}
+
+button { border: 0; font: inherit; cursor: pointer; color: inherit; }
+
+/* ============================================================
+   Page chrome
+   ============================================================ */
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.rationale {
+  background: var(--surface-1);
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow-inner), var(--shadow-float-tall);
+  margin-bottom: 64px;
+}
+.rationale h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.rationale .tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.rationale p {
+  margin: 8px 0 0;
+  color: var(--ink-1);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.rationale .key {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.rationale .key div {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--ink-1);
+}
+.rationale .key strong { color: var(--ink-0); display: block; margin-bottom: 2px; font-weight: 600; font-size: 11.5px; }
+
+.mode-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+  margin: 56px 0 20px;
+}
+.mode-label::before {
+  content: "";
+  flex: 0 0 28px;
+  height: 1px;
+  background: var(--line);
+}
+.mode-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.mode-label .num {
+  display: inline-flex;
+  width: 22px; height: 22px;
+  align-items: center; justify-content: center;
+  background: var(--bg-accent);
+  color: var(--accent);
+  border-radius: 50%;
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.stage {
+  display: flex;
+  justify-content: center;
+  padding: 36px 24px;
+  background: linear-gradient(180deg,
+    oklch(15% 0.014 270) 0%,
+    oklch(11% 0.010 270) 100%);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  position: relative;
+}
+.stage::before {
+  content: attr(data-size);
+  position: absolute;
+  top: 12px; right: 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   Bubble — base "skin" shared across modes
+   ALL state changes are a single transform + clip-path morph.
+   ============================================================ */
+.bubble {
+  position: relative;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-inner), var(--shadow-float);
+  /* GPU promote up-front so first-paint doesn't trigger a layer flip */
+  will-change: transform, border-radius;
+  /* SINGLE transition on shape + radius, keyed to master curve.
+     Content inside cross-fades in lockstep. */
+  transition:
+    border-radius 320ms var(--ease-master),
+    box-shadow   320ms var(--ease-master),
+    transform    320ms var(--ease-master);
+  transform-origin: center;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Soft top-highlight + bottom-vignette that reads as glass on every theme */
+.bubble::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg,
+    oklch(100% 0 0 / 0.045),
+    transparent 42%,
+    oklch(0% 0 0 / 0.075));
+}
+
+/* === Mode: COMPACT (124 × 42 capsule) === */
+.bubble.compact {
+  width: 124px; height: 42px;
+  border-radius: 999px;
+}
+
+/* === Mode: APPROVAL (360 × 238) === */
+.bubble.approval {
+  width: 360px; height: 238px;
+  border-radius: 22px;
+  box-shadow: var(--shadow-inner), var(--shadow-float-tall);
+}
+
+/* === Mode: QUESTION (360 × 300) === */
+.bubble.question {
+  width: 360px; height: 300px;
+  border-radius: 22px;
+  box-shadow: var(--shadow-inner), var(--shadow-float-tall);
+}
+
+/* === Mode: CARDS (460 × 600) === */
+.bubble.cards {
+  width: 460px; height: 600px;
+  border-radius: 22px;
+  box-shadow: var(--shadow-inner), var(--shadow-float-tall);
+}
+
+/* === Mode: SETTINGS (440 × 580) === */
+.bubble.settings {
+  width: 440px; height: 580px;
+  border-radius: 22px;
+  box-shadow: var(--shadow-inner), var(--shadow-float-tall);
+}
+
+/* ============================================================
+   COMPACT — drag region + status orb + hover-revealed controls
+   ============================================================ */
+.compact .row {
+  display: flex; align-items: center;
+  height: 100%;
+  padding: 0 14px 0 8px;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+.orb {
+  flex: 0 0 26px; height: 26px;
+  border-radius: 50%;
+  background:
+    conic-gradient(var(--accent) 0 calc(var(--ctx, 60) * 1%), oklch(35% 0 0 / 0.5) 0);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.orb::before {
+  content: "";
+  position: absolute; inset: 1.5px;
+  border-radius: 50%;
+  background: var(--inner-well);
+}
+.orb-emoji {
+  position: relative;
+  font-size: 13.5px;
+  z-index: 1;
+  filter: saturate(1.05);
+}
+.compact .text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-0);
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Hover-only control strip on the right.
+   In real product: revealed when bubble width animates 124 → 224 px.
+   Here we show static for preview. */
+.compact .controls {
+  display: flex;
+  gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 220ms var(--ease-master), transform 220ms var(--ease-master);
+}
+.bubble.compact:hover .controls,
+.bubble.compact.show-controls .controls { opacity: 1; transform: none; }
+.bubble.compact:hover { width: 248px; }
+.ctl {
+  width: 24px; height: 24px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent;
+  color: var(--ink-1);
+  font-size: 13px;
+  position: relative;
+  transition: background 160ms var(--ease-master), color 160ms var(--ease-master);
+}
+.ctl:hover { background: color-mix(in oklch, var(--ink-0), transparent 90%); color: var(--ink-0); }
+.ctl-swatch {
+  display: inline-block; width: 12px; height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-warm));
+}
+.cards-badge {
+  position: absolute;
+  top: -3px; right: -3px;
+  min-width: 14px; height: 14px;
+  padding: 0 4px;
+  background: var(--accent-warm-hi);
+  color: oklch(20% 0 0);
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  /* SCALE-pop instead of size-pop = GPU-only */
+  animation: badgePop 480ms var(--ease-spring);
+}
+@keyframes badgePop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================================
+   APPROVAL — strict left risk-rail + minimal type hierarchy
+   ============================================================ */
+.approval-card {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 4px 1fr;
+  position: relative;
+  z-index: 1;
+}
+/* The left rail IS the risk indicator — single semantic surface.
+   Tinted with the risk colour, full-height, soft inner glow. */
+.risk-rail {
+  background: var(--accent-warm-hi);
+  position: relative;
+}
+.risk-rail::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    transparent,
+    oklch(0% 0 0 / 0.18));
+}
+.bubble.approval[data-risk="low"]    .risk-rail { background: var(--accent-sage); }
+.bubble.approval[data-risk="medium"] .risk-rail { background: var(--accent-warm-hi); }
+.bubble.approval[data-risk="high"]   .risk-rail { background: var(--accent-rose); }
+
+.approval-body {
+  padding: 18px 20px 16px 20px;
+  display: flex; flex-direction: column;
+  height: 100%;
+}
+.eyebrow-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+  margin-bottom: 4px;
+}
+.risk-name {
+  color: var(--accent-warm-hi);
+  font-weight: 700;
+  letter-spacing: 0.10em;
+}
+.bubble.approval[data-risk="low"]    .risk-name { color: var(--accent-sage); }
+.bubble.approval[data-risk="high"]   .risk-name { color: var(--accent-rose); }
+.tool-name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin: 0 0 8px;
+  color: var(--ink-0);
+}
+.summary-line {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-1);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 0 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meta-row {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-bottom: 12px;
+}
+.meta-row span strong {
+  color: var(--ink-1);
+  font-weight: 500;
+  margin-right: 4px;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+}
+.actions {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  flex: 1;
+  height: 34px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  background: var(--surface-2);
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+  transition: transform 160ms var(--ease-master), background 160ms var(--ease-master);
+}
+.btn:hover { transform: translateY(-1px); background: var(--surface-3); }
+.btn:active { transform: translateY(0); }
+.btn.approve { background: oklch(22% 0.025 150); color: var(--accent-sage); }
+.btn.deny    { background: oklch(22% 0.025 25);  color: var(--accent-rose); }
+.btn.suggest { background: oklch(22% 0.025 70);  color: var(--accent-warm); flex: 0.7; }
+
+/* ============================================================
+   SATELLITES — "✓ ✕" chips floating below in the 44 px gutter
+   ============================================================ */
+.satellites {
+  position: absolute;
+  left: 50%; bottom: -34px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+}
+.sat {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: oklch(20% 0 0);
+  box-shadow: 0 6px 18px oklch(0% 0 0 / 0.45), var(--shadow-inner);
+  /* enter: split outward from the bubble's bottom centre */
+  animation: satSplit 540ms var(--ease-spring);
+}
+.sat-approve { background: var(--accent-sage); }
+.sat-deny    { background: var(--accent-rose); }
+@keyframes satSplit {
+  0%   { transform: translateX(0) scale(0.4); opacity: 0; }
+  100% { transform: translateX(0) scale(1);   opacity: 1; }
+}
+
+/* ============================================================
+   QUESTION — answer form with multiple choice
+   ============================================================ */
+.question-body {
+  padding: 18px 20px 16px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+  height: 100%;
+}
+.option-list { display: flex; flex-direction: column; gap: 6px; }
+.opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink-0);
+  transition: background 160ms var(--ease-master);
+}
+.opt:hover { background: var(--surface-3); }
+.opt-bullet {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-2);
+  flex: 0 0 14px;
+}
+.opt.is-active .opt-bullet { border-color: var(--accent); background: var(--accent); }
+.other-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-0);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-family: var(--font-ui);
+  outline: none;
+  transition: border-color 160ms var(--ease-master);
+}
+.other-input:focus { border-color: var(--accent); }
+
+/* ============================================================
+   CARDS — Today / History / Wrong / Record
+   ============================================================ */
+.cards-head {
+  padding: 16px 20px 0;
+  position: relative; z-index: 1;
+}
+.cards-tabs {
+  display: flex; gap: 2px;
+  background: var(--surface-2);
+  padding: 3px;
+  border-radius: 11px;
+  margin-top: 12px;
+}
+.cards-tab {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-1);
+  position: relative;
+  transition: color 160ms var(--ease-master), background 240ms var(--ease-master);
+}
+.cards-tab.is-active {
+  background: var(--surface-3);
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+}
+.cards-tab .pill {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  height: 14px; line-height: 14px;
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+  border-radius: 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+.cards-eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+}
+.cards-eyebrow .glyph { font-size: 14px; }
+
+.cards-body {
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 16px;
+  position: relative; z-index: 1;
+}
+.abstract {
+  background: var(--surface-2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-inner);
+}
+.abstract-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.abstract-date {
+  font-size: 11px;
+  color: var(--ink-1);
+  letter-spacing: 0.06em;
+}
+.streak {
+  margin-left: auto;
+  background: var(--bg-warm);
+  color: var(--accent-warm-hi);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.abstract h2 {
+  margin: 0 0 6px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.abstract p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-1);
+  line-height: 1.55;
+}
+.progress-block {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.progress-label-row {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--ink-1);
+}
+.progress-label-row strong { color: var(--ink-0); font-weight: 600; }
+.bar-shell {
+  height: 6px;
+  background: var(--inner-well);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.bar-fill {
+  position: absolute; inset: 0;
+  width: 60%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-sage));
+  border-radius: inherit;
+  /* Animate width with transform (scaleX) instead of width — GPU-only */
+  transform-origin: left center;
+  transform: scaleX(1);
+}
+.cta-row { display: flex; gap: 8px; }
+.btn-cta {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-0);
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  box-shadow: var(--shadow-inner);
+  transition: transform 160ms var(--ease-master), background 160ms var(--ease-master);
+}
+.btn-cta:hover { background: var(--surface-3); transform: translateY(-1px); }
+.btn-cta .arrow {
+  font-size: 12px;
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.btn-cta-ghost {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-1);
+  font-size: 16px;
+  box-shadow: var(--shadow-inner);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ============================================================
+   SETTINGS — same single-shape vessel, but content uses a
+   clean expander rhythm with restrained chrome
+   ============================================================ */
+.settings-head {
+  padding: 18px 20px 12px;
+  display: flex; align-items: center; gap: 10px;
+  position: relative; z-index: 1;
+}
+.settings-head .title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.settings-head .glyph { font-size: 14px; color: var(--ink-1); }
+
+.settings-body {
+  padding: 0 20px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+  overflow-y: auto;
+  position: relative; z-index: 1;
+  height: calc(100% - 60px);
+}
+.set-section {
+  background: var(--surface-2);
+  border-radius: 12px;
+  box-shadow: var(--shadow-inner);
+  overflow: hidden;
+}
+.set-head {
+  padding: 12px 14px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+.set-head .chev {
+  margin-left: auto;
+  color: var(--ink-1);
+  font-size: 9px;
+  transition: transform 200ms var(--ease-master);
+}
+.set-section[open] .set-head .chev { transform: rotate(90deg); }
+.set-body { padding: 4px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.set-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.set-row:first-child { border-top: 0; }
+.set-row .text { flex: 1; }
+.set-label { display: block; font-size: 12.5px; color: var(--ink-0); margin-bottom: 2px; }
+.set-meta  { display: block; font-size: 11px;   color: var(--ink-2); }
+.toggle {
+  width: 32px; height: 18px;
+  background: var(--surface-3);
+  border-radius: 999px;
+  position: relative;
+  transition: background 200ms var(--ease-master);
+}
+.toggle::after {
+  content: "";
+  position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--ink-0);
+  transition: transform 200ms var(--ease-master);
+}
+.toggle.on { background: var(--accent); }
+.toggle.on::after { transform: translateX(14px); }
+.segmented {
+  display: inline-flex;
+  background: var(--inner-well);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 0;
+}
+.seg {
+  padding: 5px 10px;
+  font-size: 11px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.seg.is-active {
+  background: var(--surface-3);
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+}
+
+/* heatmap (compact, just for visual demo) */
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  gap: 2px;
+  margin-top: 8px;
+}
+.hm-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--inner-well);
+}
+.hm-cell.lvl-1 { background: color-mix(in oklch, var(--accent), transparent 78%); }
+.hm-cell.lvl-2 { background: color-mix(in oklch, var(--accent), transparent 60%); }
+.hm-cell.lvl-3 { background: color-mix(in oklch, var(--accent), transparent 38%); }
+.hm-cell.lvl-4 { background: var(--accent); }
+
+/* ============================================================
+   Demo controls — morph between compact and approval
+   ============================================================ */
+.demo-controls {
+  margin: 16px 0 0;
+  display: flex; gap: 8px; justify-content: center;
+}
+.demo-btn {
+  background: var(--surface-2);
+  color: var(--ink-0);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: var(--shadow-inner);
+}
+.demo-btn:hover { background: var(--surface-3); }
+
+#demoBubble.morph-compact { width: 124px; height: 42px; border-radius: 999px; }
+#demoBubble.morph-approval { width: 360px; height: 238px; border-radius: 22px; }
+#demoBubble {
+  /* The KEY moment: ALL morph properties run on the SAME duration / easing.
+     border-radius interpolates as part of the same composite animation as
+     the size, so the eye reads it as "one liquid shape change". */
+  transition:
+    width        320ms var(--ease-master),
+    height       320ms var(--ease-master),
+    border-radius 320ms var(--ease-master);
+}
+#demoBubble .demo-content { transition: opacity 220ms var(--ease-master); }
+#demoBubble.morphing .demo-content { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <section class="rationale">
+    <span class="tag">Direction A · Liquid Capsule</span>
+    <h1>One shape, one motion, one curve.</h1>
+    <p>
+      Every mode change is rendered as a single liquid morph of the same vessel — width, height, and corner radius
+      interpolate together on one master easing (<code>cubic-bezier(0.32, 0.72, 0, 1)</code>, Apple's nav curve).
+      Content cross-fades on the exact same duration so the eye reads "one motion", not "shape changing while
+      stuff appears". First-open jank is killed by promoting the bubble to its own GPU layer up-front
+      (<code>will-change: transform, border-radius</code>) and by using <em>no</em> backdrop-filter on the
+      large surface — only the compact island has glass.
+    </p>
+    <div class="key">
+      <div><strong>Fixes jank</strong>Master curve eliminates phase-mismatch shimmer; pre-promoted layer prevents first-paint reflow.</div>
+      <div><strong>Fixes partitioning</strong>Approval gets a left risk-rail = single semantic surface; risk colour is the loudest thing on the card.</div>
+      <div><strong>Risk</strong>Small motion vocabulary — every mode looks/animates the same way, so it lacks per-mode personality.</div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       MODE: COMPACT
+       ======================================================== -->
+  <div class="mode-label"><span class="num">1</span>Mode: compact <span style="margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-2);font-size:11px;">hover the capsule to reveal the controls strip</span></div>
+  <div class="stage" data-size="124 × 42 → 248 × 42 on hover">
+    <div class="bubble compact show-controls">
+      <div class="row">
+        <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🤔</span></span>
+        <span class="text">Thinking…</span>
+        <span class="controls">
+          <button class="ctl" title="Power">⏻</button>
+          <button class="ctl" title="Theme"><span class="ctl-swatch"></span></button>
+          <button class="ctl" title="Cards">📚<span class="cards-badge">3</span></button>
+          <button class="ctl" title="Settings">⚙</button>
+          <button class="ctl" title="Minimize">−</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: APPROVAL
+       ======================================================== -->
+  <div class="mode-label"><span class="num">2</span>Mode: approval</div>
+  <div class="stage" data-size="360 × 238 + 44 px satellite gutter">
+    <div style="position:relative; padding-bottom: 44px;">
+      <div class="bubble approval" data-risk="medium">
+        <div class="approval-card">
+          <div class="risk-rail"></div>
+          <div class="approval-body">
+            <div class="eyebrow-row">
+              <span>Approval requested</span>
+              <span class="risk-name">Medium</span>
+            </div>
+            <h2 class="tool-name">Bash</h2>
+            <p class="summary-line">git push origin main --force-with-lease</p>
+            <div class="meta-row">
+              <span><strong>cwd</strong>~/work/companion</span>
+              <span><strong>reason</strong>destructive history rewrite</span>
+            </div>
+            <div class="actions">
+              <button class="btn approve">Approve</button>
+              <button class="btn suggest">Suggest…</button>
+              <button class="btn deny">Deny</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="satellites">
+        <button class="sat sat-approve">✓</button>
+        <button class="sat sat-deny">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: QUESTION
+       ======================================================== -->
+  <div class="mode-label"><span class="num">3</span>Mode: question</div>
+  <div class="stage" data-size="360 × 300 + 44 px satellite gutter">
+    <div style="position:relative; padding-bottom: 44px;">
+      <div class="bubble question" data-risk="low">
+        <div class="approval-card">
+          <div class="risk-rail" style="background: var(--accent-slate);"></div>
+          <div class="approval-body">
+            <div class="eyebrow-row">
+              <span>Question</span>
+              <span class="risk-name" style="color: var(--accent-slate);">Awaiting</span>
+            </div>
+            <h2 class="tool-name">Which migration strategy?</h2>
+            <div class="question-body" style="padding:0; margin: 4px 0 0;">
+              <div class="option-list">
+                <div class="opt is-active"><span class="opt-bullet"></span>Generate a new migration file</div>
+                <div class="opt"><span class="opt-bullet"></span>Edit the latest unmerged migration</div>
+                <div class="opt"><span class="opt-bullet"></span>Manually update the schema and let me know</div>
+              </div>
+              <input class="other-input" placeholder="Other answer…" />
+            </div>
+            <div class="actions">
+              <button class="btn approve">Answer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="satellites">
+        <button class="sat sat-approve">✓</button>
+        <button class="sat sat-deny">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: CARDS
+       ======================================================== -->
+  <div class="mode-label"><span class="num">4</span>Mode: cards</div>
+  <div class="stage" data-size="460 × 600">
+    <div class="bubble cards">
+      <div class="cards-head">
+        <div class="cards-eyebrow"><span class="glyph">📚</span>Knowledge cards</div>
+        <nav class="cards-tabs">
+          <button class="cards-tab is-active">Today</button>
+          <button class="cards-tab">History</button>
+          <button class="cards-tab">Wrong<span class="pill">2</span></button>
+          <button class="cards-tab">Record</button>
+        </nav>
+      </div>
+      <div class="cards-body">
+        <section class="abstract">
+          <div class="abstract-head">
+            <span class="abstract-date">Sun · May 3</span>
+            <span class="streak">🔥 12 days</span>
+          </div>
+          <h2>Hooks, OKLCH, and the daemon's timeout asymmetry</h2>
+          <p>
+            You explored why the hook timeout must outlive the daemon's approval timeout, and how OKLCH lets
+            the four themes share one accent ladder. Today's deck pulls 5 cards from those threads.
+          </p>
+        </section>
+
+        <section class="progress-block">
+          <div class="progress-label-row">
+            <span>Today's goal</span>
+            <span><strong>3</strong> / 5 reviewed · 2 left</span>
+          </div>
+          <div class="bar-shell"><div class="bar-fill"></div></div>
+          <div class="progress-label-row" style="margin-top:2px;">
+            <span style="color:var(--ink-2);font-size:10.5px;">2 easy · 2 medium · 1 hard</span>
+            <span style="color:var(--ink-2);font-size:10.5px;">est. 4 min</span>
+          </div>
+        </section>
+
+        <div class="cta-row">
+          <button class="btn-cta">
+            <span>Start review</span>
+            <span class="arrow">2 left →</span>
+          </button>
+          <button class="btn-cta-ghost" title="Regenerate">↻</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: SETTINGS
+       ======================================================== -->
+  <div class="mode-label"><span class="num">5</span>Mode: settings</div>
+  <div class="stage" data-size="440 × 580">
+    <div class="bubble settings">
+      <div class="settings-head">
+        <span class="glyph">⚙</span>
+        <span class="title">Settings</span>
+      </div>
+      <div class="settings-body">
+
+        <details class="set-section" open>
+          <summary class="set-head">Quick actions <span class="chev">▶</span></summary>
+          <div class="set-body">
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Today's deck</span>
+                <span class="set-meta">5 cards · last gen 14 min ago</span>
+              </div>
+              <button class="seg is-active" style="padding:7px 12px;">↻ Generate</button>
+            </div>
+          </div>
+        </details>
+
+        <details class="set-section" open>
+          <summary class="set-head">Generation prompt <span class="chev">▶</span></summary>
+          <div class="set-body">
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Difficulty preference</span>
+                <span class="set-meta">Balanced ≈ 50% easy · 35% medium · 15% hard</span>
+              </div>
+              <div class="segmented">
+                <button class="seg">Casual</button>
+                <button class="seg is-active">Balanced</button>
+                <button class="seg">Deep</button>
+              </div>
+            </div>
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Cards per generation</span>
+                <span class="set-meta">model best-effort</span>
+              </div>
+              <span style="color:var(--ink-0);font-weight:600;font-size:13px;">5</span>
+            </div>
+          </div>
+        </details>
+
+        <details class="set-section">
+          <summary class="set-head">Generation scope <span class="chev">▶</span></summary>
+          <div class="set-body">
+            <div class="set-meta" style="font-size:11px;">Pick which days to review · 14d window</div>
+            <div class="heatmap">
+              <span class="hm-cell"></span>
+              <span class="hm-cell lvl-1"></span>
+              <span class="hm-cell lvl-2"></span>
+              <span class="hm-cell"></span>
+              <span class="hm-cell lvl-3"></span>
+              <span class="hm-cell lvl-4"></span>
+              <span class="hm-cell lvl-2"></span>
+              <span class="hm-cell lvl-1"></span>
+              <span class="hm-cell"></span>
+              <span class="hm-cell lvl-2"></span>
+              <span class="hm-cell lvl-4"></span>
+              <span class="hm-cell lvl-3"></span>
+              <span class="hm-cell lvl-2"></span>
+              <span class="hm-cell"></span>
+              <span class="hm-cell lvl-1"></span>
+              <span class="hm-cell lvl-3"></span>
+              <span class="hm-cell lvl-4"></span>
+              <span class="hm-cell lvl-2"></span>
+              <span class="hm-cell"></span>
+              <span class="hm-cell lvl-1"></span>
+            </div>
+          </div>
+        </details>
+
+        <details class="set-section">
+          <summary class="set-head">Behavior <span class="chev">▶</span></summary>
+          <div class="set-body">
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Auto-generate</span>
+                <span class="set-meta">on first bubble open of the day</span>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Auto-add wrong cards</span>
+                <span class="set-meta">missed cards return tomorrow</span>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Streak notifications</span>
+                <span class="set-meta">remind before 23:00</span>
+              </div>
+              <div class="toggle"></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="set-section">
+          <summary class="set-head">Storage <span class="chev">▶</span></summary>
+          <div class="set-body">
+            <div class="set-meta">~/.claude-companion/cards/</div>
+          </div>
+        </details>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       Live demo: morph compact ↔ approval on click
+       ======================================================== -->
+  <div class="mode-label"><span class="num">▶</span>Live morph demo · compact ↔ approval</div>
+  <div class="stage" data-size="watch the corner radius interpolate with the size">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
+      <div id="demoBubble" class="bubble morph-compact">
+        <div class="demo-content compact-content">
+          <div class="row">
+            <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🤔</span></span>
+            <span class="text">Thinking…</span>
+          </div>
+        </div>
+      </div>
+      <div class="demo-controls">
+        <button class="demo-btn" id="demoMorphBtn">▶ Morph to approval</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const demo = document.getElementById('demoBubble');
+const btn  = document.getElementById('demoMorphBtn');
+let isApproval = false;
+
+const compactHTML = `
+  <div class="row">
+    <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🤔</span></span>
+    <span class="text">Thinking…</span>
+  </div>`;
+
+const approvalHTML = `
+  <div class="approval-card">
+    <div class="risk-rail" style="background:var(--accent-warm-hi);"></div>
+    <div class="approval-body">
+      <div class="eyebrow-row">
+        <span>Approval requested</span>
+        <span class="risk-name">Medium</span>
+      </div>
+      <h2 class="tool-name">Bash</h2>
+      <p class="summary-line">git push origin main --force-with-lease</p>
+      <div class="meta-row">
+        <span><strong>cwd</strong>~/work/companion</span>
+        <span><strong>reason</strong>destructive history rewrite</span>
+      </div>
+      <div class="actions">
+        <button class="btn approve">Approve</button>
+        <button class="btn suggest">Suggest…</button>
+        <button class="btn deny">Deny</button>
+      </div>
+    </div>
+  </div>`;
+
+btn.addEventListener('click', () => {
+  // 1. Fade content out (140 ms — half the morph duration so it lands clean)
+  demo.classList.add('morphing');
+
+  // 2. Trigger shape morph IMMEDIATELY (single composite transition)
+  if (isApproval) {
+    demo.classList.remove('morph-approval');
+    demo.classList.add('morph-compact');
+    btn.textContent = '▶ Morph to approval';
+  } else {
+    demo.classList.remove('morph-compact');
+    demo.classList.add('morph-approval');
+    btn.textContent = '▶ Morph back to compact';
+  }
+  isApproval = !isApproval;
+
+  // 3. Swap inner content while invisible, then fade back in.
+  setTimeout(() => {
+    demo.querySelector('.demo-content').remove();
+    const wrapper = document.createElement('div');
+    wrapper.className = 'demo-content';
+    wrapper.innerHTML = isApproval ? approvalHTML : compactHTML;
+    demo.appendChild(wrapper);
+    requestAnimationFrame(() => {
+      demo.classList.remove('morphing');
+    });
+  }, 200);
+});
+</script>
+</body>
+</html>

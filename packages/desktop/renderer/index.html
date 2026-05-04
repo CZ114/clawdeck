@@ -5,8 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Claude Code Companion</title>
   <link rel="stylesheet" href="./styles.css">
+  <!-- Themes + i18n shipped as plain scripts so they set window.CCC_THEMES /
+       window.CCC_I18N before app.js executes. App.js then applies the
+       saved theme + locale during startup. -->
+  <script src="../../shared/themes.js"></script>
+  <script src="../../shared/i18n.js"></script>
 </head>
 <body data-mode="compact">
+  <!-- Satellite approve/deny chips. Hidden by default; when a pending
+       request arrives they "split" outward from the bubble's left/right
+       edges so the user can approve / deny without expanding. Live OUTSIDE
+       .island so they're visible in any bubble mode. -->
+  <div class="satellites" id="satellites" data-active="false" aria-hidden="true">
+    <button class="satellite satellite-approve" id="satelliteApprove" type="button" data-i18n-title="approval.action.approve" data-i18n-aria-label="bubble.satellite.approve">
+      <span class="satellite-glyph" aria-hidden="true">✓</span>
+    </button>
+    <button class="satellite satellite-deny" id="satelliteDeny" type="button" data-i18n-title="approval.action.deny" data-i18n-aria-label="bubble.satellite.deny">
+      <span class="satellite-glyph" aria-hidden="true">✕</span>
+    </button>
+  </div>
+
   <main class="island" data-status="idle">
     <span class="peek-context" aria-hidden="true">
       <span class="peek-context-fill"></span>
@@ -29,14 +47,19 @@
       </div>
 
       <div class="window-actions" aria-label="Window controls">
-        <button id="toggleEnabled" aria-label="Toggle Companion" title="Toggle Companion approvals" type="button">&#9211;</button>
-        <button id="changeIslandColor" class="color-button" aria-label="Change capsule color" title="Change capsule color" type="button">
-          <span aria-hidden="true"></span>
+        <button id="toggleEnabled" data-i18n-aria-label="bubble.toggleEnabled" data-i18n-title="bubble.toggleEnabled" type="button">&#9211;</button>
+        <button id="openThemePicker" class="theme-button" data-i18n-aria-label="bubble.theme" data-i18n-title="bubble.theme" type="button">
+          <span class="theme-button-swatch" aria-hidden="true"></span>
         </button>
-        <input id="islandColorInput" class="island-color-input" type="color" value="#111318" aria-label="Capsule color">
-        <button id="openDashboard" aria-label="Open settings" title="Open settings" type="button">&#9881;</button>
-        <button id="maximizeWindow" aria-label="Expand" title="Expand" type="button">&#9633;</button>
-        <button id="minimizeWindow" aria-label="Minimize" title="Minimize" type="button">&#8722;</button>
+        <button id="openCards" class="cards-button" data-i18n-aria-label="bubble.cards" data-i18n-title="bubble.cards" type="button">
+          <span class="cards-glyph" aria-hidden="true">&#x1F4DA;</span>
+          <span class="cards-badge" id="cardsButtonBadge" hidden></span>
+        </button>
+        <button id="openSettings" data-i18n-aria-label="bubble.settings" data-i18n-title="bubble.settings" type="button">&#9881;</button>
+        <!-- ⤢ — opens the dedicated Live monitor mode (sessions + today's
+             deck + cards entry). Sits to the LEFT of the minimize button. -->
+        <button id="openLive" data-i18n-aria-label="bubble.live" data-i18n-title="bubble.live" type="button">&#x2922;</button>
+        <button id="minimizeWindow" data-i18n-aria-label="bubble.minimize" data-i18n-title="bubble.minimize" type="button">&#8722;</button>
       </div>
     </section>
 
@@ -54,11 +77,11 @@
 
         <dl class="request-meta">
           <div>
-            <dt>cwd</dt>
+            <dt data-i18n="approval.field.cwd">cwd</dt>
             <dd id="requestCwd"></dd>
           </div>
           <div>
-            <dt>reason</dt>
+            <dt data-i18n="approval.field.reason">reason</dt>
             <dd id="requestReason"></dd>
           </div>
         </dl>
@@ -66,57 +89,544 @@
         <form class="answer-form" id="answerForm" hidden></form>
 
         <div class="actions" id="approvalActions">
-          <button class="approve" id="approveRequest" type="button">Approve</button>
+          <button class="approve" id="approveRequest" type="button" data-i18n="approval.action.approve">Approve</button>
           <div class="suggestion-list" id="suggestionList"></div>
-          <button class="deny" id="denyRequest" type="button">Deny</button>
+          <button class="deny" id="denyRequest" type="button" data-i18n="approval.action.deny">Deny</button>
         </div>
       </article>
-
-      <section class="dash-section dash-section-pending" id="pendingSection" hidden>
-        <div class="dash-section-head">
-          <h3 class="dash-section-title">Pending queue</h3>
-          <span class="dash-count" id="pendingCount">0</span>
-        </div>
-        <div class="dash-list" id="pendingList"></div>
-      </section>
-
-      <section class="dash-section dash-section-sessions">
-        <div class="dash-section-head">
-          <h3 class="dash-section-title">Claude sessions</h3>
-          <span class="dash-count" id="sessionsCount">0</span>
-        </div>
-        <div class="dash-list dash-list-sessions" id="sessionsList">
-          <div class="dash-empty">No Claude session state yet.</div>
-        </div>
-      </section>
-
-      <section class="dash-section dash-section-devices">
-        <div class="dash-section-head">
-          <h3 class="dash-section-title">Devices</h3>
-          <button class="dash-link" id="generatePairingToken" type="button">Generate pairing token</button>
-        </div>
-        <div class="dash-pairing" id="pairingPanel" hidden>
-          <code class="dash-pairing-token" id="pairingTokenValue"></code>
-          <span class="dash-pairing-meta" id="pairingTokenMeta"></span>
-        </div>
-        <div class="dash-list dash-list-devices" id="devicesList">
-          <div class="dash-empty">No paired devices.</div>
-        </div>
-      </section>
-
-      <section class="dash-section dash-section-events">
-        <div class="dash-section-head">
-          <h3 class="dash-section-title">Audit events</h3>
-          <button class="dash-link" id="toggleEvents" type="button" aria-expanded="false">Show</button>
-        </div>
-        <div class="dash-list dash-list-events" id="eventsList" hidden></div>
-      </section>
-
-      <footer class="dash-footer">
-        <span class="dash-footer-label" id="dashHealthLabel">connecting...</span>
-        <span class="dash-footer-meta" id="dashHealthMeta"></span>
-      </footer>
     </section>
+
+    <!-- ============================================================
+         Knowledge Cards mode (Stage 1.5) — see ADR-20260503-knowledge-cards
+         ============================================================ -->
+    <section class="cards-panel" id="cardsPanel" hidden>
+      <header class="cards-head">
+        <span class="cards-eyebrow" aria-hidden="true">&#x1F4DA;</span>
+        <nav class="cards-tabs" aria-label="Cards view">
+          <button class="cards-tab is-active" data-tab="today" type="button" data-i18n="cards.tab.today">Today</button>
+          <button class="cards-tab" data-tab="history" type="button" data-i18n="cards.tab.history">History</button>
+          <button class="cards-tab" data-tab="wrong" type="button">
+            <span data-i18n="cards.tab.wrong">Wrong book</span>
+            <span class="cards-tab-count" id="wrongTabCount" hidden>0</span>
+          </button>
+          <button class="cards-tab" data-tab="record" type="button">
+            <span data-i18n="cards.tab.record">Record</span>
+            <span class="cards-tab-count" id="recordTabCount" hidden>0</span>
+          </button>
+        </nav>
+      </header>
+
+      <!-- Today tab — abstract + progress + Start review CTA -->
+      <div class="cards-tab-body" data-tab-body="today" id="cardsTodayBody">
+        <div class="cards-empty" id="cardsEmpty" hidden>
+          <div class="streak-badge" id="streakBadgeEmpty" hidden></div>
+          <div class="cards-empty-icon" aria-hidden="true">&#x1F4DA;</div>
+          <div class="cards-empty-title" data-i18n="cards.empty.title">No cards generated yet</div>
+          <div class="cards-empty-text" data-i18n="cards.empty.text">Click below to seed today's deck from the past 24 h of Claude Code sessions.</div>
+          <button class="btn-primary" id="cardsGenerateButton" type="button" data-i18n="cards.generate.now">Generate now</button>
+          <div class="cards-empty-meta" id="cardsEmptyMeta"></div>
+        </div>
+
+        <article class="cards-deck" id="cardsDeck" hidden>
+          <section class="abstract">
+            <div class="abstract-head">
+              <span class="abstract-date" id="abstractDate"></span>
+              <span class="streak-badge" id="streakBadge" hidden></span>
+              <span class="abstract-meta" id="abstractMeta"></span>
+            </div>
+            <div class="md" id="abstractBody"></div>
+          </section>
+
+          <section class="progress-strip">
+            <div class="progress-block">
+              <span class="progress-label" data-i18n="cards.deck.goal">Today's goal</span>
+              <div class="progress-bar-shell"><div class="progress-bar-fill" id="cardsGoalFill"></div></div>
+              <div class="progress-row">
+                <span class="progress-num" id="cardsGoalNum"></span>
+                <span class="difficulty-mix" id="cardsDifficultyMix"></span>
+              </div>
+            </div>
+          </section>
+
+          <div class="deck-live-banner" id="deckLiveBanner" hidden>
+            <span class="deck-live-dot" aria-hidden="true"></span>
+            <span class="deck-live-text" id="deckLiveText"></span>
+          </div>
+
+          <div class="card-cta-row">
+            <button class="btn-cta" id="cardsStartReview" type="button">
+              <span data-i18n="cards.deck.startReview">Start review</span>
+              <span class="arrow" id="cardsRemainingLabel"></span>
+            </button>
+            <button class="btn-cta-secondary" id="cardsRegenerateButton" type="button" data-i18n-title="cards.generate.regenTooltip">↻</button>
+          </div>
+        </article>
+      </div>
+
+      <!-- History tab — list of past abstracts, click row to expand -->
+      <div class="cards-tab-body" data-tab-body="history" hidden>
+        <div class="history-toolbar">
+          <span class="history-meta" id="historyMeta">—</span>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="cards-empty">
+            <div class="cards-empty-text">No abstracts stored yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Record tab — every generation run (current decks + archives). Each
+           row expands to show what was scanned, dropped, and how long it
+           took. -->
+      <div class="cards-tab-body" data-tab-body="record" hidden>
+        <div class="record-toolbar">
+          <span class="record-meta" id="recordMeta">—</span>
+        </div>
+        <div class="record-list" id="recordList">
+          <div class="cards-empty">
+            <div class="cards-empty-text">No generation runs yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wrong book tab — missed cards waiting for replay -->
+      <div class="cards-tab-body" data-tab-body="wrong" hidden>
+        <div class="wrong-intro" id="wrongIntro">
+          错过的卡片在这里排队。规则：连续答对 2 次（hard 3 次）后自动移出。
+          每张卡都保留它最初被答错时的真实 session 引用。
+        </div>
+        <div class="wrong-cta-row" id="wrongCtaRow" hidden>
+          <button class="btn-cta" id="wrongFullReviewButton" type="button">
+            <span>Review wrong book</span>
+            <span class="arrow" id="wrongCtaCount"></span>
+          </button>
+        </div>
+        <div class="wrong-list" id="wrongList">
+          <div class="cards-empty">
+            <div class="cards-empty-text">No missed cards yet — keep it that way.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active review overlay — covers the tabs while answering -->
+      <article class="review-active" id="reviewActive" hidden>
+        <header class="review-head">
+          <button class="review-back" id="reviewBack" type="button" title="Back">&larr;</button>
+          <span class="review-progress-text" id="reviewProgressText"></span>
+          <span class="difficulty-chip" id="reviewDifficultyChip"></span>
+        </header>
+
+        <div class="review-body">
+          <div class="progress-dots" id="reviewProgressDots"></div>
+
+          <h2 class="review-question" id="reviewQuestion"></h2>
+
+          <details class="source-expand" id="reviewSource">
+            <summary class="source-expand-head">
+              <span class="source-label-tag">source</span>
+              <span class="source-ref" id="reviewSourceRef"></span>
+            </summary>
+            <div class="source-quote" id="reviewSourceQuote"></div>
+          </details>
+
+          <div class="option-list" id="reviewOptions"></div>
+
+          <div class="cloze-block" id="reviewCloze" hidden></div>
+          <div class="cloze-input-row" id="reviewClozeInputRow" hidden>
+            <input class="cloze-input" id="reviewClozeInput" type="text" placeholder="把空填进来 …" autocomplete="off" spellcheck="false">
+          </div>
+
+          <div class="feedback" id="reviewFeedback" hidden>
+            <div class="feedback-head">
+              <div class="feedback-icon" id="feedbackIcon"></div>
+              <div class="feedback-verdict" id="feedbackVerdict"></div>
+            </div>
+            <div class="feedback-answer" id="feedbackAnswer" hidden></div>
+            <div class="feedback-explanation" id="feedbackExplanation" hidden></div>
+          </div>
+        </div>
+
+        <footer class="review-foot">
+          <button class="foot-link" id="reviewSkip" type="button">Skip</button>
+          <button class="btn-primary" id="reviewSubmit" type="button">Submit</button>
+        </footer>
+      </article>
+
+      <!-- Daily completion screen -->
+      <article class="completion" id="completionScreen" hidden>
+        <div class="completion-icon" aria-hidden="true">&#x2713;</div>
+        <h2 id="completionTitle">Daily goal reached!</h2>
+        <span class="completion-sub" id="completionSub"></span>
+        <div class="completion-stats">
+          <div class="stat-card stat-correct">
+            <span class="stat-num" id="completionCorrect">0</span>
+            <span class="stat-label">correct</span>
+          </div>
+          <div class="stat-card stat-wrong">
+            <span class="stat-num" id="completionWrong">0</span>
+            <span class="stat-label">missed</span>
+          </div>
+        </div>
+        <div class="card-cta-row">
+          <button class="btn-cta" id="completionDone" type="button">
+            <span>Back to today</span>
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================================================
+         Settings mode — replaces the legacy dashboard. Sections:
+         Knowledge Cards (focus + difficulty + toggles + generate),
+         Sessions (collapsible — moved from dashboard),
+         Companion (hooks status).
+         ============================================================ -->
+    <section class="settings-panel" id="settingsPanel" hidden>
+      <header class="settings-head">
+        <span class="settings-eyebrow" aria-hidden="true">&#9881;</span>
+        <span class="settings-title" data-i18n="settings.title">Settings</span>
+      </header>
+
+      <div class="settings-body" data-layout="rail">
+
+        <!-- Direction-B left navigation rail. Click an item to swap which
+             panel is visible on the right. Only one section visible at a
+             time — replaces the wall-of-expanders pattern. -->
+        <aside class="set-rail" id="settingsRail" role="tablist">
+          <!-- Rail collapse toggle: clicks shrink rail to icon-only ~36px,
+               click again to restore. State persists in localStorage. -->
+          <button class="rail-collapse" id="railCollapseBtn" type="button"
+                  aria-label="Collapse sidebar" title="Collapse sidebar">
+            <span class="glyph collapsed-glyph" aria-hidden="true">›</span>
+            <span class="glyph expanded-glyph" aria-hidden="true">‹</span>
+          </button>
+          <button class="rail-item is-active" data-section="cards-config" type="button" role="tab">
+            <span class="glyph">✦</span><span data-i18n="settings.section.cardsConfig">Knowledge cards</span>
+          </button>
+          <button class="rail-item" data-section="storage" type="button" role="tab">
+            <span class="glyph">🗂</span><span data-i18n="settings.section.storage">Storage</span>
+          </button>
+          <button class="rail-item" data-section="export" type="button" role="tab">
+            <span class="glyph">↓</span><span data-i18n="settings.section.export">Export</span>
+          </button>
+          <button class="rail-item" data-section="companion" type="button" role="tab">
+            <span class="glyph">⚙</span><span data-i18n="settings.section.companion">Companion</span>
+          </button>
+        </aside>
+
+        <div class="set-panels" id="settingsPanels">
+
+        <section class="set-panel" data-section="cards-config" data-active="true" role="tabpanel">
+          <div class="set-panel-head">
+            <h3 data-i18n="settings.section.cardsConfig">Knowledge cards</h3>
+            <span class="lede" data-i18n="settings.cardsConfig.lede">Generation prompt, scope, and behaviour — everything that controls how today's deck is built.</span>
+          </div>
+          <h4 class="set-subheading" data-i18n="settings.section.prompt">Generation prompt</h4>
+          <div class="set-panel-body">
+            <div class="focus-block">
+              <div class="focus-label">
+                <span class="lhs">
+                  <span class="icon" aria-hidden="true">&#x2726;</span>
+                  <span data-i18n="settings.focus.label">What do you want to learn?</span>
+                </span>
+                <span class="hint" data-i18n="settings.focus.hint">prepended to every generation prompt</span>
+              </div>
+              <textarea
+                class="focus-textarea"
+                id="settingsFocus"
+                rows="3"
+                data-i18n-placeholder="settings.focus.placeholder"
+                spellcheck="false"
+              ></textarea>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.difficulty.label">Difficulty preference</span>
+                <span class="settings-row-meta" id="settingsDifficultyMeta" data-i18n="settings.difficulty.balancedMeta">Balanced ≈ 50% easy · 35% medium · 15% hard</span>
+              </div>
+              <div class="segmented" id="settingsDifficulty" role="radiogroup" data-i18n-aria-label="settings.difficulty.label">
+                <button class="segment" data-value="casual" type="button" data-i18n="settings.difficulty.casual">Casual</button>
+                <button class="segment is-active" data-value="balanced" type="button" data-i18n="settings.difficulty.balanced">Balanced</button>
+                <button class="segment" data-value="deep" type="button" data-i18n="settings.difficulty.deep">Deep</button>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.cardCount.label">Cards per generation</span>
+                <span class="settings-row-meta" data-i18n="settings.cardCount.meta">model best-effort; strict-source can drop some</span>
+              </div>
+              <div class="range-slider-wrap">
+                <input type="range" class="range-slider" id="cardCountSlider"
+                       min="1" max="20" step="1" value="5">
+                <span class="range-slider-value" id="cardCountValue">5</span>
+              </div>
+            </div>
+          </div>
+          <h4 class="set-subheading">
+            <span data-i18n="settings.section.scope">Generation scope</span>
+            <span class="picker-mode-tag" id="pickerModeTag">Auto</span>
+          </h4>
+          <div class="set-panel-body">
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.budget.label">Transcript budget</span>
+                <span class="settings-row-meta" id="settingsBudgetMeta" data-i18n="settings.budget.meta">total characters fed to the model — bigger = more sessions, slower run</span>
+              </div>
+              <div class="range-slider-wrap">
+                <input type="range" class="range-slider" id="transcriptBudgetSlider"
+                       min="10000" max="1000000" step="10000" value="60000" data-i18n-aria-label="settings.budget.label">
+                <span class="range-slider-value" id="transcriptBudgetValue">60k</span>
+              </div>
+            </div>
+
+            <div class="picker-panel" id="sessionPickerPanel">
+              <div class="picker-header">
+                <div class="picker-header-text">
+                  <h4 class="picker-headline" data-i18n="settings.picker.headline">📅 Pick which days to review</h4>
+                  <span class="picker-hint" id="pickerSummaryMeta" data-i18n="settings.picker.hint.prefix">
+                    Tap a day to load its sessions · drag across days to multi-select · deeper colour = more sessions that day
+                  </span>
+                </div>
+              </div>
+              <div class="picker-toolbar">
+                <button class="btn-chip" id="pickerAutoTopBtn" type="button" data-i18n="settings.picker.autoTop" data-i18n-title="settings.picker.autoTopTooltip">Auto top-3</button>
+                <button class="btn-chip" id="pickerAllBtn" type="button" data-i18n="common.all" data-i18n-title="settings.picker.allTooltip">All</button>
+                <button class="btn-chip" id="pickerNoneBtn" type="button" data-i18n="common.none" data-i18n-title="settings.picker.noneTooltip">None</button>
+                <button class="btn-chip" id="pickerRefreshBtn" type="button" data-i18n-title="settings.picker.refreshTooltip">↻</button>
+                <span class="picker-meta" id="pickerCountMeta">—</span>
+              </div>
+              <div class="heatmap-strip-wrap">
+                <div class="heatmap-month-labels" id="heatmapMonthLabels" aria-hidden="true"></div>
+                <div class="heatmap" id="heatmap"></div>
+              </div>
+              <div class="heatmap-legend">
+                <span class="legend-text" data-i18n="settings.picker.legendLess">less</span>
+                <span class="legend-cell lvl-0"></span>
+                <span class="legend-cell lvl-1"></span>
+                <span class="legend-cell lvl-2"></span>
+                <span class="legend-cell lvl-3"></span>
+                <span class="legend-cell lvl-4"></span>
+                <span class="legend-text" data-i18n="settings.picker.legendMore">more</span>
+              </div>
+              <div class="day-detail" id="dayDetail" hidden>
+                <div class="day-detail-head">
+                  <span class="day-detail-title" id="dayDetailTitle">—</span>
+                  <label class="day-all-toggle">
+                    <input type="checkbox" id="dayAllToggle">
+                    <span data-i18n="settings.picker.dayDetail.selectAll">Select all</span>
+                  </label>
+                  <button class="btn-primary" id="pickerConfirmBtn" type="button" data-i18n="common.confirm">Confirm</button>
+                </div>
+                <div class="day-detail-list" id="dayDetailList"></div>
+              </div>
+            </div>
+          </div>
+          <h4 class="set-subheading" data-i18n="settings.section.behavior">Behavior</h4>
+          <div class="set-panel-body">
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.autoGenerate.label">Auto-generate</span>
+                <span class="settings-row-meta" data-i18n="settings.autoGenerate.meta">on first bubble open of the day</span>
+              </div>
+              <button class="toggle is-on" id="toggleAutoGenerate" type="button" role="switch" aria-checked="true" data-i18n-aria-label="settings.autoGenerate.label"></button>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.autoWrong.label">Auto-add wrong cards</span>
+                <span class="settings-row-meta" data-i18n="settings.autoWrong.meta">missed cards return tomorrow</span>
+              </div>
+              <button class="toggle is-on" id="toggleAutoWrongBook" type="button" role="switch" aria-checked="true" data-i18n-aria-label="settings.autoWrong.label"></button>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.streakNotif.label">Streak notifications</span>
+                <span class="settings-row-meta" data-i18n="settings.streakNotif.meta">remind before 23:00 if not done</span>
+              </div>
+              <button class="toggle" id="toggleStreakNotif" type="button" role="switch" aria-checked="false" data-i18n-aria-label="settings.streakNotif.label"></button>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.webFallback.label">Allow web fallback</span>
+                <span class="settings-row-meta" data-i18n="settings.webFallback.meta">when focus has no match in transcripts, model may use WebSearch + cite the URL</span>
+              </div>
+              <button class="toggle is-on" id="toggleWebFallback" type="button" role="switch" aria-checked="true" data-i18n-aria-label="settings.webFallback.label"></button>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.allowDelete.label">Allow session deletion</span>
+                <span class="settings-row-meta" data-i18n="settings.allowDelete.meta">enables 🗑 buttons to move Claude session JSONLs into the trash (recoverable)</span>
+              </div>
+              <button class="toggle" id="toggleAllowSessionDelete" type="button" role="switch" aria-checked="false" data-i18n-aria-label="settings.allowDelete.label"></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="set-panel" data-section="storage" role="tabpanel">
+          <div class="set-panel-head">
+            <h3 data-i18n="settings.section.storage">Storage</h3>
+          </div>
+          <div class="set-panel-body">
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.storage.label">Cards folder</span>
+                <span class="settings-row-meta storage-path" id="storagePathDisplay">—</span>
+              </div>
+              <div class="storage-actions">
+                <button class="btn-secondary" id="storageOpenButton" type="button" data-i18n-title="settings.storage.openTooltip" data-i18n="common.open">Open</button>
+                <button class="btn-secondary" id="storagePickButton" type="button" data-i18n="settings.storage.change">Change…</button>
+              </div>
+            </div>
+            <span class="settings-row-meta" id="storagePendingNote" hidden data-i18n="settings.storage.pendingNote">⚠ daemon must restart to apply the new path. Existing decks are NOT auto-migrated — copy them manually if you want History to follow.</span>
+          </div>
+        </section>
+
+        <section class="set-panel" data-section="export" role="tabpanel">
+          <div class="set-panel-head">
+            <h3 data-i18n="settings.section.export">Export</h3>
+          </div>
+          <div class="set-panel-body">
+            <div class="export-buttons">
+              <button class="btn-secondary" id="exportTodayButton" type="button" data-scope="today" data-i18n="settings.export.today">↓ Today.md</button>
+              <button class="btn-secondary" id="exportHistoryButton" type="button" data-scope="history" data-i18n="settings.export.history">↓ All abstracts.md</button>
+              <button class="btn-secondary" id="exportWrongBookButton" type="button" data-scope="wrong-book" data-i18n="settings.export.wrong">↓ Wrong book.md</button>
+            </div>
+            <span class="settings-row-meta" data-i18n="settings.export.hint">Exported markdown imports cleanly into Obsidian / Notion etc.</span>
+          </div>
+        </section>
+
+        <section class="set-panel" data-section="companion" role="tabpanel">
+          <div class="set-panel-head">
+            <h3 data-i18n="settings.section.companion">Companion</h3>
+          </div>
+          <div class="set-panel-body">
+            <div class="settings-row">
+              <span class="settings-row-label" data-i18n="settings.companion.hook">Approval hook</span>
+              <span class="settings-row-meta" id="settingsCompanionState">—</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.companion.consent">Cards consent</span>
+                <span class="settings-row-meta" id="consentStateMeta">—</span>
+              </div>
+              <button class="btn-secondary" id="resetConsentButton" type="button" data-i18n="common.reset">Reset</button>
+            </div>
+
+            <!-- Language picker. Stays in this section because it's a global
+                 preference like Theme, not a per-deck setting. -->
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.section.language">Language</span>
+                <span class="settings-row-meta" data-i18n="settings.language.meta">bubble UI language; cards generator prompt also follows this setting</span>
+              </div>
+              <div class="segmented" id="settingsLanguage" role="radiogroup" data-i18n-aria-label="settings.section.language">
+                <button class="segment" data-locale="en" type="button" data-i18n="settings.language.en">English</button>
+                <button class="segment" data-locale="zh" type="button" data-i18n="settings.language.zh">中文</button>
+              </div>
+            </div>
+            <!-- Theme presets — full-preview list. The compact bubble's
+                 controls strip has a single theme button that cycles
+                 through these for quick changes; this list is for users
+                 who want to see / pick from the previews. -->
+            <div class="settings-row settings-row-stack">
+              <div class="settings-row-text">
+                <span class="settings-row-label" data-i18n="settings.section.theme">Theme</span>
+                <span class="settings-row-meta" data-i18n="settings.theme.meta">click any preset to apply · the bubble's color button cycles through them in order</span>
+              </div>
+              <div class="theme-grid" id="themeGrid"></div>
+            </div>
+          </div>
+        </section>
+
+        </div><!-- /.set-panels -->
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Live monitor mode — its own bubble surface, opened via the ⤢
+         button in the controls strip. Holds the breathing-window with
+         active sessions + today's deck + cards entry. Independent from
+         settings so it's one click from compact.
+         ============================================================ -->
+    <section class="live-panel" id="livePanel" hidden>
+      <div class="floating-window" id="sessionsFloater">
+        <div class="floating-window-head" id="sessionsFloaterHead">
+          <span class="breathing-dot" aria-hidden="true"></span>
+          <h3 class="floating-window-title" data-i18n="settings.section.live">Live</h3>
+          <span class="floating-window-count" id="sessionsCountInline">—</span>
+          <button class="floating-window-collapse" id="sessionsFloaterCollapse" type="button"
+                  title="Collapse" aria-label="Collapse">
+            <span aria-hidden="true">−</span>
+          </button>
+        </div>
+        <div class="floating-window-body">
+          <div class="live-block">
+            <div class="live-block-head">
+              <span class="live-block-label" data-i18n="settings.live.todayDeckLabel">Today's deck</span>
+              <span class="live-block-meta" id="settingsCardsMeta">—</span>
+            </div>
+            <div class="live-block-actions">
+              <button class="btn-primary" id="settingsGenerateButton" type="button">↻ <span data-i18n="cards.generate.now">Generate now</span></button>
+              <button class="btn-secondary live-cards-entry" id="settingsOpenCards" type="button">
+                📚 <span data-i18n="settings.live.openCardsButton">Open Knowledge Cards</span> <span class="arrow">→</span>
+              </button>
+            </div>
+          </div>
+          <div class="live-block">
+            <div class="live-block-head">
+              <span class="live-block-label" data-i18n="settings.live.sessionsLabel">Active Claude sessions</span>
+            </div>
+            <div class="sessions-list" id="sessionsList">
+              <div class="cards-empty">
+                <div class="cards-empty-text" data-i18n="cards.empty.text">No active Claude sessions.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Consent modal (Slice 5) — first generation must be opt-in.
+         Overlays the entire bubble until the user accepts or declines.
+         ============================================================ -->
+    <div class="consent-modal" id="consentModal" hidden>
+      <div class="consent-card">
+        <header class="consent-head">
+          <span class="consent-eyebrow">首次生成</span>
+          <h2 class="consent-title">Knowledge Cards 数据使用说明</h2>
+        </header>
+
+        <div class="consent-body md">
+          <p>Companion 会读取 daemon 保存的 <strong>过去 N 天 Claude Code session 内容</strong>（user prompts、assistant 回答、tool 调用 + 输出摘要），过一遍脱敏：</p>
+          <ul>
+            <li>去掉 <code>.env</code> / <code>.envrc</code> / <code>secrets/</code> 路径附近的行</li>
+            <li>替换 token-shaped 字符串（GitHub PAT / Anthropic key / AWS key 等）</li>
+            <li>用户名 → <code>~</code></li>
+          </ul>
+          <p>然后通过 stdin 喂给本机的 <code>claude -p</code> 子进程生成卡片。</p>
+          <h3>数据流</h3>
+          <ul>
+            <li>不直接调 Anthropic API（用你已认证的本地 Claude Code）</li>
+            <li>不持久化 prompt（生成的卡片片段会作为 source 留下）</li>
+            <li>不联网 —— 除非你开了 <strong>Allow web fallback</strong></li>
+          </ul>
+          <h3>预计 token 用量</h3>
+          <p>3-15k input tokens 每次（取决于活动量、是否启用 web fallback）</p>
+          <blockquote>同意后默认沿用此设定。可在 Settings 里"Reset consent"重新弹出。</blockquote>
+        </div>
+
+        <footer class="consent-foot">
+          <button class="btn-secondary" id="consentDecline" type="button">不同意（取消生成）</button>
+          <button class="btn-primary" id="consentAccept" type="button">同意并继续</button>
+        </footer>
+      </div>
+    </div>
   </main>
 
   <script src="./app.js"></script>

@@ -1,6 +1,6 @@
 # Desktop Companion
 
-The desktop companion is the current Stage 1 client. It is an Electron floating island that connects to the local daemon and renders Claude Code status, approvals, and questions without requiring the user to watch the terminal every second.
+The desktop companion is the current Stage 1 + 1.5 client. It is an Electron floating island that connects to the local daemon and renders Claude Code status, approvals, questions, knowledge cards, and a live monitor — without requiring the user to watch the terminal every second.
 
 ## Current Shape
 
@@ -43,13 +43,19 @@ The window does not inspect Claude Code directly. It only consumes daemon summar
 
 There are two parallel size systems:
 
-- **CAPSULE_BOUNDS** — the visible bubble:
+- **CAPSULE_BOUNDS** — the visible bubble per mode:
   - Resting compact: `124 x 42`
-  - Hover compact: `224 x 42`
-  - Approval expanded: `360 x 238`
-  - Question expanded: `360 x 300`
-  - Dashboard expanded: `420 x 540`
-- **MODE_BOUNDS** — the BrowserWindow, which adds `BUBBLE_PADDING = 12 px` on every side around the capsule for a transparent gutter where the soft drop shadow renders.
+  - Hover compact:   `224 x 42`
+  - Approval:        `360 x 238`  (+ 44 px bottom satellite gutter)
+  - Question:        `360 x 300`  (+ 44 px bottom satellite gutter)
+  - Cards:           `460 x 600`
+  - Settings:        `440 x 580`
+  - Live:            `380 x 440`
+- **MODE_BOUNDS** — the BrowserWindow, which adds `BUBBLE_PADDING = 12 px` on every side around the capsule for a transparent gutter where the soft drop shadow renders. Approval / question modes additionally reserve a `SATELLITE_GUTTER = 44 px` row below the bubble for the floating ✓ / ✕ approve/deny chips.
+
+### Liquid water-droplet morph
+
+Mode → mode transitions use a single synchronized motion: `main.js animateWindowBounds(target, 280, cb, { liquid: true })` interpolates the BrowserWindow size with `easeOutDroplet` (mirrors `cubic-bezier(0.34, 1.56, 0.64, 1)` — overshoots ~6 % then settles) while the renderer's `.island` CSS transitions `border-radius` from `999px` (pill) → `22px` (rounded rect) on the same curve + duration. Result reads as one continuous "stretching droplet" instead of two separate transitions. `.island` is pre-promoted (`will-change: transform, border-radius` + `transform: translateZ(0)`) so the first morph doesn't trigger compositor-layer creation jank.
 
 Snap, peek, and distance math is implemented in CAPSULE coordinates (the user-perceived shape) and translated to BrowserWindow coordinates via `snapInset()` whenever bounds are computed. When snapped to an edge in compact mode, the BrowserWindow overhangs the work area by `BUBBLE_PADDING` so the capsule itself sits flush with the edge.
 
@@ -77,17 +83,23 @@ The capsule fills the BrowserWindow at `margin: 12px / width: calc(100% - 24px) 
 Four states animate between each other:
 
 - Resting compact: status emoji with the context-usage ring + status label.
-- Hover compact: also reveals the window controls strip (toggle, capsule color, settings, expand, minimize).
+- Hover compact: also reveals the window controls strip (toggle, capsule color, settings, minimize).
 - Request expanded: approval card with command, meta, suggestion buttons, deny / approve, OR question card with answer form.
 - Dashboard expanded: full vertical feed of (1) the active request, when one is pending, (2) other pending requests with inline approve / deny, (3) all known Claude sessions with status chips, (4) paired devices with revoke + a button to generate a fresh pairing token, (5) the audit-event drawer (last 30, collapsible), and (6) a health footer that flips between sage "live" and rose "offline" depending on the WebSocket connection. Replaces the legacy browser dashboard at `http://127.0.0.1:4317/` — that URL now serves a small notice page directing users back to the bubble.
 
 The renderer picks the mode from daemon state; the main process animates native bounds. `:root` has a registered `@property --context-angle` so the conic ring fill morphs over `720ms` instead of jumping when ctx percentage updates.
 
+**Hover-expand gating.** The 124 px resting capsule is too narrow to hold the controls strip alongside the orb + label, so showing the strip during the 170 ms hover-expand animation made it overlap the status. The main process now broadcasts a `window:hover-expanded-changed` IPC once the bubble has actually settled at the wider hover size; the renderer mirrors this on `body[data-hover-expanded]`, and CSS gates the controls-strip visibility on it. The strip itself uses a transparent background (no pill chip), so it always blends with whatever color the bubble currently has — the user's chosen island color in compact, the default dark surface in expanded modes.
+
 When the user drags near a screen edge, the main process snaps and stays anchored through subsequent expand / collapse. Snap is debounced about 160 ms after the last move event. Programmatic moves from animations are skipped via the `boundsAnimation` guard.
+
+**Single-axis snap.** Snapping picks the nearest edge only — even at a corner drag, just one of `{left, right, top, bottom}` wins. Pinning both axes at once forced the bubble into the corner and made every off-corner drag look like it "centered itself" at the other axis. With single-axis snap, drag-to-top preserves the user's X and drag-to-right preserves the user's Y.
 
 Compact edge snap auto-enters a peek state: the BrowserWindow slides mostly past the edge, leaving a 12 px capsule strip + the gutter visible. In that strip, the normal status UI is hidden and only a sage / warm context fill bar shows. Pulling the slit away from the edge past `SNAP_DETACH_DISTANCE` clears snap and re-floats.
 
 **Slit hover detection.** Browsers don't synthesize `pointerleave` / `pointerenter` when a window slides out from under a stationary cursor — so a later cursor entry into the slit never refires `pointerenter` and the slit feels dead. The main process polls `screen.getCursorScreenPoint()` every 80 ms while peeking; entering the BrowserWindow bounds triggers `setCompactHover(true)` directly, bypassing the web hover state machine entirely.
+
+**Hold-open during modal pickers.** Opening the system color picker (especially on macOS, where it's a separate window) moves the cursor off the bubble and would otherwise fire the auto-collapse + controls-hide timers before the user finishes picking. The renderer calls `companionDesktop.setHold(true)` on color-button click and releases on the input's `change` / `blur`; while held, both the main-process compact-collapse timer and the renderer-side controls-hide timer bail out. A 30 s safety fallback releases the hold even if neither event fires.
 
 ## Context Usage
 
@@ -131,18 +143,17 @@ Context occupancy renders as the conic ring around the status orb in compact/exp
 
 ## Controls
 
-Compact controls live in a `surface-glass` strip that fades in on hover (left to right):
+Compact controls live in a transparent strip that fades in on hover (left to right). The strip itself has no pill background — buttons sit directly on the bubble so the strip always reads as part of whatever color the bubble currently has:
 
 - **Power (⏻)** — toggles the Companion approval / status hooks globally. Sand-gold tint when off; the orb desaturates as a passive cue. Backed by `~/.claude-companion/disabled` flag file (see [Pluggable on/off](#pluggable-onoff)).
-- **Color swatch** — opens the system color picker for the compact capsule surface. The selected color is stored locally in the renderer via `localStorage`; light colors switch compact status/control text to a darker contrast color while expanded approval/question panels keep the standard dark surface.
-- **Gear (⚙)** — toggles the bubble's dashboard mode (`420 × 540`). Click again from inside the dashboard to collapse back to compact. The legacy browser dashboard at `http://127.0.0.1:4317/` is gone — its content lives here now.
-- **Square (▢)** — toggles compact / expanded size. With a pending request it opens approval / question; otherwise the dashboard.
+- **Color swatch** — opens the system color picker for the compact capsule surface. The selected color is stored locally in the renderer via `localStorage`; light colors switch compact status/control text to a darker contrast color while expanded approval/question panels keep the standard dark surface. The bubble pins itself open while the picker is showing (`setHold` IPC) so the picker can't auto-collapse the compact bubble out from under the user, especially on macOS where the picker is a separate window.
+- **Gear (⚙)** — single entry point for both "settings" and "expand": toggles the bubble's dashboard mode (`420 × 540`). Pending requests auto-expand to the approval / question card on their own, so a separate Expand button is no longer wired up. Click the gear again from inside the dashboard to collapse back to compact. The legacy browser dashboard at `http://127.0.0.1:4317/` is gone — its content lives here now.
 - **Minus (−)** — minimizes the window.
 
 Expanded panel actions:
 
 - **Approve** — single-shot allow.
-- **Suggestion buttons** — for `PermissionRequest` events, every `permission_suggestions[i]` with `behavior: "allow"` renders as its own labeled button (e.g. `Always allow Read /tmp/**`). Clicking sends `decide(..., "always_allow", ..., { suggestionIndex: i })` which the daemon packs into `decision.updatedPermissions` for Claude Code.
+- **Suggestion buttons** — for `PermissionRequest` events, every `permission_suggestions[i]` with `behavior: "allow"` renders as a single-line pill (e.g. `Always allow Bash node --check d:\…\main.js +2`). The label uses the first rule's tool + content; if the suggestion bundles multiple rules, a `+N` hint is appended. Long content is truncated with CSS ellipsis, and the full multi-line rule list is exposed via the button's `title` (hover tooltip). Clicking sends `decide(..., "always_allow", ..., { suggestionIndex: i })` which the daemon packs into `decision.updatedPermissions` for Claude Code.
 - **Deny** — blocks the request with `Denied from desktop companion`.
 - **Answer** — submits `AskUserQuestion` responses (text input or option pill selection).
 
@@ -157,9 +168,38 @@ Env vars `CCC_BYPASS_APPROVAL_HOOK=true` (approval) and `CCC_DISABLE_STATUS_HOOK
 
 Global hook installation is handled by `npm run setup-user-hooks`, which merges only Companion-managed hooks into `%USERPROFILE%\.claude\settings.json` and backs up the prior file. `npm run doctor` verifies hook coverage, paths, daemon health, disabled-flag state, and possible global/project double-firing.
 
+## Stage 1.5 Modes
+
+The five non-compact modes the controls strip can open:
+
+- **Approval** — auto-entered when a `permission_request` lands. Tool name + risk pill + command preview + 2-row meta + horizontal Approve/Suggest/Deny row. Floating ✓ / ✕ satellite chips appear in the bottom gutter so the user can decide without scrolling. Auto-jumps to this mode from any other mode when a request arrives.
+- **Question** — same chrome, swaps the action row for an answer-form (multiple-choice options or "other answer" text input).
+- **Cards** (📚) — Today / History / Wrong-book / Record tabs. See [Knowledge Cards mode](#knowledge-cards-mode-stage-15) below.
+- **Settings** (⚙) — left rail nav + right panel; rail items: Knowledge cards / Storage / Export / Companion. The rail itself is collapsible (chevron at top); state persists.
+- **Live** (⤢) — dedicated monitor surface: floating semi-transparent window with slow breathing pulse. Holds Today's-deck mini-summary + 📚 "Open Knowledge Cards" entry + active Claude sessions list. The ⤢ button is open-only (use − to collapse back to compact).
+
+### Knowledge Cards mode (Stage 1.5)
+
+Daily review surface — see [ADR-20260503-knowledge-cards](decisions/ADR-20260503-knowledge-cards.md) for the full design rationale. Tabs:
+
+- **Today** — markdown abstract + progress bar + Start review CTA. Streak badge (🔥 N days / 🛡 protected) sits in the abstract header.
+- **History** — list of past decks (most recent first). Same-day re-generation archives the prior file as `<date>-HHMMSS.json` and shows it as an `is-archive` row beneath today's.
+- **Wrong book** — missed cards return here until mastered (`easy`/`medium`: 2 consecutive correct; `hard`: 3).
+- **Record** — every generation run with what got scanned / dropped, scrollable per-session list inside each row's expanded detail.
+
+### Themes
+
+4 presets in [packages/shared/themes.js](../packages/shared/themes.js): Midnight Teal · Amber Hearth · Paper Light · Aurora Indigo. Theming is mechanical — each theme is a flat bag of CSS custom properties applied to `:root`. The bubble's color button cycles through them; full preview list lives in Settings → Companion → Theme. Stored at `localStorage["claude-code-companion.theme.v1"]`.
+
+### Bilingual UI (en / zh)
+
+[packages/shared/i18n.js](../packages/shared/i18n.js) holds 148+ translation keys × 2 locales. Static HTML is tagged with `data-i18n` / `data-i18n-title` / `data-i18n-aria-label` / `data-i18n-placeholder`; the loader walks the tree on locale change. The cards-generator prompt template also branches on locale (`PROMPT_TEMPLATES.en` / `.zh`) so model output language follows the user's UI choice. JSON keys stay English so parsing is locale-invariant. Stored at `localStorage["claude-code-companion.locale.v1"]`. Initial value detected from `navigator.language`.
+
 ## Visual Identity Policy
 
 Tokens, motion, and component recipes are codified in [docs/design-language.md](design-language.md). A standalone v0 preview lives at [docs/design-language-v0.html](design-language-v0.html) — open it in a browser to inspect every state side-by-side.
+
+Three Stage-1.5 redesign explorations live at [docs/ui-redesign-A-liquid-capsule.html](ui-redesign-A-liquid-capsule.html), [docs/ui-redesign-B-layered-cards.html](ui-redesign-B-layered-cards.html), [docs/ui-redesign-C-spatial-tabs.html](ui-redesign-C-spatial-tabs.html) — direction B + the liquid morph from A is what shipped.
 
 The current stage intentionally avoids a concrete mascot. Status emoji are product iconography (they encode state); they're not used as filler. Future personality work should use original, generated, or clearly licensed assets.
 

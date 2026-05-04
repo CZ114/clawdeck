@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redesign B — Layered Cards</title>
+<style>
+/* =============================================================
+   Direction B — "Layered Cards"
+   The compact island stays anchored. Mode panels SLIDE up from
+   beneath as floating sheets — like iOS sheet presentation.
+   Settings becomes a left-rail nav so you only ever see one section.
+   ============================================================= */
+:root {
+  color-scheme: dark;
+
+  /* Midnight Teal tokens */
+  --bg:               oklch(13% 0.012 270);
+  --surface-0:        oklch(13% 0.012 270);
+  --surface-1:        oklch(17% 0.014 270 / 0.96);
+  --surface-2:        oklch(22% 0.016 270);
+  --surface-3:        oklch(26% 0.018 270);
+  --inner-well:       oklch(11% 0.010 270);
+  --ink-0:            oklch(95% 0.014 80);
+  --ink-1:            oklch(70% 0.012 250);
+  --ink-2:            oklch(50% 0.010 250);
+  --line:             oklch(60% 0 0 / 0.10);
+  --accent:           oklch(74% 0.07 195);
+  --accent-warm:      oklch(78% 0.08 70);
+  --accent-warm-hi:   oklch(82% 0.10 70);
+  --accent-sage:      oklch(72% 0.06 150);
+  --accent-rose:      oklch(70% 0.07 25);
+  --accent-slate:     oklch(60% 0.03 250);
+
+  --bg-accent:       color-mix(in oklch, var(--accent),       transparent 82%);
+  --bg-sage:         color-mix(in oklch, var(--accent-sage),  transparent 82%);
+  --bg-warm:         color-mix(in oklch, var(--accent-warm),  transparent 82%);
+  --bg-rose:         color-mix(in oklch, var(--accent-rose),  transparent 82%);
+
+  --shadow-inner:
+    0 1px 0 inset oklch(100% 0 0 / 0.055),
+    0 -1px 0 inset oklch(0% 0 0 / 0.18),
+    0 0 0 1px inset oklch(100% 0 0 / 0.045);
+  --shadow-sheet:
+    0 2px 6px oklch(0% 0 0 / 0.34),
+    0 18px 28px -10px oklch(0% 0 0 / 0.55),
+    0 28px 48px -22px oklch(0% 0 0 / 0.4);
+  --shadow-island:
+    0 1px 1px oklch(0% 0 0 / 0.34),
+    0 6px 14px -6px oklch(0% 0 0 / 0.52);
+
+  /* iOS-feel sheet curves */
+  --ease-sheet:  cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-pop:    cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --font-ui: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: radial-gradient(ellipse at top, oklch(18% 0.018 270), var(--bg));
+  color: var(--ink-0);
+  font-family: var(--font-ui);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.005em;
+  min-height: 100vh;
+  padding: 48px 24px 96px;
+}
+button { border: 0; font: inherit; cursor: pointer; color: inherit; }
+
+.page { max-width: 880px; margin: 0 auto; }
+
+.rationale {
+  background: var(--surface-1);
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow-inner), var(--shadow-sheet);
+  margin-bottom: 64px;
+}
+.rationale h1 { margin: 0 0 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.rationale .tag {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent-warm); margin-bottom: 12px;
+}
+.rationale p { margin: 8px 0 0; color: var(--ink-1); font-size: 13px; line-height: 1.6; }
+.rationale .key {
+  margin-top: 16px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.rationale .key div {
+  background: var(--surface-2); border-radius: 10px; padding: 10px 12px;
+  font-size: 11px; color: var(--ink-1);
+}
+.rationale .key strong { color: var(--ink-0); display: block; margin-bottom: 2px; font-weight: 600; font-size: 11.5px; }
+
+.mode-label {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink-1);
+  margin: 56px 0 20px;
+}
+.mode-label::before { content: ""; flex: 0 0 28px; height: 1px; background: var(--line); }
+.mode-label::after  { content: ""; flex: 1; height: 1px; background: var(--line); }
+.mode-label .num {
+  display: inline-flex; width: 22px; height: 22px;
+  align-items: center; justify-content: center;
+  background: var(--bg-warm); color: var(--accent-warm);
+  border-radius: 50%; font-size: 11px; letter-spacing: 0;
+}
+
+.stage {
+  display: flex; justify-content: center;
+  padding: 36px 24px;
+  background: linear-gradient(180deg,
+    oklch(15% 0.014 270) 0%,
+    oklch(11% 0.010 270) 100%);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  position: relative;
+}
+.stage::before {
+  content: attr(data-size);
+  position: absolute; top: 12px; right: 16px;
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--ink-2); letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   The compact island — anchored, never resizes.
+   When mode changes, a SHEET appears above it.
+   ============================================================ */
+.island {
+  width: 124px; height: 42px;
+  border-radius: 999px;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-inner), var(--shadow-island);
+  display: flex; align-items: center;
+  padding: 0 14px 0 8px;
+  gap: 8px;
+  /* Promote up-front. The island only ever moves on Y by a tiny amount. */
+  will-change: transform;
+  transition: transform 280ms var(--ease-sheet);
+}
+.orb {
+  flex: 0 0 26px; height: 26px;
+  border-radius: 50%;
+  background:
+    conic-gradient(var(--accent) 0 calc(var(--ctx, 60) * 1%), oklch(35% 0 0 / 0.5) 0);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.orb::before {
+  content: ""; position: absolute; inset: 1.5px;
+  border-radius: 50%; background: var(--inner-well);
+}
+.orb-emoji { position: relative; font-size: 13.5px; z-index: 1; }
+.island .text {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 600;
+  color: var(--ink-0);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* hover-revealed strip on the right */
+.island .controls {
+  display: flex; gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
+  opacity: 0; transform: translateX(6px);
+  transition: opacity 220ms var(--ease-sheet), transform 220ms var(--ease-sheet);
+}
+.island.show-controls .controls,
+.island:hover .controls { opacity: 1; transform: none; }
+.island:hover { width: 248px; }
+.ctl {
+  width: 24px; height: 24px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--ink-1); font-size: 13px;
+  position: relative;
+  transition: background 160ms var(--ease-sheet), color 160ms var(--ease-sheet);
+}
+.ctl:hover { background: color-mix(in oklch, var(--ink-0), transparent 90%); color: var(--ink-0); }
+.ctl-swatch {
+  display: inline-block; width: 12px; height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-warm));
+}
+.cards-badge {
+  position: absolute; top: -3px; right: -3px;
+  min-width: 14px; height: 14px;
+  padding: 0 4px;
+  background: var(--accent-warm-hi); color: oklch(20% 0 0);
+  border-radius: 7px;
+  font-size: 9px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ============================================================
+   The SHEET — sits above the anchored island.
+   Slides up from below with the master sheet curve.
+   ============================================================ */
+.sheet-wrapper {
+  display: flex; flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.sheet {
+  background: var(--surface-1);
+  border-radius: 22px;
+  box-shadow: var(--shadow-inner), var(--shadow-sheet);
+  position: relative;
+  overflow: hidden;
+  /* Promote — sheet entry slides on transform only */
+  will-change: transform, opacity;
+}
+.sheet::before {
+  content: ""; position: absolute; inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg,
+    oklch(100% 0 0 / 0.045),
+    transparent 42%,
+    oklch(0% 0 0 / 0.075));
+}
+
+/* Approval sheet */
+.sheet.approval { width: 360px; height: 238px; }
+.sheet.question { width: 360px; height: 300px; }
+.sheet.cards    { width: 460px; height: 600px; }
+.sheet.settings { width: 440px; height: 580px; }
+
+/* The grab-handle that says "I'm a sheet" */
+.handle {
+  position: absolute; top: 8px; left: 50%;
+  transform: translateX(-50%);
+  width: 36px; height: 4px;
+  background: var(--ink-2); opacity: 0.45;
+  border-radius: 999px;
+  z-index: 5;
+}
+
+/* ============================================================
+   APPROVAL — clear functional partitioning via grouped cards
+   ============================================================ */
+.approval-body {
+  height: 100%;
+  padding: 22px 18px 16px;
+  display: flex; flex-direction: column;
+  position: relative; z-index: 1;
+}
+.approval-head {
+  display: flex; align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 4px 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+.approval-head .left .eyebrow {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-1);
+  margin-bottom: 2px;
+}
+.approval-head .left .tool-name {
+  font-size: 17px; font-weight: 600;
+  letter-spacing: -0.005em; margin: 0;
+}
+.risk-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-warm-hi);
+  color: var(--accent-warm-hi);
+  background: var(--bg-warm);
+}
+.risk-pill[data-risk="low"]    { border-color: var(--accent-sage);    color: var(--accent-sage);    background: var(--bg-sage); }
+.risk-pill[data-risk="high"]   { border-color: var(--accent-rose);    color: var(--accent-rose);    background: var(--bg-rose); }
+
+/* Group: command preview */
+.cmd-preview {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-1);
+  margin-bottom: 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: var(--shadow-inner);
+}
+/* Group: meta */
+.meta-grid {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  row-gap: 6px;
+  font-size: 11.5px;
+  margin-bottom: 12px;
+}
+.meta-grid dt {
+  color: var(--ink-2);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  margin: 0; font-weight: 500;
+}
+.meta-grid dd { margin: 0; color: var(--ink-1); }
+
+/* Group: actions */
+.actions {
+  margin-top: auto;
+  display: flex; gap: 8px;
+}
+.btn {
+  flex: 1; height: 34px;
+  border-radius: 10px;
+  font-weight: 600; font-size: 13px;
+  background: var(--surface-2);
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+  transition: transform 160ms var(--ease-sheet), background 160ms var(--ease-sheet);
+}
+.btn:hover { transform: translateY(-1px); background: var(--surface-3); }
+.btn.approve { background: oklch(22% 0.025 150); color: var(--accent-sage); }
+.btn.deny    { background: oklch(22% 0.025 25);  color: var(--accent-rose); }
+.btn.suggest { background: oklch(22% 0.025 70);  color: var(--accent-warm); flex: 0.7; }
+
+/* Satellites under the SHEET (not the island) */
+.satellites {
+  display: flex; gap: 14px;
+  margin-top: 4px;
+}
+.sat {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+  color: oklch(20% 0 0);
+  box-shadow: 0 6px 18px oklch(0% 0 0 / 0.45), var(--shadow-inner);
+  animation: satSplit 540ms var(--ease-pop);
+}
+.sat-approve { background: var(--accent-sage); }
+.sat-deny    { background: var(--accent-rose); }
+@keyframes satSplit {
+  0%   { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* ============================================================
+   QUESTION
+   ============================================================ */
+.question-body {
+  height: 100%;
+  padding: 22px 18px 16px;
+  display: flex; flex-direction: column;
+  position: relative; z-index: 1;
+}
+.question-body h2 {
+  font-size: 16px; font-weight: 600;
+  margin: 6px 0 12px;
+}
+.option-list {
+  display: flex; flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink-0);
+  cursor: pointer;
+  transition: background 160ms var(--ease-sheet);
+}
+.opt:hover { background: var(--surface-3); }
+.opt-bullet {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-2);
+  flex: 0 0 14px;
+}
+.opt.is-active .opt-bullet { border-color: var(--accent); background: var(--accent); }
+.other-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-0);
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 160ms var(--ease-sheet);
+}
+.other-input:focus { border-color: var(--accent); }
+
+/* ============================================================
+   CARDS — segmented tabs with content cards underneath
+   ============================================================ */
+.cards-body {
+  height: 100%;
+  padding: 22px 22px 22px;
+  display: flex; flex-direction: column;
+  gap: 16px;
+  position: relative; z-index: 1;
+}
+.cards-tabs {
+  display: flex; gap: 2px;
+  background: var(--surface-2);
+  padding: 3px;
+  border-radius: 11px;
+}
+.cards-tab {
+  flex: 1; padding: 7px 10px;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px; font-weight: 500;
+  color: var(--ink-1);
+  position: relative;
+  transition: color 160ms var(--ease-sheet), background 240ms var(--ease-sheet);
+}
+.cards-tab.is-active {
+  background: var(--surface-3); color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+}
+.cards-tab .pill {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px; height: 14px; line-height: 14px;
+  background: var(--bg-warm); color: var(--accent-warm);
+  border-radius: 7px;
+  font-size: 9.5px; font-weight: 700;
+}
+
+/* Each top-level grouping is an INNER card with its own subtle elevation —
+   that's what makes "functional partitioning" obvious without dividers. */
+.inner-card {
+  background: var(--surface-2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-inner);
+}
+.abstract-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.abstract-date {
+  font-size: 11px; color: var(--ink-1);
+  letter-spacing: 0.06em;
+}
+.streak {
+  margin-left: auto;
+  background: oklch(28% 0.04 70);
+  color: var(--accent-warm-hi);
+  font-size: 11px; font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.inner-card h2 {
+  margin: 0 0 6px;
+  font-size: 14.5px; font-weight: 600;
+}
+.inner-card p {
+  margin: 0;
+  font-size: 12.5px; color: var(--ink-1); line-height: 1.55;
+}
+.progress-block { display: flex; flex-direction: column; gap: 8px; }
+.progress-label-row {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--ink-1);
+}
+.progress-label-row strong { color: var(--ink-0); font-weight: 600; }
+.bar-shell {
+  height: 6px; background: var(--inner-well);
+  border-radius: 999px; overflow: hidden;
+  position: relative;
+}
+.bar-fill {
+  position: absolute; inset: 0;
+  width: 60%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-sage));
+  border-radius: inherit;
+}
+.cta-row { display: flex; gap: 8px; }
+.btn-cta {
+  flex: 1; height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-0);
+  font-weight: 600; font-size: 14px;
+  display: inline-flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  box-shadow: var(--shadow-inner);
+  transition: transform 160ms var(--ease-sheet), background 160ms var(--ease-sheet);
+}
+.btn-cta:hover { background: var(--surface-3); transform: translateY(-1px); }
+.btn-cta .arrow { font-size: 12px; color: var(--ink-1); font-weight: 500; }
+.btn-cta-ghost {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2); color: var(--ink-1);
+  font-size: 16px;
+  box-shadow: var(--shadow-inner);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ============================================================
+   SETTINGS — left rail nav + right panel
+   The flagship change: only ONE section visible at a time.
+   ============================================================ */
+.settings-body {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  position: relative; z-index: 1;
+}
+.set-rail {
+  background: var(--inner-well);
+  padding: 22px 8px 16px;
+  display: flex; flex-direction: column;
+  gap: 2px;
+}
+.set-rail .rail-title {
+  padding: 0 10px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 6px;
+}
+.rail-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--ink-1);
+  background: transparent;
+  text-align: left;
+  /* The selection moves with a sliding background — pure transform */
+  transition: color 160ms var(--ease-sheet), background 240ms var(--ease-sheet);
+}
+.rail-item .glyph {
+  width: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.rail-item.is-active {
+  background: var(--surface-3);
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+}
+.rail-item.is-active .glyph { color: var(--accent); }
+.rail-item:hover:not(.is-active) {
+  background: color-mix(in oklch, var(--ink-0), transparent 92%);
+  color: var(--ink-0);
+}
+.rail-item .badge {
+  margin-left: auto;
+  background: var(--bg-warm); color: var(--accent-warm);
+  font-size: 9.5px; font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.set-panel {
+  padding: 22px 22px 22px;
+  display: flex; flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.panel-head {
+  display: flex; flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.panel-head h3 {
+  margin: 0; font-size: 16px; font-weight: 600;
+}
+.panel-head .lede {
+  font-size: 11.5px; color: var(--ink-2);
+}
+.set-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.set-row:first-of-type { border-top: 0; }
+.set-row .text { flex: 1; }
+.set-label { display: block; font-size: 12.5px; color: var(--ink-0); margin-bottom: 2px; }
+.set-meta  { display: block; font-size: 11px;   color: var(--ink-2); }
+.toggle {
+  width: 32px; height: 18px;
+  background: var(--surface-3);
+  border-radius: 999px;
+  position: relative;
+  transition: background 200ms var(--ease-sheet);
+  cursor: pointer;
+}
+.toggle::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%; background: var(--ink-0);
+  transition: transform 200ms var(--ease-sheet);
+}
+.toggle.on { background: var(--accent); }
+.toggle.on::after { transform: translateX(14px); }
+.segmented {
+  display: inline-flex;
+  background: var(--inner-well);
+  border-radius: 8px;
+  padding: 2px;
+}
+.seg {
+  padding: 5px 10px;
+  font-size: 11px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-1); font-weight: 500;
+}
+.seg.is-active {
+  background: var(--surface-3); color: var(--ink-0);
+  box-shadow: var(--shadow-inner);
+}
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  gap: 2px;
+  margin-top: 8px;
+}
+.hm-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--inner-well);
+}
+.hm-cell.lvl-1 { background: color-mix(in oklch, var(--accent), transparent 78%); }
+.hm-cell.lvl-2 { background: color-mix(in oklch, var(--accent), transparent 60%); }
+.hm-cell.lvl-3 { background: color-mix(in oklch, var(--accent), transparent 38%); }
+.hm-cell.lvl-4 { background: var(--accent); }
+
+/* ============================================================
+   Demo: sheet slide-up entry
+   ============================================================ */
+.demo-controls { margin-top: 18px; display: flex; gap: 8px; justify-content: center; }
+.demo-btn {
+  background: var(--surface-2); color: var(--ink-0);
+  padding: 8px 14px; border-radius: 10px;
+  font-size: 12px; font-weight: 500;
+  box-shadow: var(--shadow-inner);
+}
+.demo-btn:hover { background: var(--surface-3); }
+
+#demoStage { position: relative; padding: 24px 0 0; }
+#demoSheet {
+  /* Start hidden below the island.
+     One single composite anim — translateY + opacity. */
+  opacity: 0;
+  transform: translateY(28px) scale(0.96);
+  pointer-events: none;
+  transition:
+    transform 320ms var(--ease-sheet),
+    opacity   240ms var(--ease-sheet);
+  margin-top: 14px;
+}
+#demoSheet.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <section class="rationale">
+    <span class="tag">Direction B · Layered Cards</span>
+    <h1>Anchored island. Sheets ride above it.</h1>
+    <p>
+      The compact island never resizes. When you open approval / cards / settings, a separate sheet floats up
+      from below — like an iOS modal. This kills the mode-shape-change-snap entirely (the island stays put;
+      the sheet is the only thing moving) and gives every panel its own surface + shadow so functional
+      partitioning is unambiguous. Settings replaces its wall-of-expanders with a left navigation rail —
+      one section visible at a time, no scroll-chaos. First-paint is fast because the island and sheet
+      are pre-promoted, with backdrop-filter restricted to the small island only.
+    </p>
+    <div class="key">
+      <div><strong>Fixes jank</strong>Island never reflows; sheet entry is one transform+opacity transition (composited).</div>
+      <div><strong>Fixes partitioning</strong>Every mode is its own card with own shadow; settings rail kills expander-wall.</div>
+      <div><strong>Risk</strong>Bigger total footprint — sheet + island + gutter together is taller than today's bubble.</div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       MODE: COMPACT
+       ======================================================== -->
+  <div class="mode-label"><span class="num">1</span>Mode: compact <span style="margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-2);font-size:11px;">island only — no sheet attached</span></div>
+  <div class="stage" data-size="124 × 42 → 248 × 42 on hover">
+    <div class="island show-controls">
+      <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🤔</span></span>
+      <span class="text">Thinking…</span>
+      <span class="controls">
+        <button class="ctl" title="Power">⏻</button>
+        <button class="ctl" title="Theme"><span class="ctl-swatch"></span></button>
+        <button class="ctl" title="Cards">📚<span class="cards-badge">3</span></button>
+        <button class="ctl" title="Settings">⚙</button>
+        <button class="ctl" title="Minimize">−</button>
+      </span>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: APPROVAL — sheet above island
+       ======================================================== -->
+  <div class="mode-label"><span class="num">2</span>Mode: approval <span style="margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-2);font-size:11px;">sheet floats above the anchored island</span></div>
+  <div class="stage" data-size="island 124 × 42 + sheet 360 × 238 + sat gutter">
+    <div class="sheet-wrapper">
+      <div class="island">
+        <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🛂</span></span>
+        <span class="text">1 pending</span>
+      </div>
+      <div class="sheet approval">
+        <span class="handle"></span>
+        <div class="approval-body">
+          <div class="approval-head">
+            <div class="left">
+              <div class="eyebrow">Bash · approval</div>
+              <h2 class="tool-name">git push --force-with-lease</h2>
+            </div>
+            <div class="risk-pill" data-risk="medium">Medium</div>
+          </div>
+          <div class="cmd-preview">git push origin main --force-with-lease</div>
+          <dl class="meta-grid">
+            <dt>cwd</dt><dd>~/work/companion</dd>
+            <dt>reason</dt><dd>destructive history rewrite — verify branch state first</dd>
+          </dl>
+          <div class="actions">
+            <button class="btn approve">Approve</button>
+            <button class="btn suggest">Suggest…</button>
+            <button class="btn deny">Deny</button>
+          </div>
+        </div>
+      </div>
+      <div class="satellites">
+        <button class="sat sat-approve">✓</button>
+        <button class="sat sat-deny">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: QUESTION
+       ======================================================== -->
+  <div class="mode-label"><span class="num">3</span>Mode: question</div>
+  <div class="stage" data-size="island + sheet 360 × 300 + sat gutter">
+    <div class="sheet-wrapper">
+      <div class="island">
+        <span class="orb" style="--ctx: 60; background: conic-gradient(var(--accent-warm) 0 60%, oklch(35% 0 0 / 0.5) 0);"><span class="orb-emoji">❓</span></span>
+        <span class="text">Awaiting…</span>
+      </div>
+      <div class="sheet question">
+        <span class="handle"></span>
+        <div class="question-body">
+          <div class="approval-head" style="border:0; padding-bottom:0; margin-bottom:0;">
+            <div class="left">
+              <div class="eyebrow">Question · awaiting answer</div>
+            </div>
+            <div class="risk-pill" data-risk="low" style="border-color:var(--accent-slate);color:var(--accent-slate);background:transparent;">Awaiting</div>
+          </div>
+          <h2>Which migration strategy?</h2>
+          <div class="option-list">
+            <div class="opt is-active"><span class="opt-bullet"></span>Generate a new migration file</div>
+            <div class="opt"><span class="opt-bullet"></span>Edit the latest unmerged migration</div>
+            <div class="opt"><span class="opt-bullet"></span>Manually update the schema and let me know</div>
+          </div>
+          <input class="other-input" placeholder="Other answer…" />
+          <div class="actions">
+            <button class="btn approve">Answer</button>
+          </div>
+        </div>
+      </div>
+      <div class="satellites">
+        <button class="sat sat-approve">✓</button>
+        <button class="sat sat-deny">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: CARDS
+       ======================================================== -->
+  <div class="mode-label"><span class="num">4</span>Mode: cards</div>
+  <div class="stage" data-size="island + sheet 460 × 600">
+    <div class="sheet-wrapper">
+      <div class="island">
+        <span class="orb" style="--ctx: 60;"><span class="orb-emoji">📚</span></span>
+        <span class="text">5 due today</span>
+      </div>
+      <div class="sheet cards">
+        <span class="handle"></span>
+        <div class="cards-body">
+          <nav class="cards-tabs">
+            <button class="cards-tab is-active">Today</button>
+            <button class="cards-tab">History</button>
+            <button class="cards-tab">Wrong<span class="pill">2</span></button>
+            <button class="cards-tab">Record</button>
+          </nav>
+
+          <section class="inner-card">
+            <div class="abstract-head">
+              <span class="abstract-date">Sun · May 3</span>
+              <span class="streak">🔥 12 days</span>
+            </div>
+            <h2>Hooks, OKLCH, and timeout asymmetry</h2>
+            <p>
+              You explored why the hook timeout must outlive the daemon's approval timeout, and how
+              OKLCH lets the four themes share one accent ladder. Today's deck pulls 5 cards from
+              those threads.
+            </p>
+          </section>
+
+          <section class="inner-card">
+            <div class="progress-block">
+              <div class="progress-label-row">
+                <span>Today's goal</span>
+                <span><strong>3</strong> / 5 reviewed · 2 left</span>
+              </div>
+              <div class="bar-shell"><div class="bar-fill"></div></div>
+              <div class="progress-label-row" style="margin-top:2px;">
+                <span style="color:var(--ink-2);font-size:10.5px;">2 easy · 2 medium · 1 hard</span>
+                <span style="color:var(--ink-2);font-size:10.5px;">est. 4 min</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="cta-row" style="margin-top:auto;">
+            <button class="btn-cta">
+              <span>Start review</span>
+              <span class="arrow">2 left →</span>
+            </button>
+            <button class="btn-cta-ghost" title="Regenerate">↻</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODE: SETTINGS — left rail
+       ======================================================== -->
+  <div class="mode-label"><span class="num">5</span>Mode: settings <span style="margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-2);font-size:11px;">left nav rail · one section at a time</span></div>
+  <div class="stage" data-size="island + sheet 440 × 580">
+    <div class="sheet-wrapper">
+      <div class="island">
+        <span class="orb" style="--ctx: 60;"><span class="orb-emoji">⚙</span></span>
+        <span class="text">Settings</span>
+      </div>
+      <div class="sheet settings">
+        <span class="handle"></span>
+        <div class="settings-body">
+          <aside class="set-rail">
+            <span class="rail-title">⚙ Settings</span>
+            <button class="rail-item">
+              <span class="glyph">↻</span> Quick actions
+            </button>
+            <button class="rail-item is-active">
+              <span class="glyph">✦</span> Generation
+            </button>
+            <button class="rail-item">
+              <span class="glyph">📅</span> Scope
+            </button>
+            <button class="rail-item">
+              <span class="glyph">⚐</span> Behavior
+            </button>
+            <button class="rail-item">
+              <span class="glyph">🗂</span> Storage
+            </button>
+            <button class="rail-item">
+              <span class="glyph">↓</span> Export
+            </button>
+            <button class="rail-item">
+              <span class="glyph">🛰</span> Sessions <span class="badge">3</span>
+            </button>
+            <button class="rail-item">
+              <span class="glyph">🔌</span> Companion
+            </button>
+          </aside>
+
+          <div class="set-panel">
+            <div class="panel-head">
+              <h3>Generation prompt</h3>
+              <span class="lede">how today's deck is built from past sessions</span>
+            </div>
+
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">What do you want to learn?</span>
+                <span class="set-meta">prepended to every generation prompt</span>
+              </div>
+            </div>
+            <textarea
+              class="other-input" rows="3"
+              placeholder="e.g. Electron IPC patterns, OKLCH derivations, Win11 hook semantics…"
+              style="font-family:var(--font-ui);">OKLCH derivations and Electron IPC</textarea>
+
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Difficulty preference</span>
+                <span class="set-meta">Balanced ≈ 50% easy · 35% medium · 15% hard</span>
+              </div>
+              <div class="segmented">
+                <button class="seg">Casual</button>
+                <button class="seg is-active">Balanced</button>
+                <button class="seg">Deep</button>
+              </div>
+            </div>
+
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Cards per generation</span>
+                <span class="set-meta">model best-effort</span>
+              </div>
+              <span style="color:var(--ink-0);font-weight:600;font-size:13px;">5</span>
+            </div>
+
+            <div class="set-row">
+              <div class="text">
+                <span class="set-label">Scope preview · last 14 days</span>
+                <span class="set-meta">click a day to drill in</span>
+              </div>
+            </div>
+            <div class="heatmap">
+              <span class="hm-cell"></span><span class="hm-cell lvl-1"></span><span class="hm-cell lvl-2"></span><span class="hm-cell"></span><span class="hm-cell lvl-3"></span><span class="hm-cell lvl-4"></span><span class="hm-cell lvl-2"></span><span class="hm-cell lvl-1"></span><span class="hm-cell"></span><span class="hm-cell lvl-2"></span><span class="hm-cell lvl-4"></span><span class="hm-cell lvl-3"></span><span class="hm-cell lvl-2"></span><span class="hm-cell"></span><span class="hm-cell lvl-1"></span><span class="hm-cell lvl-3"></span><span class="hm-cell lvl-4"></span><span class="hm-cell lvl-2"></span><span class="hm-cell"></span><span class="hm-cell lvl-1"></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       Live demo: sheet slides up from beneath island
+       ======================================================== -->
+  <div class="mode-label"><span class="num">▶</span>Live sheet entry · approval slides up</div>
+  <div class="stage" data-size="island stays put · sheet rides above">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;width:100%;">
+      <div id="demoStage">
+        <div class="island show-controls" style="margin: 0 auto;">
+          <span class="orb" style="--ctx: 60;"><span class="orb-emoji">🛂</span></span>
+          <span class="text">1 pending</span>
+        </div>
+        <div id="demoSheet" class="sheet approval" style="margin: 14px auto 0;">
+          <span class="handle"></span>
+          <div class="approval-body">
+            <div class="approval-head">
+              <div class="left">
+                <div class="eyebrow">Bash · approval</div>
+                <h2 class="tool-name">git push --force-with-lease</h2>
+              </div>
+              <div class="risk-pill" data-risk="medium">Medium</div>
+            </div>
+            <div class="cmd-preview">git push origin main --force-with-lease</div>
+            <dl class="meta-grid">
+              <dt>cwd</dt><dd>~/work/companion</dd>
+              <dt>reason</dt><dd>destructive history rewrite</dd>
+            </dl>
+            <div class="actions">
+              <button class="btn approve">Approve</button>
+              <button class="btn suggest">Suggest…</button>
+              <button class="btn deny">Deny</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-controls">
+        <button class="demo-btn" id="demoToggle">▶ Slide approval sheet in</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const sheet = document.getElementById('demoSheet');
+const btn = document.getElementById('demoToggle');
+btn.addEventListener('click', () => {
+  sheet.classList.toggle('is-open');
+  btn.textContent = sheet.classList.contains('is-open') ? '▶ Slide sheet out' : '▶ Slide approval sheet in';
+});
+</script>
+</body>
+</html>

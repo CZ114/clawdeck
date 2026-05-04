@@ -21,13 +21,16 @@
   --surface-0: oklch(13% 0.012 270);
   --surface-1: oklch(17% 0.014 270 / 0.96);
   --surface-2: oklch(22% 0.016 270);
+  --surface-3: oklch(26% 0.018 270);
   --surface-glass: oklch(20% 0.014 270 / 0.86);
+  --inner-well: oklch(11% 0.01 270);
   --island-surface: var(--surface-1);
   --island-glass: var(--surface-glass);
-  --island-color-preview: #111318;
   --island-ink-0: var(--ink-0);
   --island-ink-1: var(--ink-1);
-  --island-control-hover-bg: oklch(100% 0 0 / 0.07);
+  /* Theme-aware hover wash: a tinted ink colour at very low alpha. Reads
+     darker than the surface on light themes and lighter on dark themes. */
+  --island-control-hover-bg: color-mix(in oklch, var(--ink-0), transparent 92%);
 
   /* ink */
   --ink-0: oklch(95% 0.014 80);
@@ -42,6 +45,35 @@
   --accent-warm-hi: oklch(82% 0.10 70);
   --accent-sage: oklch(72% 0.06 150);
   --accent-rose: oklch(70% 0.07 25);
+
+  /* Tinted backgrounds for accent-coloured pills / buttons. Theme-aware:
+     low-alpha accent over the current surface so dark themes get a deep
+     tint and light themes get a soft wash — text stays the full accent
+     colour and reads correctly on both. */
+  --bg-accent:        color-mix(in oklch, var(--accent),       transparent 82%);
+  --bg-accent-hover:  color-mix(in oklch, var(--accent),       transparent 70%);
+  --bg-sage:          color-mix(in oklch, var(--accent-sage),  transparent 82%);
+  --bg-sage-hover:    color-mix(in oklch, var(--accent-sage),  transparent 70%);
+  --bg-warm:          color-mix(in oklch, var(--accent-warm),  transparent 82%);
+  --bg-warm-hover:    color-mix(in oklch, var(--accent-warm),  transparent 70%);
+  --bg-rose:          color-mix(in oklch, var(--accent-rose),  transparent 82%);
+  --bg-rose-hover:    color-mix(in oklch, var(--accent-rose),  transparent 70%);
+  --bg-slate:         color-mix(in oklch, var(--accent-slate), transparent 82%);
+
+  /* Direction-B easing + elevation tokens — Apple-style sheet curve and
+     bouncy spring-out for satellite chips. --ease-droplet matches the
+     overshoot main.js uses for the OS window resize so renderer + window
+     read as one motion. */
+  --ease-sheet:    cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-pop:      cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-droplet:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --shadow-sheet:
+    0 2px 6px oklch(0% 0 0 / 0.34),
+    0 18px 28px -10px oklch(0% 0 0 / 0.55),
+    0 28px 48px -22px oklch(0% 0 0 / 0.4);
+  --shadow-island:
+    0 1px 1px oklch(0% 0 0 / 0.34),
+    0 6px 14px -6px oklch(0% 0 0 / 0.52);
 
   /* depth */
   --shadow-inner-highlight:
@@ -81,12 +113,6 @@
     --context-color 320ms var(--ease-standard);
 }
 
-body[data-island-tone="light"] {
-  --island-ink-0: oklch(16% 0.014 270);
-  --island-ink-1: oklch(30% 0.012 260);
-  --island-control-hover-bg: oklch(0% 0 0 / 0.08);
-}
-
 * {
   box-sizing: border-box;
 }
@@ -115,6 +141,93 @@ button {
   app-region: no-drag;
 }
 
+/* === Satellite approve/deny mini-bubbles ======================
+   When an approval lands, two chips "split" out of the bubble's bottom
+   edge into the SATELLITE_GUTTER (44 px reserved by main.js for
+   approval / question modes only). They sit BELOW .island so they
+   never cover the request panel content + never live in the drag region.
+   Hidden entirely in compact / cards / settings modes. */
+.satellites {
+  position: fixed;
+  bottom: 14px;       /* vertically centred in the satellite gutter below .island */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  pointer-events: none;
+  z-index: 50;
+  /* Hidden by default — only approval / question modes show satellites. */
+  visibility: hidden;
+}
+/* Flip to top when bubble is snapped to screen bottom — see .island flip rule above. */
+body[data-snap-vertical="bottom"] .satellites {
+  bottom: auto;
+  top: 14px;
+}
+body[data-mode="approval"] .satellites,
+body[data-mode="question"] .satellites {
+  visibility: visible;
+}
+.satellite {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--ink-0);
+  box-shadow: 0 6px 18px oklch(0% 0 0 / 0.45), var(--shadow-inner-highlight);
+  /* Start fully collapsed onto the bubble's centre so the split
+     animation reads as "two chips emerging from one point". */
+  opacity: 0;
+  transform: translateX(0) scale(0.4);
+  transition:
+    opacity 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  /* Belt-and-suspenders so Electron never treats the chip as draggable. */
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.satellite-approve {
+  color: oklch(20% 0 0);
+  background: var(--accent-sage);
+}
+.satellite-deny {
+  color: oklch(20% 0 0);
+  background: var(--accent-rose);
+}
+.satellite:hover {
+  filter: brightness(1.1);
+  transform: scale(1.08) translateX(var(--sat-x, 0)) !important;
+}
+.satellite:active {
+  transform: scale(0.95) translateX(var(--sat-x, 0)) !important;
+}
+.satellites[data-active="true"] {
+  pointer-events: auto;
+}
+.satellites[data-active="true"] .satellite {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* The split: approve drifts LEFT, deny drifts RIGHT. The CSS variable
+   --sat-x lets the hover/active styles read the resting offset so they
+   don't snap back to centre on interaction. 36 px ≈ chip half-width +
+   small gap so the two chips don't overlap visually. */
+.satellites[data-active="true"] .satellite-approve {
+  --sat-x: -36px;
+  transform: translateX(-36px) scale(1);
+}
+.satellites[data-active="true"] .satellite-deny {
+  --sat-x: 36px;
+  transform: translateX(36px) scale(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -141,10 +254,46 @@ button {
   border-radius: 999px;
   background: var(--surface-1);
   box-shadow: var(--shadow-inner-highlight), var(--shadow-float);
+  /* Liquid water-droplet morph (280 ms, overshoot easing). The OS window
+     resize animation in main.js uses the same duration + curve so the
+     bubble shape and the window bounds appear to stretch as one. The
+     overshoot curve gives the "water tension" rebound feel. */
   transition:
-    border-radius 320ms var(--ease-standard),
-    background 320ms var(--ease-standard),
-    box-shadow 320ms var(--ease-standard);
+    border-radius 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background    220ms var(--ease-standard),
+    box-shadow    220ms var(--ease-standard);
+  /* Pre-promote to its own compositor layer so the first paint doesn't
+     trigger a layer creation during the morph (a major source of
+     first-open jank). */
+  will-change: transform, border-radius;
+  transform: translateZ(0);
+}
+/* In every non-pill mode the bubble is a rounded rectangle. The moment the
+   data-mode attribute flips, the border-radius transitions along the
+   bouncy curve above, while main.js animates the window bounds in lock-
+   step — the eye reads it as one continuous "droplet stretch". */
+body[data-mode="approval"]  .island,
+body[data-mode="question"]  .island,
+body[data-mode="cards"]     .island,
+body[data-mode="settings"]  .island {
+  border-radius: 22px;
+}
+/* Approval / question modes reserve a 44 px gutter at the bottom of the
+   window for the satellite chips (see main.js SATELLITE_GUTTER). The
+   .island shrinks accordingly so it doesn't paint over that gutter. */
+body[data-mode="approval"] .island,
+body[data-mode="question"] .island {
+  height: calc(100% - 24px - 44px);
+  margin-bottom: calc(12px + 44px);
+}
+
+/* Snap-to-bottom: the bubble's bottom edge sits on the screen edge, so a
+   gutter BELOW the bubble would render off-screen. Flip the gutter to the
+   TOP of the window — satellites move above the bubble. */
+body[data-snap-vertical="bottom"][data-mode="approval"] .island,
+body[data-snap-vertical="bottom"][data-mode="question"] .island {
+  margin-top: calc(12px + 44px);
+  margin-bottom: 12px;
 }
 
 body[data-mode="compact"] .island {
@@ -322,7 +471,7 @@ body:not([data-mode="compact"]) .status-bar {
   padding: 1.5px;
   background: conic-gradient(
     var(--context-color) var(--context-angle),
-    oklch(40% 0 0 / 0.18) 0deg
+    color-mix(in oklch, var(--ink-2), transparent 70%) 0deg
   );
   box-shadow: var(--shadow-inner-highlight);
   transform-origin: center;
@@ -355,7 +504,9 @@ body:not([data-mode="compact"]) .status-orb {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: oklch(11% 0.01 270);
+  /* Theme-aware: deepest surface so the emoji glyph reads as floating in
+     the orb's centre well regardless of light/dark theme. */
+  background: var(--inner-well);
   font-size: 13.5px;
   line-height: 1;
   transform-origin: center;
@@ -415,19 +566,19 @@ body[data-mode="compact"] .status-text {
   gap: 3px;
   padding: 2.5px;
   border-radius: 999px;
-  background: var(--surface-glass);
-  backdrop-filter: blur(10px) saturate(1.2);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  /* The strip itself is transparent so it always reads as part of whatever
+     bubble background is underneath — the user's chosen island color in
+     compact mode, the default dark surface in expanded modes. Per-button
+     hover states (below) carry the visual affordance. */
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   opacity: 0;
   pointer-events: none;
   transform: translate(8px, -50%);
   transition:
     opacity 240ms var(--ease-decel),
     transform 320ms var(--ease-decel);
-}
-
-body[data-mode="compact"] .window-actions {
-  background: var(--island-glass);
 }
 
 /* Visibility is JS-driven: body[data-controls="visible"] is set on pointer
@@ -439,6 +590,16 @@ body[data-controls="visible"] .window-actions {
   opacity: 1;
   pointer-events: auto;
   transform: translate(0, -50%);
+}
+
+/* Compact resting capsule (124 px) is too narrow to fit the strip + orb +
+   label without overlap. Main process flips data-hover-expanded to "true"
+   only once the bubble has animated out to the wider hover size, so the
+   strip never paints over the status during the 170 ms expand transition. */
+body[data-mode="compact"][data-controls="visible"]:not([data-hover-expanded="true"]) .window-actions {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(8px, -50%);
 }
 
 body[data-peeking="true"] .window-actions {
@@ -473,42 +634,109 @@ body[data-mode="compact"] .window-actions button:hover {
   color: var(--island-ink-0);
 }
 
-.window-actions .color-button {
+/* Theme button + popover (replaces the single-colour picker). The button
+   shows the current accent as a tiny swatch; clicking opens the popover
+   with all preset themes side-by-side. */
+.window-actions .theme-button {
   display: inline-grid;
   position: relative;
   place-items: center;
   color: transparent;
 }
-
-.window-actions .color-button span {
+.window-actions .theme-button .theme-button-swatch {
   display: block;
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: var(--island-color-preview);
+  background: var(--accent);
   box-shadow:
     0 0 0 1px oklch(100% 0 0 / 0.26),
     0 1px 2px oklch(0% 0 0 / 0.45);
 }
 
-.island-color-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+/* Theme picker grid — lives inside Settings · Companion. The compact
+   bubble's color button cycles through these in order. */
+.settings-row-stack {
+  flex-direction: column;
+  align-items: stretch !important;
+  gap: 8px !important;
+}
+.theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.theme-option {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-0);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+.theme-option:hover { background: var(--surface-3); }
+.theme-option.is-active {
+  background: var(--surface-3);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.theme-option-swatches {
+  display: inline-flex;
+  gap: 0;
+}
+.theme-option-swatches > span {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  margin-right: -4px;
+  border: 1px solid oklch(0% 0 0 / 0.25);
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.3);
+}
+.theme-option-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.theme-option-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-0);
+  line-height: 1.2;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.theme-option-name .check {
+  color: var(--accent);
+  font-size: 11px;
   opacity: 0;
-  pointer-events: none;
+}
+.theme-option.is-active .theme-option-name .check { opacity: 1; }
+.theme-option-desc {
+  font-size: 10px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Toggle button — sand-gold tint when Companion is disabled, so the off
    state is unmistakable next to the other controls. */
 .window-actions button#toggleEnabled[aria-pressed="true"] {
-  background: oklch(28% 0.040 70);
+  background: var(--bg-warm-hover);
   color: var(--accent-warm);
 }
 
 .window-actions button#toggleEnabled[aria-pressed="true"]:hover {
-  background: oklch(32% 0.045 70);
-  color: oklch(85% 0.10 70);
+  background: var(--bg-warm-hover);
+  color: var(--accent-warm-hi);
 }
 
 /* Whole-bubble disabled cue — slight ring desaturation + emoji opacity drop,
@@ -570,93 +798,117 @@ body[data-mode="question"] .dash-footer {
   display: none;
 }
 
+/* Approval / question card fills the available vertical space in its
+   request-panel and uses flex-column so the action row sticks to the
+   bottom (margin-top: auto) — eye scans head → command → meta → action,
+   never has to hunt for the buttons. */
+body[data-mode="approval"] .active-request,
+body[data-mode="question"] .active-request {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Approval card head — Direction B treatment. eyebrow + tool-name on the
+   left, risk pill on the right, hairline divider below. */
 .request-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
 }
 
 .eyebrow {
   color: var(--ink-1);
   font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.10em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
-h1,
-p,
-dl,
-dt,
-dd {
-  margin: 0;
-}
+h1, p, dl, dt, dd { margin: 0; }
 
 h1 {
-  margin-top: 2px;
+  margin-top: 0;
   overflow: hidden;
   color: var(--ink-0);
   font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.005em;
+  font-size: 17px;
+  letter-spacing: -0.005em;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Risk pill — tinted background per severity, theme-aware. */
 .risk {
   flex: 0 0 auto;
   align-self: flex-start;
-  padding: 4px 10px;
+  padding: 4px 9px;
   border-radius: 999px;
   border: 1px solid var(--accent-sage);
-  background: transparent;
+  background: var(--bg-sage);
   color: var(--accent-sage);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.10em;
   text-transform: uppercase;
 }
-
 .risk[data-risk="medium"] {
-  border-color: var(--accent-warm);
-  color: var(--accent-warm);
+  border-color: var(--accent-warm-hi);
+  background: var(--bg-warm);
+  color: var(--accent-warm-hi);
 }
-
 .risk[data-risk="high"] {
   border-color: var(--accent-rose);
+  background: var(--bg-rose);
   color: var(--accent-rose);
 }
 
+/* Command preview — single-line mono box, the user's eye anchors here
+   first to scan the actual command/argument. */
 .request-summary {
-  display: -webkit-box;
-  margin-top: 10px;
-  padding: 10px 12px;
+  display: block;
+  margin: 0 0 10px;
+  padding: 8px 12px;
   border-radius: 10px;
   background: var(--surface-2);
   box-shadow: var(--shadow-inner-highlight);
-  color: var(--ink-0);
+  color: var(--ink-1);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.45;
   overflow: hidden;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Meta grid — small-caps labels, two-column flow. Compact + scannable. */
 .request-meta {
   display: grid;
-  gap: 6px;
-  margin-top: 10px;
+  grid-template-columns: 56px 1fr;
+  row-gap: 6px;
+  margin-bottom: 12px;
+  font-size: 11.5px;
 }
-
-.request-meta div {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
-  gap: 10px;
-  align-items: baseline;
+.request-meta > div {
+  display: contents;
+}
+.request-meta dt {
+  color: var(--ink-2);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+.request-meta dd {
+  color: var(--ink-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 dt,
@@ -681,24 +933,24 @@ dd {
   white-space: nowrap;
 }
 
+/* Direction-B action row — Approve / Suggest / Deny side by side, equal
+   weight. Was a vertical column; horizontal row scans faster and gives
+   each verb the same visual prominence. Suggestion-list is part of the
+   same row via display:contents so each suggested rule slots in between
+   Approve and Deny. */
 .actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: auto;
 }
-
-/* The suggestion list contributes its children directly to the actions
-   column — no nested wrapper layout. Each suggestion button slots in
-   between Approve and Deny in the same vertical stack. */
-.suggestion-list {
-  display: contents;
-}
+.suggestion-list { display: contents; }
 
 .actions button,
 .answer-form button[type="submit"] {
-  min-height: 36px;
-  border-radius: 12px;
+  flex: 1;
+  min-height: 34px;
+  border-radius: 10px;
   background: var(--surface-2);
   color: var(--ink-0);
   font-weight: 600;
@@ -706,48 +958,60 @@ dd {
   letter-spacing: 0.02em;
   box-shadow: var(--shadow-inner-highlight);
   transition:
-    background 220ms var(--ease-standard),
-    color 220ms var(--ease-standard),
-    transform 220ms var(--ease-standard);
+    background 160ms var(--ease-sheet),
+    transform  160ms var(--ease-sheet);
 }
-
 .actions button:hover,
 .answer-form button[type="submit"]:hover {
   transform: translateY(-1px);
+  background: var(--surface-3);
+}
+/* Long suggestion rules can wrap or get long — keep them visually thinner
+   so Approve/Deny stay the dominant verbs. */
+.actions .allow {
+  flex: 0.7;
 }
 
+/* Tinted action buttons. Background = accent at low alpha so it auto-adapts
+   to the theme: on dark themes you get a subtle dark accent tint; on light
+   themes a subtle light accent wash. Text always reads as the full accent
+   colour with theme-correct contrast. */
 .approve,
 .answer-form button[type="submit"] {
-  background: oklch(22% 0.025 150);
+  background: color-mix(in oklch, var(--accent-sage), transparent 82%);
   color: var(--accent-sage);
 }
-
 .approve:hover,
 .answer-form button[type="submit"]:hover {
-  background: oklch(26% 0.030 150);
-  color: oklch(80% 0.06 150);
+  background: color-mix(in oklch, var(--accent-sage), transparent 70%);
 }
 
 .allow {
-  background: oklch(22% 0.025 70);
+  display: block;
+  background: color-mix(in oklch, var(--accent-warm), transparent 82%);
   color: var(--accent-warm);
-  min-height: 32px;
-  font-size: 12px;
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: left;
+  /* Permission rules can be long Bash globs / file paths. Single line +
+     ellipsis keeps the approval card scannable; the full rule list lives
+     in the button's title tooltip. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
 .allow:hover {
-  background: oklch(26% 0.030 70);
-  color: oklch(85% 0.10 70);
+  background: color-mix(in oklch, var(--accent-warm), transparent 70%);
 }
 
 .deny {
-  background: oklch(22% 0.025 25);
+  background: color-mix(in oklch, var(--accent-rose), transparent 82%);
   color: var(--accent-rose);
 }
-
 .deny:hover {
-  background: oklch(26% 0.030 25);
-  color: oklch(78% 0.07 25);
+  background: color-mix(in oklch, var(--accent-rose), transparent 70%);
 }
 
 /* ============================================================
@@ -782,7 +1046,7 @@ dd {
   min-height: 32px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: oklch(20% 0.014 270);
+  background: var(--inner-well);
   color: var(--ink-0);
   font-size: 12px;
   transition:
@@ -791,12 +1055,12 @@ dd {
 }
 
 .option-list button:hover {
-  background: oklch(24% 0.016 270);
+  background: var(--surface-3);
 }
 
 .option-list button.selected {
   border-color: color-mix(in oklch, var(--accent), transparent 30%);
-  background: oklch(28% 0.030 195);
+  background: color-mix(in oklch, var(--accent), transparent 80%);
   box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
@@ -806,7 +1070,7 @@ dd {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0 12px;
-  background: oklch(15% 0.012 270);
+  background: var(--inner-well);
   color: var(--ink-0);
   font: inherit;
   font-size: 12px;
@@ -892,7 +1156,7 @@ button.dash-row {
 
 button.dash-row:hover,
 .dash-row[data-clickable="true"]:hover {
-  background: oklch(25% 0.018 270);
+  background: var(--surface-3);
 }
 
 button.dash-row:active {
@@ -952,41 +1216,41 @@ button.dash-row:active {
 
 .dash-chip[data-status="idle"],
 .dash-chip[data-status="done"] {
-  background: oklch(22% 0.025 150);
+  background: var(--bg-sage);
   color: var(--accent-sage);
 }
 
 .dash-chip[data-status="thinking"],
 .dash-chip[data-status="running_tool"] {
-  background: oklch(22% 0.030 245);
-  color: oklch(78% 0.06 245);
+  background: var(--bg-slate);
+  color: var(--accent-slate);
 }
 
 .dash-chip[data-status="waiting"],
 .dash-chip[data-status="waiting_approval"],
 .dash-chip[data-status="waiting_answer"] {
-  background: oklch(22% 0.025 70);
+  background: var(--bg-warm);
   color: var(--accent-warm);
 }
 
 .dash-chip[data-status="failed"],
 .dash-chip[data-status="blocked"] {
-  background: oklch(22% 0.025 25);
+  background: var(--bg-rose);
   color: var(--accent-rose);
 }
 
 .dash-chip[data-risk="low"] {
-  background: oklch(22% 0.025 150);
+  background: var(--bg-sage);
   color: var(--accent-sage);
 }
 
 .dash-chip[data-risk="medium"] {
-  background: oklch(22% 0.025 70);
+  background: var(--bg-warm);
   color: var(--accent-warm);
 }
 
 .dash-chip[data-risk="high"] {
-  background: oklch(22% 0.025 25);
+  background: var(--bg-rose);
   color: var(--accent-rose);
 }
 
@@ -1002,7 +1266,8 @@ button.dash-row:active {
 }
 
 .dash-link:hover {
-  color: oklch(82% 0.07 195);
+  color: var(--accent);
+  filter: brightness(1.1);
 }
 
 .dash-pairing {
@@ -1046,7 +1311,7 @@ button.dash-row:active {
 }
 
 .dash-row-action:hover {
-  background: oklch(22% 0.025 25);
+  background: var(--bg-rose);
 }
 
 .dash-row-action[data-variant="approve"] {
@@ -1054,7 +1319,7 @@ button.dash-row:active {
 }
 
 .dash-row-action[data-variant="approve"]:hover {
-  background: oklch(22% 0.025 150);
+  background: var(--bg-sage);
 }
 
 .dash-row-actions[data-actions="pair"] {
@@ -1074,7 +1339,7 @@ button.dash-row:active {
   gap: 8px;
   padding: 5px 8px;
   border-radius: 6px;
-  background: oklch(15% 0.012 270);
+  background: var(--inner-well);
   color: var(--ink-1);
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -1318,3 +1583,2649 @@ body[data-attention="done"] .status-emoji {
   0% { transform: translateX(-120%); }
   100% { transform: translateX(120%); }
 }
+
+/* ============================================================
+   Knowledge Cards (Stage 1.5)
+   See docs/decisions/ADR-20260503-knowledge-cards.md and
+   docs/knowledge-cards-v1.html for the full design rationale.
+   ============================================================ */
+
+/* Mode visibility — only one of {request, cards, settings, live} renders */
+body[data-mode="cards"] .request-panel,
+body[data-mode="settings"] .request-panel,
+body[data-mode="live"] .request-panel { display: none; }
+
+body[data-mode="approval"] .cards-panel,
+body[data-mode="question"] .cards-panel,
+body[data-mode="settings"] .cards-panel,
+body[data-mode="compact"] .cards-panel,
+body[data-mode="live"] .cards-panel { display: none; }
+
+body[data-mode="approval"] .settings-panel,
+body[data-mode="question"] .settings-panel,
+body[data-mode="cards"] .settings-panel,
+body[data-mode="compact"] .settings-panel,
+body[data-mode="live"] .settings-panel { display: none; }
+
+body[data-mode="approval"] .live-panel,
+body[data-mode="question"] .live-panel,
+body[data-mode="cards"] .live-panel,
+body[data-mode="settings"] .live-panel,
+body[data-mode="compact"] .live-panel { display: none; }
+
+body[data-peeking="true"] .cards-panel,
+body[data-peeking="true"] .settings-panel,
+body[data-peeking="true"] .live-panel {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Live panel layout — fills the bubble below the status bar, padded so
+   the floating window has its own breathing room. */
+.live-panel {
+  position: relative;
+  z-index: 1;
+  height: calc(100% - 58px);
+  padding: 14px 16px 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.live-panel .floating-window {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* Live mode gives the floating-window body a large max-height so it fills
+   the panel — but we keep it as a max-height (not flex:1 / height:auto)
+   so the collapse rule (data-collapsed="true" → max-height: 0) still
+   wins and the body actually shrinks when the user clicks the − button. */
+.live-panel .floating-window-body {
+  max-height: 70vh;
+}
+.live-panel .floating-window[data-collapsed="true"] .floating-window-body {
+  max-height: 0;
+}
+
+/* === Controls strip — Cards button (state-aware) ============== */
+.window-actions .cards-button {
+  position: relative;
+}
+.cards-glyph {
+  font-size: 12px;
+  line-height: 1;
+}
+.cards-button.has-cards .cards-glyph { color: var(--accent-sage); }
+.cards-button.generating .cards-glyph {
+  color: var(--accent-warm);
+  animation: cardsPulse 1.8s ease-in-out infinite;
+}
+.cards-badge {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 3px;
+  border-radius: 999px;
+  /* Inverted pill: badge bg = ink colour, text = surface colour. So on a
+     dark theme it reads as a light pill with dark text, and on a light
+     theme it reads as a dark pill with light text — always max-contrast
+     against the bubble's surface. The border matches the surrounding
+     surface to give the badge a tiny halo on either theme. */
+  background: var(--ink-0);
+  color: var(--surface-1);
+  font-size: 9px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  border: 1.5px solid var(--surface-1);
+  pointer-events: none;
+}
+.cards-badge[hidden] { display: none; }
+@keyframes cardsPulse {
+  0%, 100% { opacity: 1;    transform: scale(1);    }
+  50%      { opacity: 0.55; transform: scale(0.92); }
+}
+
+/* === Cards panel ============================================== */
+.cards-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  /* The 54px status-bar lives above this panel inside .island; reserve
+     that space (plus a 4px buffer matching .request-panel) so the deck
+     CTA row doesn't overflow off-screen. */
+  height: calc(100% - 58px);
+  overflow: hidden;
+}
+
+.cards-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cards-eyebrow {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* Direction-B segmented control: a single recessed track with a sliding
+   active pill instead of an underline. Reads as a "switch" rather than a
+   bar of text links — eye finds the active tab faster. */
+.cards-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--surface-2);
+  padding: 3px;
+  border-radius: 11px;
+}
+
+.cards-tab {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  color: var(--ink-1);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 7px 10px;
+  cursor: pointer;
+  position: relative;
+  letter-spacing: 0.005em;
+  border-radius: 8px;
+  transition:
+    color 160ms var(--ease-sheet),
+    background 240ms var(--ease-sheet);
+}
+.cards-tab:hover:not(.is-active) {
+  color: var(--ink-0);
+  background: color-mix(in oklch, var(--ink-0), transparent 92%);
+}
+.cards-tab.is-active {
+  color: var(--ink-0);
+  background: var(--surface-3);
+  box-shadow: var(--shadow-inner-highlight);
+}
+
+.cards-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 0 5px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  height: 14px;
+  font-weight: 600;
+}
+.cards-tab-count[hidden] { display: none; }
+.cards-tab.is-active .cards-tab-count {
+  background: var(--bg-sage);
+  color: var(--accent-sage);
+}
+
+/* The Today body is a fixed-height flex column so the abstract scrolls
+   inside while the progress strip + Start-review CTA stay anchored at
+   the bottom (always reachable, never hidden by a long abstract).
+   History / Wrong-book bodies use the same shell but their content is a
+   plain scrolling list. */
+.cards-tab-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 0;
+}
+.cards-tab-body[hidden] { display: none; }
+
+/* History and Wrong-book don't have a sticky CTA — let the body scroll. */
+.cards-tab-body[data-tab-body="history"],
+.cards-tab-body[data-tab-body="wrong"] {
+  overflow-y: auto;
+}
+
+.cards-empty {
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 32px 24px;
+  color: var(--ink-1);
+}
+/* Without this, .cards-empty stays visible even when JS sets `hidden=true`
+   because `display:grid` above wins over the user-agent `[hidden]` rule.
+   Without it, the empty state stacks on top of the rendered deck after a
+   successful generate. */
+.cards-empty[hidden] { display: none; }
+.cards-empty-icon { font-size: 28px; opacity: 0.7; }
+.cards-empty-title { font-size: 13px; font-weight: 600; color: var(--ink-0); }
+.cards-empty-text {
+  font-size: 11.5px;
+  color: var(--ink-1);
+  line-height: 1.5;
+  max-width: 320px;
+}
+.cards-empty-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  margin-top: 2px;
+  max-width: 320px;
+  text-wrap: pretty;
+}
+.cards-empty-meta.error {
+  color: var(--accent-rose);
+}
+
+/* deck = abstract (scrolls) + progress + CTA pinned at bottom */
+.cards-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.cards-deck[hidden] { display: none; }
+
+/* abstract */
+.abstract {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-inner-highlight);
+  /* Take the flexible portion of the deck and scroll inside if the
+     daily summary is long. min-height: 0 is the flex-child unlock. */
+  flex: 1 1 auto;
+  min-height: 80px;
+  overflow-y: auto;
+}
+.abstract-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.abstract-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-0);
+  font-family: var(--font-mono);
+}
+.abstract-meta {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+
+/* Streak badge — shown in the Today tab header (or empty state). Two
+   visual states: live streak (warm flame) and protected (cool shield).
+   Tooltip on hover gives the human-readable explanation. */
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  background: color-mix(in oklch, var(--accent-warm), transparent 80%);
+  color: var(--accent-warm-hi);
+  border: 1px solid color-mix(in oklch, var(--accent-warm), transparent 60%);
+  cursor: default;
+  user-select: none;
+}
+.streak-badge[hidden] { display: none; }
+.streak-badge.is-protected {
+  background: color-mix(in oklch, var(--accent), transparent 80%);
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent), transparent 60%);
+}
+.streak-badge.is-zero {
+  background: var(--surface-3);
+  color: var(--ink-2);
+  border-color: var(--line);
+}
+/* Empty-state version centers itself above the icon. */
+#streakBadgeEmpty {
+  margin: 0 auto 8px;
+}
+
+/* markdown theme — used by .md inside abstract / explanation */
+.md { color: var(--ink-1); font-size: 12px; line-height: 1.6; text-wrap: pretty; }
+.md > * + * { margin-top: 8px; }
+.md h1, .md h2, .md h3 { color: var(--ink-0); margin: 0; letter-spacing: 0.005em; }
+.md h1 { font-size: 14px; font-weight: 700; }
+.md h2 { font-size: 13.5px; font-weight: 600; }
+.md h3 { font-size: 12px; font-weight: 600; margin-top: 12px; }
+.md p { margin: 0; }
+.md ul, .md ol { margin: 4px 0; padding-left: 18px; }
+.md li { margin: 2px 0; }
+.md li::marker { color: var(--ink-2); }
+.md strong { font-weight: 700; color: var(--ink-0); }
+.md em { font-style: italic; color: var(--ink-1); }
+.md code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--inner-well);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--ink-0);
+}
+.md a { color: var(--accent); text-decoration: none; }
+.md a:hover { text-decoration: underline; }
+.md blockquote {
+  margin: 6px 0;
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid color-mix(in oklch, var(--accent-sage), transparent 40%);
+  color: var(--ink-2);
+  font-style: italic;
+}
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
+.md pre {
+  background: var(--inner-well);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  overflow-x: auto;
+}
+.md pre code { background: transparent; padding: 0; font-size: inherit; }
+
+/* progress strip — sits below the (flexible) abstract, fixed-size */
+.progress-strip {
+  flex: 0 0 auto;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.progress-block { display: grid; gap: 6px; }
+.progress-label {
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.progress-bar-shell {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-sage), color-mix(in oklch, var(--accent-sage), var(--accent-warm) 30%));
+  border-radius: 999px;
+  transition: width 280ms var(--ease-standard);
+}
+.progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.progress-num {
+  font-family: var(--font-mono);
+  color: var(--ink-1);
+  font-size: 11px;
+}
+.progress-num strong { color: var(--ink-0); font-size: 13px; font-weight: 700; }
+
+/* difficulty mix line */
+.difficulty-mix {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+}
+.difficulty-mix .num { font-weight: 700; }
+.difficulty-mix .easy-n   { color: var(--accent-sage); }
+.difficulty-mix .medium-n { color: var(--accent-warm); }
+.difficulty-mix .hard-n   { color: var(--accent-rose); }
+
+/* difficulty chip — displayed on individual cards */
+.difficulty-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  text-transform: lowercase;
+  border: 1px solid transparent;
+}
+.difficulty-chip:empty { display: none; }
+.difficulty-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.difficulty-chip.easy {
+  background: var(--bg-sage);
+  color: var(--accent-sage);
+  border-color: color-mix(in oklch, var(--accent-sage), transparent 60%);
+}
+.difficulty-chip.easy::before { background: var(--accent-sage); }
+.difficulty-chip.medium {
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+  border-color: color-mix(in oklch, var(--accent-warm), transparent 60%);
+}
+.difficulty-chip.medium::before { background: var(--accent-warm); }
+.difficulty-chip.hard {
+  background: var(--bg-rose);
+  color: var(--accent-rose);
+  border-color: color-mix(in oklch, var(--accent-rose), transparent 60%);
+}
+.difficulty-chip.hard::before { background: var(--accent-rose); }
+
+/* CTA buttons — pinned at the bottom of the cards deck so Start review
+   is always reachable, even when the abstract is long. */
+.card-cta-row {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.btn-cta {
+  flex: 1;
+  background: var(--bg-sage);
+  color: var(--accent-sage);
+  border: 0;
+  border-radius: 12px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-inner-highlight);
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+.btn-cta:hover { background: var(--bg-sage-hover); }
+.btn-cta .arrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.btn-cta:disabled { opacity: 0.5; cursor: default; }
+
+.btn-cta-secondary {
+  flex: 0 0 auto;
+  background: var(--surface-2);
+  color: var(--ink-1);
+  border: 0;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-inner-highlight);
+  font-family: inherit;
+}
+.btn-cta-secondary:hover { background: var(--surface-3); color: var(--ink-0); }
+
+.btn-primary {
+  background: var(--bg-sage);
+  color: var(--accent-sage);
+  border: 0;
+  border-radius: 10px;
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-inner-highlight);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary:hover { background: var(--bg-sage-hover); }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--ink-0);
+  border: 0;
+  border-radius: 10px;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.btn-secondary:hover { background: var(--surface-3); }
+
+/* === Deck live banner — visible only during an in-progress generation,
+   tucked above the progress strip so the user knows a re-gen is in
+   flight even when the existing deck is what's showing. */
+.deck-live-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  flex: 0 0 auto;
+}
+.deck-live-banner[hidden] { display: none; }
+.deck-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-warm);
+  animation: cardsPulse 1.4s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+.deck-live-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* === Record tab (Slice 7 phase A) — log of every generation run across
+   current decks + archives. Each row expands to show what got scanned. */
+.record-toolbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4px;
+  margin-bottom: 4px;
+}
+.record-meta {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+.record-list {
+  display: grid;
+  gap: 6px;
+}
+.record-row {
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+  overflow: hidden;
+}
+.record-row-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.record-row-head:hover { background: var(--surface-3); }
+.record-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+  font-weight: 600;
+}
+.record-summary {
+  color: var(--ink-0);
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.record-stat {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  text-align: right;
+}
+.record-stat .accept { color: var(--accent-sage); font-weight: 600; }
+.record-stat .drop { color: var(--accent-rose); }
+.record-detail {
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--inner-well);
+  display: grid;
+  gap: 8px;
+}
+.record-detail[hidden] { display: none; }
+
+/* Archive runs — same dim treatment as History tab archive rows. */
+.record-row.is-archive { opacity: 0.85; }
+.record-row.is-archive .record-row-head {
+  box-shadow: inset 3px 0 0 color-mix(in oklch, var(--accent-warm), transparent 50%);
+}
+.record-row.is-archive .record-date { color: var(--accent-warm); }
+
+/* === Generation record (collapsible, sits below progress strip) ===
+   Surfaces what the daemon scanned during the last `claude -p` run so
+   the user can audit which sessions fed into the deck. */
+.generation-record {
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.generation-record[hidden] { display: none; }
+
+.generation-record-head {
+  padding: 8px 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+}
+.generation-record-head::-webkit-details-marker { display: none; }
+.generation-record-head::after {
+  content: "▶";
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 10px;
+  transition: transform 200ms var(--ease-standard);
+}
+.generation-record[open] .generation-record-head::after {
+  transform: rotate(90deg);
+  color: var(--ink-1);
+}
+
+.generation-record-label {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.generation-record-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-1);
+}
+
+.generation-record-body {
+  padding: 0 12px 12px;
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+/* Live mode — generation in progress. Warm tint on the meta + a subtle
+   pulse so the user knows it's actively updating. */
+.generation-record.is-live .generation-record-meta {
+  color: var(--accent-warm);
+  animation: cardsPulse 1.8s ease-in-out infinite;
+}
+
+.gen-record-live {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--accent-warm);
+  background: var(--bg-warm);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+}
+
+.gen-record-empty {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  text-align: center;
+  padding: 8px;
+  font-style: italic;
+}
+
+.gen-record-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-1);
+  padding-bottom: 4px;
+}
+.gen-record-stats .stat-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.gen-record-stats .stat-pair .key {
+  color: var(--ink-2);
+}
+
+.gen-record-sessions {
+  display: grid;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.gen-record-session {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--inner-well);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+.gen-record-session .status {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.gen-record-session .status.included {
+  background: var(--bg-sage);
+  color: var(--accent-sage);
+}
+.gen-record-session .status.empty {
+  background: var(--inner-well);
+  color: var(--ink-2);
+}
+.gen-record-session .status.skipped {
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+}
+.gen-record-session .label {
+  color: var(--ink-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.gen-record-session .chars {
+  color: var(--ink-2);
+  font-size: 10px;
+}
+
+/* === Active review (overlays the tab body while answering) ==== */
+.review-active {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--surface-1);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.review-active[hidden] { display: none; }
+
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.review-back {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.review-back:hover { color: var(--ink-0); }
+.review-progress-text {
+  font-size: 11.5px;
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.review-head .difficulty-chip { margin-left: auto; }
+
+.review-body {
+  padding: 14px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.progress-dots { display: flex; gap: 4px; }
+.progress-dots .dot {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: oklch(40% 0 0 / 0.18);
+}
+.progress-dots .dot.done    { background: var(--accent-sage); }
+.progress-dots .dot.current { background: var(--accent); }
+.progress-dots .dot.wrong   { background: var(--accent-rose); }
+
+.review-question {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-0);
+  font-weight: 500;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* expandable source block */
+.source-expand {
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+  overflow: hidden;
+}
+.source-expand-head {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+  list-style: none;
+}
+.source-expand-head::-webkit-details-marker { display: none; }
+.source-expand-head::after {
+  content: "▶";
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 10px;
+  transition: transform 200ms var(--ease-standard);
+}
+.source-expand[open] .source-expand-head::after { transform: rotate(90deg); color: var(--ink-1); }
+
+.source-label-tag {
+  color: var(--ink-2);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+/* Source kind badge — distinguishes web-sourced cards from session-sourced
+   ones at a glance. Sage = your own work; warm = web fallback (the model
+   couldn't find your focus in the transcripts and reached out). */
+.source-kind-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  border: 1px solid transparent;
+  flex: 0 0 auto;
+}
+.source-kind-badge.session {
+  background: var(--bg-sage);
+  color: var(--accent-sage);
+  border-color: color-mix(in oklch, var(--accent-sage), transparent 60%);
+}
+.source-kind-badge.web {
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+  border-color: color-mix(in oklch, var(--accent-warm), transparent 50%);
+}
+.source-ref-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* web-source quote layout — URL on top, snippet below */
+.source-quote .web-url {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--line);
+  word-break: break-all;
+}
+.source-quote .web-url a {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+.source-quote .web-url a:hover { text-decoration: underline; color: var(--accent-warm); }
+.source-quote .web-snippet {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--ink-1);
+  white-space: pre-wrap;
+}
+
+/* When the source-expand row contains a web badge, draw the panel border
+   in a warm tint so the difference is visible even with the row collapsed. */
+.source-expand.is-web {
+  border: 1px solid color-mix(in oklch, var(--accent-warm), transparent 60%);
+}
+
+.source-quote {
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  background: var(--inner-well);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--ink-1);
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.source-quote .speaker {
+  color: var(--accent);
+  font-weight: 700;
+  display: block;
+  margin: 8px 0 2px 0;
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.source-quote .speaker:first-child { margin-top: 0; }
+.source-quote .speaker.assistant { color: var(--accent-sage); }
+.source-quote .speaker.edit      { color: var(--accent-warm); }
+
+/* options */
+.option-list { display: grid; gap: 6px; }
+.option-list[hidden] { display: none; }
+.option {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+  background: var(--inner-well);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-0);
+  text-align: left;
+  font-family: inherit;
+  text-wrap: pretty;
+}
+.option:hover { background: var(--surface-3); }
+.option .option-key {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+.option.selected {
+  border-color: color-mix(in oklch, var(--accent), transparent 30%);
+  background: var(--bg-accent-hover);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.option.selected .option-key { color: var(--accent); }
+.option.correct {
+  border-color: color-mix(in oklch, var(--accent-sage), transparent 30%);
+  background: var(--bg-sage);
+}
+.option.correct .option-key { color: var(--accent-sage); }
+.option.wrong {
+  border-color: color-mix(in oklch, var(--accent-rose), transparent 30%);
+  background: var(--bg-rose);
+}
+.option.wrong .option-key { color: var(--accent-rose); }
+.option.disabled,
+.option.disabled:hover {
+  cursor: default;
+  background: var(--inner-well);
+}
+
+/* cloze */
+.cloze-block {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner-highlight);
+  white-space: pre-wrap;
+}
+.cloze-input-row { display: flex; gap: 6px; }
+.cloze-input-row[hidden] { display: none; }
+.cloze-input {
+  flex: 1 1 auto;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: var(--inner-well);
+  color: var(--ink-0);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.cloze-input::placeholder { color: var(--ink-2); }
+.cloze-input:focus {
+  outline: none;
+  border-color: color-mix(in oklch, var(--accent), transparent 40%);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent), transparent 60%);
+}
+
+/* feedback */
+.feedback { display: grid; gap: 8px; }
+.feedback[hidden] { display: none; }
+.feedback-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.feedback-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.feedback-icon.correct {
+  background: var(--bg-sage);
+  color: var(--accent-sage);
+  border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 50%);
+}
+.feedback-icon.wrong {
+  background: var(--bg-rose);
+  color: var(--accent-rose);
+  border: 1px solid color-mix(in oklch, var(--accent-rose), transparent 50%);
+}
+.feedback-verdict { display: flex; flex-direction: column; }
+.feedback-verdict .top {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+.feedback-verdict.correct .top { color: var(--accent-sage); }
+.feedback-verdict.wrong   .top { color: var(--accent-rose); }
+.feedback-verdict .sub {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
+
+/* Canonical correct-answer block — sits between the verdict header and
+   the From-session explanation. Always shown on submit (answer right or
+   wrong) so the user can verify what the right answer was. Especially
+   useful for cloze where the option-list visualization isn't present. */
+.feedback-answer {
+  display: grid;
+  gap: 4px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-inner-highlight);
+  border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 70%);
+}
+.feedback-answer[hidden] { display: none; }
+.feedback-answer .label {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--accent-sage);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.feedback-answer .label::before {
+  content: "✓";
+  font-size: 10px;
+}
+.feedback-answer .answer-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.feedback-answer .answer-key {
+  font-family: var(--font-mono);
+  color: var(--accent-sage);
+  font-weight: 700;
+  font-size: 13px;
+}
+.feedback-answer .answer-text {
+  color: var(--ink-0);
+  font-size: 12px;
+  line-height: 1.4;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.feedback-explanation {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  color: var(--ink-1);
+  line-height: 1.55;
+  box-shadow: var(--shadow-inner-highlight);
+  text-wrap: pretty;
+}
+.feedback-explanation .by-source {
+  color: var(--ink-2);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.feedback-explanation .by-source::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-sage);
+}
+
+.review-foot {
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-1);
+}
+.foot-link {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.foot-link:hover { color: var(--ink-1); }
+
+/* completion */
+.completion {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--surface-1);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  gap: 12px;
+  overflow-y: auto;
+}
+.completion[hidden] { display: none; }
+.completion-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side,
+      color-mix(in oklch, var(--accent-sage), transparent 50%),
+      transparent 70%),
+    oklch(20% 0.025 150);
+  border: 1.5px solid var(--accent-sage);
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  color: var(--accent-sage);
+  font-weight: 700;
+}
+.completion h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-0);
+  margin: 0;
+}
+.completion-sub {
+  font-size: 12px;
+  color: var(--ink-1);
+  font-family: var(--font-mono);
+}
+.completion-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 4px;
+}
+.stat-card {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 12px 8px;
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.stat-correct .stat-num { color: var(--accent-sage); }
+.stat-wrong   .stat-num { color: var(--accent-rose); }
+.stat-label {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* === Settings panel ============================================ */
+.settings-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  /* Same status-bar offset reasoning as .cards-panel above. */
+  height: calc(100% - 58px);
+  overflow: hidden;
+}
+.settings-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-eyebrow { font-size: 13px; color: var(--ink-2); }
+.settings-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-0);
+  letter-spacing: 0.005em;
+}
+.settings-body {
+  padding: 0;
+  overflow-y: auto;
+}
+.settings-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+}
+.settings-section:last-child { border-bottom: 0; }
+
+.settings-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pill-tag {
+  font-size: 9px;
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+}
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.settings-row-label {
+  font-size: 12.5px;
+  color: var(--ink-0);
+  font-weight: 500;
+}
+.settings-row-meta {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-top: 1px;
+  font-family: var(--font-mono);
+}
+
+/* === Focus block (Settings · Cards) ========================== */
+.focus-block {
+  display: grid;
+  gap: 8px;
+  background: var(--inner-well);
+  border: 1px dashed color-mix(in oklch, var(--accent-warm), transparent 60%);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.focus-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.focus-label .lhs {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-0);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.focus-label .lhs .icon {
+  color: var(--accent-warm);
+  font-size: 11px;
+}
+.focus-label .hint {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+.focus-textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  background: transparent;
+  border: 0;
+  color: var(--ink-0);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  padding: 0;
+  outline: none;
+}
+.focus-textarea::placeholder { color: var(--ink-2); }
+
+/* === Range pills (generation window) ========================= */
+.range-pills {
+  display: inline-flex;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 3px;
+  box-shadow: var(--shadow-inner-highlight);
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.range-pill {
+  background: transparent;
+  border: 0;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 7px;
+  font-family: var(--font-mono);
+}
+.range-pill:hover { color: var(--ink-1); }
+.range-pill.is-active {
+  background: var(--bg-accent);
+  color: var(--accent);
+}
+.range-pill:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* === Range slider (cards-per-gen, transcript-budget) ============ */
+.range-slider-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 140px;
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  margin: 0;
+}
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid oklch(22% 0.025 195);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.range-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid oklch(22% 0.025 195);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.range-slider:hover::-webkit-slider-thumb { background: var(--accent-warm-hi); }
+.range-slider:hover::-moz-range-thumb     { background: var(--accent-warm-hi); }
+.range-slider-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* === Date picker row ========================================= */
+.date-picker-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.date-input {
+  background: var(--surface-2);
+  color: var(--ink-0);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  min-width: 130px;
+  color-scheme: dark;
+}
+.date-input:focus {
+  outline: none;
+  border-color: color-mix(in oklch, var(--accent), transparent 40%);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent), transparent 60%);
+}
+.btn-icon {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 0 4px;
+  line-height: 1;
+}
+.btn-icon:hover { color: var(--ink-0); }
+
+/* === Segmented control ======================================= */
+.segmented {
+  display: inline-flex;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 3px;
+  box-shadow: var(--shadow-inner-highlight);
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.segment {
+  background: transparent;
+  border: 0;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 7px;
+  font-family: inherit;
+}
+.segment:hover { color: var(--ink-1); }
+.segment.is-active {
+  background: var(--bg-sage);
+  color: var(--accent-sage);
+}
+
+/* === Toggle (button-based for accessibility) ================== */
+.toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  position: relative;
+  cursor: pointer;
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  transition: background 200ms var(--ease-standard);
+}
+.toggle::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ink-1);
+  top: 2px;
+  left: 2px;
+  transition: transform 200ms var(--ease-standard), background 200ms var(--ease-standard);
+}
+.toggle.is-on { background: var(--bg-sage-hover); }
+.toggle.is-on::after { transform: translateX(16px); background: var(--accent-sage); }
+
+/* === Expander (details/summary) ============================== */
+.expander {
+  display: grid;
+  gap: 0;
+}
+.expander-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 0;
+  list-style: none;
+}
+.expander-head::-webkit-details-marker { display: none; }
+.expander-head h3 {
+  flex: 1 1 auto;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.expander-head .chevron {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  transition: transform 200ms var(--ease-standard);
+}
+.expander[open] .expander-head .chevron {
+  transform: rotate(90deg);
+  color: var(--ink-1);
+}
+.expander-body {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+/* When a settings-section is also an expander, the body padding inherits
+   from .settings-section but the head sits flush at the top. */
+.settings-section.expander > .expander-head {
+  padding: 0;
+}
+
+/* === Direction-B rail-nav for Settings ========================
+   Replaces the wall-of-expanders. Settings-body becomes a 2-column
+   grid: a fixed-width rail on the left, the active section's panel
+   on the right. Only one section visible at a time. */
+.settings-body[data-layout="rail"] {
+  display: grid;
+  grid-template-columns: 124px 1fr;
+  gap: 0;
+  padding: 0;
+  height: 100%;
+  /* Animate the rail's column width (only column-template change is composited
+     by the browser cheaply via grid; pair with .set-rail width transition). */
+  transition: grid-template-columns 240ms var(--ease-sheet);
+}
+.settings-body[data-layout="rail"][data-rail-collapsed="true"] {
+  grid-template-columns: 38px 1fr;
+}
+.set-rail {
+  background: var(--inner-well);
+  padding: 8px 6px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+/* Collapse toggle button — sits at the very top of the rail, switches the
+   chevron direction based on state. */
+.rail-collapse {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  transition: color 160ms var(--ease-sheet), background 160ms var(--ease-sheet);
+}
+.rail-collapse:hover { color: var(--ink-0); background: color-mix(in oklch, var(--ink-0), transparent 92%); }
+.rail-collapse .collapsed-glyph { display: none; }
+.rail-collapse .expanded-glyph { display: inline; }
+[data-rail-collapsed="true"] .rail-collapse .collapsed-glyph { display: inline; }
+[data-rail-collapsed="true"] .rail-collapse .expanded-glyph  { display: none; }
+[data-rail-collapsed="true"] .rail-collapse { justify-content: center; }
+/* When collapsed, hide all rail-item text labels — keep just the glyph. */
+[data-rail-collapsed="true"] .rail-item > :not(.glyph) { display: none; }
+[data-rail-collapsed="true"] .rail-item {
+  justify-content: center;
+  padding: 8px 4px;
+}
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--ink-1);
+  background: transparent;
+  text-align: left;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    color 160ms var(--ease-sheet),
+    background 240ms var(--ease-sheet);
+}
+.rail-item .glyph {
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-2);
+  flex: 0 0 16px;
+}
+.rail-item:hover:not(.is-active) {
+  background: color-mix(in oklch, var(--ink-0), transparent 92%);
+  color: var(--ink-0);
+}
+.rail-item.is-active {
+  background: var(--surface-3);
+  color: var(--ink-0);
+  box-shadow: var(--shadow-inner-highlight);
+}
+.rail-item.is-active .glyph { color: var(--accent); }
+.rail-item .badge {
+  margin-left: auto;
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.set-panels {
+  position: relative;
+  overflow-y: auto;
+  padding: 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.set-panel {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  /* Quick fade-in on switch — single composited transition. */
+  animation: panelFade 200ms var(--ease-sheet);
+}
+.set-panel[data-active="true"] {
+  display: flex;
+}
+.set-panel-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-0);
+  letter-spacing: -0.005em;
+}
+.set-panel-head .lede {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+/* Sub-heading inside a merged panel (Knowledge cards combines Prompt /
+   Scope / Behavior; each section gets a small all-caps marker). */
+.set-subheading {
+  margin: 14px 0 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.set-subheading:first-of-type { margin-top: 4px; }
+@keyframes panelFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* === Sessions floating window =================================
+   Visually distinct from the other set-panel content. Reads as a
+   live "monitor" rather than a config form. Semi-transparent surface
+   on top of a soft backdrop tint, slow pulsing border (breathing
+   light), small collapse button on the right of the header. */
+.set-panel--floating {
+  /* Override the default panel padding so the floating window can have
+     its own breathing room. */
+  padding: 0;
+  gap: 0;
+}
+.floating-window {
+  position: relative;
+  background: color-mix(in oklch, var(--surface-1), transparent 12%);
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 60%);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  box-shadow:
+    0 1px 0 inset oklch(100% 0 0 / 0.08),
+    0 12px 28px -12px oklch(0% 0 0 / 0.45);
+  overflow: hidden;
+  /* Slow breathing-light pulse — emphasises that this is LIVE state. */
+  animation: floatingBreath 4.2s ease-in-out infinite;
+}
+@keyframes floatingBreath {
+  0%, 100% {
+    box-shadow:
+      0 1px 0 inset oklch(100% 0 0 / 0.08),
+      0 12px 28px -12px oklch(0% 0 0 / 0.45),
+      0 0 0 1px color-mix(in oklch, var(--accent-sage), transparent 75%);
+  }
+  50% {
+    box-shadow:
+      0 1px 0 inset oklch(100% 0 0 / 0.10),
+      0 14px 32px -10px oklch(0% 0 0 / 0.5),
+      0 0 0 2px color-mix(in oklch, var(--accent-sage), transparent 50%),
+      0 0 18px color-mix(in oklch, var(--accent-sage), transparent 75%);
+  }
+}
+.floating-window-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+/* Tiny pulsing dot, in time with the window breath, signals "live". */
+.breathing-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-sage);
+  box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent-sage), transparent 40%);
+  animation: dotBreath 2.1s ease-in-out infinite;
+  flex: 0 0 8px;
+}
+@keyframes dotBreath {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent-sage), transparent 40%); }
+  50%      { transform: scale(1.18); box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent-sage), transparent 80%); }
+}
+.floating-window-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-0);
+  letter-spacing: 0.005em;
+}
+.floating-window-count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  margin-left: 2px;
+}
+.floating-window-collapse {
+  margin-left: auto;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-2);
+  border: 0;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 160ms var(--ease-sheet), color 160ms var(--ease-sheet);
+}
+.floating-window-collapse:hover { background: color-mix(in oklch, var(--ink-0), transparent 92%); color: var(--ink-0); }
+
+/* When the floating window is collapsed, clicking anywhere on the header
+   expands it back. cursor change hints the affordance. */
+.floating-window[data-collapsed="true"] .floating-window-head {
+  cursor: pointer;
+}
+.floating-window[data-collapsed="true"] .floating-window-head:hover {
+  background: color-mix(in oklch, var(--ink-0), transparent 95%);
+}
+
+/* Sub-blocks inside the floating window — each block (Today's deck +
+   Sessions) is its own visual group with a tiny inset divider. */
+.live-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+}
+.live-block + .live-block {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+.live-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+}
+.live-block-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+}
+.live-block-meta {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.live-block-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* The "Open Knowledge Cards" button — wider tappable area, accent-tinted,
+   arrow on the right hints navigation. */
+.live-cards-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: var(--bg-accent);
+  color: var(--accent);
+  font-weight: 600;
+  border-radius: 10px;
+  transition: background 160ms var(--ease-sheet), transform 160ms var(--ease-sheet);
+}
+.live-cards-entry:hover {
+  background: var(--bg-accent-hover);
+  transform: translateY(-1px);
+}
+.live-cards-entry .arrow {
+  margin-left: auto;
+  font-size: 13px;
+  transition: transform 200ms var(--ease-sheet);
+}
+.live-cards-entry:hover .arrow {
+  transform: translateX(2px);
+}
+.floating-window-body {
+  padding: 12px 14px;
+  /* Constrain height so a long session list scrolls inside the window
+     without pushing the panel area outward. */
+  max-height: 380px;
+  overflow-y: auto;
+  transition: max-height 240ms var(--ease-sheet), padding 240ms var(--ease-sheet), opacity 200ms var(--ease-sheet);
+}
+.floating-window[data-collapsed="true"] .floating-window-body {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+}
+/* Collapsed-state visual cues are JS-driven (button textContent flips
+   from "−" to "+"); no CSS ::before trickery — it was unreliable. */
+
+/* === Quick actions (always-visible top of Settings) =========== */
+.quick-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* === Specific sessions picker ================================ */
+.picker-row .settings-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.picker-mode-tag {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-accent);
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+.picker-mode-tag.is-explicit {
+  background: color-mix(in oklch, var(--accent-warm), transparent 70%);
+  color: var(--accent-warm);
+}
+.picker-panel {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--inner-well);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.picker-panel[hidden] { display: none; }
+.picker-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.picker-meta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
+.btn-chip {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-1);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-chip:hover { background: var(--surface-3); color: var(--ink-0); }
+.btn-chip.is-active {
+  background: var(--bg-accent);
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent), transparent 60%);
+}
+/* === Picker header — makes purpose obvious before user sees grid ==== */
+.picker-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 0 2px;
+}
+.picker-header-text {
+  display: grid;
+  gap: 3px;
+}
+.picker-headline {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-0);
+  letter-spacing: 0.01em;
+}
+.picker-hint {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+.picker-hint strong { color: var(--accent); font-weight: 600; }
+
+/* === Heatmap (single horizontal strip, one cell per day) =====
+   Goes back as far as the user has activity. Older days scroll off
+   to the left; today is pinned on the right. */
+.heatmap-strip-wrap {
+  display: grid;
+  gap: 4px;
+  padding: 6px 0 4px;
+  user-select: none;
+  overflow-x: auto;
+  /* So the inner heatmap can be wider than the picker panel without
+     hijacking page scroll. */
+  scrollbar-width: thin;
+}
+.heatmap-strip-wrap::-webkit-scrollbar { height: 6px; }
+.heatmap-strip-wrap::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 3px;
+}
+.heatmap-month-labels {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 11px;
+  gap: 1px;
+  height: 11px;
+  font-size: 9px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.heatmap-month-labels .month-tick {
+  grid-row: 1;
+  position: relative;
+  pointer-events: none;
+}
+.heatmap-month-labels .month-tick > span {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+.heatmap {
+  display: grid;
+  grid-template-rows: 22px;
+  grid-auto-flow: column;
+  grid-auto-columns: 11px;
+  gap: 1px;
+  cursor: crosshair;
+  touch-action: none;
+}
+.heatmap-cell {
+  width: 11px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  position: relative;
+  transition: transform 80ms var(--ease-standard);
+}
+.heatmap-cell.is-empty { background: transparent; cursor: default; }
+/* Theme-aware heatmap intensities. lvl-0 is the baseline "no activity"
+   tone (uses surface-3 so it sits one step above the panel surface);
+   levels 1-4 ramp the accent colour from soft tint to full saturation,
+   so the gradient feels right whether the underlying theme is dark or
+   light. */
+.heatmap-cell.lvl-0 { background: var(--surface-3); }
+.heatmap-cell.lvl-1 { background: color-mix(in oklch, var(--accent), transparent 60%); }
+.heatmap-cell.lvl-2 { background: color-mix(in oklch, var(--accent), transparent 35%); }
+.heatmap-cell.lvl-3 { background: color-mix(in oklch, var(--accent), transparent 15%); }
+.heatmap-cell.lvl-4 { background: var(--accent); }
+.heatmap-cell.is-faded { opacity: 0.35; }
+.heatmap-cell.is-today {
+  box-shadow: inset 0 0 0 1px var(--ink-1);
+}
+.heatmap-cell.in-range {
+  box-shadow: inset 0 0 0 2px var(--accent-warm);
+  transform: scale(1.05);
+}
+.heatmap-cell.is-anchor {
+  box-shadow: inset 0 0 0 2px var(--accent-warm-hi);
+}
+.heatmap-cell.is-committed {
+  outline: 1px solid color-mix(in oklch, var(--accent-sage), transparent 40%);
+  outline-offset: 0;
+}
+.heatmap-cell:hover:not(.is-empty) { transform: scale(1.15); }
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+  font-size: 9.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+.legend-cell {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.legend-cell.lvl-0 { background: var(--surface-3); }
+.legend-cell.lvl-1 { background: color-mix(in oklch, var(--accent), transparent 60%); }
+.legend-cell.lvl-2 { background: color-mix(in oklch, var(--accent), transparent 35%); }
+.legend-cell.lvl-3 { background: color-mix(in oklch, var(--accent), transparent 15%); }
+.legend-cell.lvl-4 { background: var(--accent); }
+.legend-text { color: var(--ink-2); }
+.legend-hint {
+  margin-left: auto;
+  font-style: italic;
+  color: var(--ink-2);
+  opacity: 0.7;
+}
+
+/* === Day detail (opens when calendar is clicked or dragged) ==== */
+.day-detail {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.day-detail[hidden] { display: none; }
+.day-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.day-detail-title {
+  flex: 1 1 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-0);
+  font-weight: 600;
+}
+.day-all-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--ink-1);
+  cursor: pointer;
+}
+.day-all-toggle input[type="checkbox"] { accent-color: var(--accent); }
+.day-detail-list {
+  display: grid;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.day-session {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--inner-well);
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.day-session:hover { background: var(--surface-3); }
+.day-session.is-checked { box-shadow: inset 3px 0 0 var(--accent); }
+.day-session input[type="checkbox"] { margin: 0; accent-color: var(--accent); cursor: pointer; }
+.day-session-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.day-session-cwd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.day-session-preview {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.day-session-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+}
+.day-session-delete {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.day-session-delete:hover { color: var(--accent-rose); background: var(--surface-3); }
+
+/* Record-tab session row delete (mirrors picker-item-delete) */
+.gen-record-session .delete-btn {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.gen-record-session .delete-btn:hover { color: var(--accent-rose); background: var(--surface-3); }
+
+/* === Sessions list (inside Settings · Sessions expander) ===== */
+.sessions-list {
+  display: grid;
+  gap: 6px;
+}
+.session-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: 9px;
+  font-size: 11px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.session-row .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-sage);
+  flex: 0 0 auto;
+}
+.session-row .dot.warm { background: var(--accent-warm); }
+.session-row .dot.rose { background: var(--accent-rose); }
+.session-row .dot.idle { background: var(--ink-2); }
+.session-row .row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.session-row .row-tool {
+  font-weight: 600;
+  color: var(--ink-0);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.session-row .row-cwd {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.session-row .row-meta {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  flex: 0 0 auto;
+}
+
+/* === History tab ============================================== */
+.history-toolbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4px;
+  margin-bottom: 4px;
+}
+.history-meta {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+
+.history-list {
+  display: grid;
+  gap: 6px;
+}
+
+.history-row {
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+  overflow: hidden;
+}
+
+.history-row-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.history-row-head:hover { background: var(--surface-3); }
+
+/* Archived prior-generation rows — slightly dimmer + warm-tinted left
+   stripe via box-shadow inset, so the user can tell at a glance which
+   rows are "today's earlier deck" vs the canonical current deck. */
+.history-row.is-archive {
+  opacity: 0.85;
+}
+.history-row.is-archive .history-row-head {
+  box-shadow: inset 3px 0 0 color-mix(in oklch, var(--accent-warm), transparent 50%);
+}
+.history-row.is-archive .history-date {
+  color: var(--accent-warm);
+}
+
+.history-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
+.history-title {
+  color: var(--ink-0);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-stat {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  text-align: right;
+  display: grid;
+  gap: 2px;
+}
+.history-stat .accuracy { color: var(--accent-sage); font-weight: 600; }
+.history-stat .accuracy.skipped { color: var(--ink-2); font-weight: 500; }
+
+.history-detail {
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--inner-well);
+  display: grid;
+  gap: 10px;
+}
+.history-detail[hidden] { display: none; }
+
+.history-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+}
+
+.history-detail-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.history-detail-cta .btn-primary,
+.history-detail-cta .btn-secondary {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Settings · Storage row */
+.settings-row-meta.storage-path {
+  word-break: break-all;
+  font-size: 10.5px;
+  color: var(--ink-1);
+}
+.storage-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.storage-actions .btn-secondary {
+  padding: 4px 8px;
+  min-height: 28px;
+  font-size: 11px;
+}
+
+/* Export buttons row in Settings · Export */
+.export-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.export-buttons .btn-secondary {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* === Consent modal (Slice 5) =================================
+   Overlays the entire bubble. The first time a user clicks Generate
+   we block the request until they accept the data-flow disclosure. */
+.consent-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: oklch(8% 0.005 270 / 0.78);
+  backdrop-filter: blur(8px) saturate(0.95);
+  -webkit-backdrop-filter: blur(8px) saturate(0.95);
+  display: grid;
+  place-items: center;
+  padding: 14px;
+}
+.consent-modal[hidden] { display: none; }
+
+.consent-card {
+  width: 100%;
+  max-width: 420px;
+  max-height: 100%;
+  background: var(--surface-1);
+  border-radius: 14px;
+  box-shadow: var(--shadow-inner-highlight), var(--shadow-float-tall);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+}
+
+.consent-head {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.consent-eyebrow {
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--accent-warm);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.consent-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-warm);
+}
+.consent-title {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-0);
+  letter-spacing: 0.005em;
+}
+
+.consent-body {
+  padding: 12px 16px;
+  overflow-y: auto;
+  max-height: 380px;
+}
+.consent-body.md { font-size: 11.5px; }
+.consent-body.md p { margin: 0; }
+.consent-body.md h3 { margin-top: 10px; font-size: 11px; }
+
+.consent-foot {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-1);
+}
+.consent-foot .btn-primary,
+.consent-foot .btn-secondary {
+  flex: 0 0 auto;
+}
+
+/* === Wrong book tab =========================================== */
+.wrong-intro {
+  font-size: 11.5px;
+  color: var(--ink-1);
+  line-height: 1.55;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-inner-highlight);
+  text-wrap: pretty;
+}
+
+.wrong-cta-row {
+  display: flex;
+}
+.wrong-cta-row[hidden] { display: none; }
+.wrong-cta-row .btn-cta {
+  width: 100%;
+}
+
+.wrong-list {
+  display: grid;
+  gap: 6px;
+}
+
+.wrong-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: var(--shadow-inner-highlight);
+}
+
+.wrong-tag {
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: var(--bg-rose);
+  color: var(--accent-rose);
+  font-family: var(--font-mono);
+}
+.wrong-tag.cloze {
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+}
+
+.wrong-row-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.wrong-question {
+  color: var(--ink-0);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-wrap: pretty;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.wrong-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+}
+
+.wrong-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wrong-attempts {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  text-align: right;
+  display: grid;
+  gap: 2px;
+}
+.wrong-attempts .miss {
+  color: var(--accent-rose);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.wrong-attempts .progress-text {
+  color: var(--accent-sage);
+  font-weight: 600;
+}
+
+.btn-replay {
+  background: var(--bg-warm);
+  color: var(--accent-warm);
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-inner-highlight);
+}
+.btn-replay:hover { background: var(--bg-warm-hover); color: var(--accent-warm-hi); }

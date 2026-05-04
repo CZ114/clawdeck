@@ -17,6 +17,21 @@ const {
 const { assessToolRisk, summarizeToolInput } = require("../../shared/risk");
 const { acceptWebSocket } = require("./websocket");
 const { DeviceStore, PairingManager } = require("./devices");
+const { CardsStore } = require("./cards-store");
+const { TranscriptIndex } = require("./transcript-index");
+const { readTranscript } = require("./transcript-reader");
+const { scanAllProjects, snapshotJsonlPaths } = require("./transcript-scanner");
+const { SessionTrash } = require("./session-trash");
+const { todayLocalDate } = require("../../shared/cards");
+const { generateCards } = require("./cards-generator");
+const {
+  composeDayMarkdown,
+  composeAllAbstractsMarkdown,
+  composeWrongBookMarkdown
+} = require("./cards-markdown");
+const { ConsentStore, CONSENT_VERSION } = require("./cards-consent");
+const { StorageConfig } = require("./cards-storage-config");
+const { CardsStreak } = require("./cards-streak");
 
 const PORT = Number(process.env.CCC_PORT || 4317);
 const HOST = process.env.CCC_HOST || "127.0.0.1";
@@ -56,6 +71,31 @@ const auditEvents = [];
 const wsClients = new Set();
 const deviceStore = new DeviceStore({ dataDir: DATA_DIR });
 const pairingManager = new PairingManager();
+// Resolve where cards live: default <DATA_DIR>/cards, but the user can
+// relocate via Settings → Storage. The override file lives at
+// <DATA_DIR>/cards-storage-config.json (NOT inside the cards dir, so
+// changing the cards dir doesn't orphan the config that defined it).
+const cardsStorageConfig = new StorageConfig({
+  daemonDataDir: DATA_DIR,
+  defaultCardsDir: path.join(DATA_DIR, "cards")
+});
+const resolvedCardsDir = cardsStorageConfig.resolvedCardsDir().cardsDir;
+const cardsStore = new CardsStore({ dataDir: DATA_DIR, cardsDir: resolvedCardsDir });
+const transcriptIndex = new TranscriptIndex({ dataDir: DATA_DIR });
+const consentStore = new ConsentStore({ dataDir: DATA_DIR });
+const sessionTrash = new SessionTrash({ dataDir: DATA_DIR });
+const cardsStreak = new CardsStreak({ cardsStore });
+// Tracked across a generation run so the bubble can show live progress
+// (which sessions got scanned, included, skipped) and so the persisted
+// generationRecord on the deck has the same data after the run ends.
+let cardsGenerationStatus = {
+  state: "idle",       // idle | generating | error
+  startedAt: null,
+  finishedAt: null,
+  message: null,
+  stage: null,         // scanning | reading | calling | parsing | done
+  scanned: []          // [{sessionId, cwd, status, chars, source}]
+};
 let stateSequence = 0;
 
 function htmlResponse(res, html) {
@@ -703,6 +743,12 @@ function updateSessionStateFromHook(hookInput, status, details = {}) {
   const toolName = String((hookInput && hookInput.tool_name) || details.tool || "");
   const transcriptPath = (hookInput && hookInput.transcript_path) || (previous && previous.transcriptPath) || null;
   const cwd = String((hookInput && hookInput.cwd) || (previous && previous.cwd) || process.cwd());
+  // Persist sessionId → transcript_path mapping. The cards generator (Slice
+  // 3B) reads from this index to feed real Claude Code transcripts into
+  // the prompt instead of just lifecycle summaries.
+  if (sessionId && transcriptPath) {
+    transcriptIndex.record(sessionId, transcriptPath, { cwd });
+  }
   const contextUsage = latestContextUsageFromTranscript(transcriptPath, sessionId, cwd) ||
     details.contextUsage ||
     (previous && previous.contextUsage) ||
@@ -1291,6 +1337,751 @@ async function handleRevokeDevice(req, res) {
   });
 }
 
+// =============================================================
+// Knowledge Cards (Stage 1.5) — see ADR-20260503-knowledge-cards
+// =============================================================
+
+async function handleCardsToday(req, res, url) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+
+  jsonResponse(res, 200, {
+    payload: cardsStore.todayPayload(),
+    generation: cardsGenerationStatus
+  });
+}
+
+async function handleCardsHistory(req, res, url) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+
+  const limit = Number(url.searchParams.get("limit") || 30);
+  jsonResponse(res, 200, {
+    history: cardsStore.listHistory({ limit })
+  });
+}
+
+async function handleCardsHistoryDate(req, res, url, date) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+
+  // ?archive=HHMMSS (or HHMMSS-N) → read the superseded prior generation
+  // for this date instead of the canonical current deck. Lets the History
+  // tab open old abstracts side-by-side without losing them on re-gen.
+  const archiveId = url.searchParams.get("archive");
+  const payload = archiveId
+    ? cardsStore.readArchivedDay(date, archiveId)
+    : cardsStore.readDay(date);
+  if (!payload) {
+    jsonResponse(res, 404, {
+      error: archiveId
+        ? `No archived cards for ${date} @ ${archiveId}`
+        : `No cards stored for ${date}`
+    });
+    return;
+  }
+  jsonResponse(res, 200, { payload });
+}
+
+async function handleCardsWrongBook(req, res, url) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+
+  jsonResponse(res, 200, cardsStore.readWrongBook());
+}
+
+async function handleCardsAnswer(req, res, url) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+
+  const body = await readJsonBody(req);
+  const cardId = String(body.cardId || "");
+  if (!cardId) {
+    jsonResponse(res, 400, { error: "cardId required" });
+    return;
+  }
+
+  let result;
+  try {
+    result = cardsStore.recordAttempt({
+      cardId,
+      picked: body.picked,
+      durationMs: body.durationMs,
+      // History replay context — when the renderer started a review from
+      // the History tab. Daemon uses these to look up the card in the
+      // historical snapshot when it's not in today's deck or wrong book.
+      historyDate: typeof body.historyDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.historyDate)
+        ? body.historyDate
+        : undefined,
+      historyArchiveId: typeof body.historyArchiveId === "string"
+        ? body.historyArchiveId
+        : undefined
+    });
+  } catch (error) {
+    jsonResponse(res, 404, { error: error.message });
+    return;
+  }
+
+  audit({
+    type: "card_answered",
+    cardId,
+    correct: result.attempt.correct,
+    difficulty: result.card.difficulty,
+    replay: result.replay
+  });
+
+  jsonResponse(res, 200, {
+    ok: true,
+    correct: result.attempt.correct,
+    replay: result.replay,
+    answer: result.card.answer,
+    explanation: result.card.explanation || null,
+    attempts: Array.isArray(result.card.attempts) ? result.card.attempts : []
+  });
+}
+
+// GET /sessions/scan-candidates?limit=20[&windowDays=N]
+// Returns the most-recently-edited Claude Code sessions for the picker UI.
+// Each entry carries enough context for a meaningful pick: cwd, sessionId,
+// lastSeenAt, group size (--resume forks), and a short first-user-message
+// preview pulled from the JSONL header peek.
+function handleScanCandidates(req, res, url) {
+  if (!requireLocalRequest(req, res)) return;
+  const limit = Math.max(1, Math.min(10000, Number(url.searchParams.get("limit") || 20)));
+  const windowDays = Number(url.searchParams.get("windowDays"));
+  const sinceMs = Number.isFinite(windowDays) && windowDays > 0
+    ? Date.now() - windowDays * 24 * 60 * 60 * 1000
+    : 0;
+  let scanned;
+  try {
+    scanned = scanAllProjects({ sinceMs });
+  } catch (error) {
+    jsonResponse(res, 500, { error: error.message });
+    return;
+  }
+  const items = scanned.slice(0, limit).map((s) => {
+    let preview = "";
+    try {
+      // Re-peek to pull a short first-user-text preview. The peek already
+      // ran during scanAllProjects but we didn't keep the text — cheap to
+      // redo for the small picker subset.
+      const fd = fs.openSync(s.transcriptPath, "r");
+      const buf = Buffer.alloc(8 * 1024);
+      const bytes = fs.readSync(fd, buf, 0, buf.length, 0);
+      fs.closeSync(fd);
+      const lines = buf.toString("utf8", 0, bytes).split("\n");
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let parsed;
+        try { parsed = JSON.parse(line); } catch (_e) { continue; }
+        if (parsed.type === "user" && parsed.message && parsed.message.content) {
+          const c = parsed.message.content;
+          const text = Array.isArray(c)
+            ? (c.find((b) => b && b.type === "text") || {}).text || ""
+            : String(c);
+          preview = String(text || "").trim().replace(/\s+/g, " ").slice(0, 80);
+          if (preview) break;
+        }
+      }
+    } catch (_e) { /* preview is optional */ }
+    return {
+      sessionId: s.sessionId,
+      cwd: s.projectDirDecoded || null,
+      lastSeenAt: s.mtime,
+      groupSize: s.groupSize || 1,
+      sizeBytes: s.sizeBytes,
+      preview
+    };
+  });
+  jsonResponse(res, 200, { items });
+}
+
+// POST /sessions/delete
+// Body: { sessionIds: ["<id>", ...] }
+// Moves each matching JSONL into the trash/manual/ folder. Hard delete is
+// avoided so the user can recover from a misclick. The UI gates the call
+// behind a "Allow session deletion" toggle, but the daemon still accepts
+// any local request — the toggle is a UX guard, not a security one.
+async function handleSessionsDelete(req, res) {
+  if (!requireLocalRequest(req, res)) return;
+  const body = await readJsonBody(req).catch(() => ({}));
+  const ids = Array.isArray(body.sessionIds)
+    ? body.sessionIds.filter((s) => typeof s === "string" && s)
+    : [];
+  if (ids.length === 0) {
+    jsonResponse(res, 400, { error: "sessionIds required" });
+    return;
+  }
+  // Build sessionId → transcriptPath map by scanning everything (no time
+  // window — user may want to delete an old session).
+  const all = scanAllProjects({ sinceMs: 0 });
+  const byId = new Map(all.map((s) => [s.sessionId, s.transcriptPath]));
+  const results = ids.map((id) => {
+    const filePath = byId.get(id);
+    if (!filePath) return { sessionId: id, ok: false, reason: "not_found" };
+    return { sessionId: id, ...sessionTrash.trashFile(filePath, "manual") };
+  });
+  const okCount = results.filter((r) => r.ok).length;
+  jsonResponse(res, 200, {
+    requested: ids.length,
+    trashed: okCount,
+    results
+  });
+}
+
+async function handleCardsGenerate(req, res) {
+  if (!requireLocalRequest(req, res)) return;
+
+  const body = await readJsonBody(req).catch(() => ({}));
+  const focus = typeof body.focus === "string" ? body.focus : "";
+  const difficulty = typeof body.difficulty === "string" ? body.difficulty : "balanced";
+  const windowDays = Number.isFinite(Number(body.windowDays)) ? Number(body.windowDays) : 1;
+  const targetDate = typeof body.targetDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.targetDate)
+    ? body.targetDate
+    : null;
+  const requestedCount = Number(body.cardCount);
+  const cardCount = Number.isFinite(requestedCount)
+    ? Math.max(1, Math.min(20, Math.round(requestedCount)))
+    : 5;
+  const webFallback = body.webFallback !== false;  // default true
+  // Transcript budget (chars): explicit body field > env override > default.
+  // Clamped to a sane range so a malformed UI value can't blow up the prompt.
+  const DEFAULT_BUDGET = Number(process.env.CCC_CARDS_TRANSCRIPT_BUDGET || 60_000);
+  const requestedBudget = Number.isFinite(Number(body.transcriptBudget))
+    ? Number(body.transcriptBudget)
+    : DEFAULT_BUDGET;
+  const transcriptBudget = Math.max(10_000, Math.min(1_000_000, requestedBudget));
+  // Optional: explicit allowlist of sessionIds. When non-empty, ONLY these
+  // sessions feed the prompt (window/date still apply as a cutoff filter).
+  // Empty / missing → fall back to "scan everything in window" (legacy).
+  const selectedSessionIds = Array.isArray(body.selectedSessionIds)
+    ? body.selectedSessionIds.filter((s) => typeof s === "string" && s)
+    : [];
+  // Locale for the generator prompt — controls the natural-language output
+  // (abstract, questions, options). en/zh only; anything else falls to en.
+  const locale = body.locale === "zh" ? "zh" : "en";
+  const date = targetDate || todayLocalDate();
+
+  // Consent gate: real generator pipes session transcript content to a
+  // local `claude -p` subprocess (and possibly to web tools when fallback
+  // is on). First time the user triggers generation we require explicit
+  // opt-in (per ADR §"Decision 11"). Stub mode skips this — no real data
+  // crosses the daemon process boundary in stub mode.
+  const usingStub = process.env.CCC_CARDS_USE_STUB === "true";
+  if (!usingStub) {
+    const consent = consentStore.read();
+    if (!consent.given) {
+      jsonResponse(res, 403, {
+        error: "consent_required",
+        consentVersion: CONSENT_VERSION,
+        message: "First generation needs explicit consent — see /cards/consent"
+      });
+      return;
+    }
+  }
+
+  cardsGenerationStatus = {
+    state: "generating",
+    startedAt: nowIso(),
+    finishedAt: null,
+    stage: "scanning",
+    scanned: [],
+    message: targetDate
+      ? `Generating cards for ${targetDate} — discovering sessions…`
+      : `Generating today's cards (window ${windowDays}d) — discovering sessions…`
+  };
+
+  // Discover sessions from BOTH sources, then dedupe by sessionId:
+  //   - transcriptIndex: sessions where Companion's hook fired (richer
+  //     metadata: cwd, lastSeenAt from real events)
+  //   - scanAllProjects: every JSONL under ~/.claude/projects/, including
+  //     sessions Companion never saw a hook for (other repos, history
+  //     pre-dating Companion install). Slice 7's "scan ALL projects".
+  const cutoffMs = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const TRANSCRIPT_TOTAL_BUDGET = transcriptBudget;
+  // Per-session cap defaults to total/5 so a single chatty session can't
+  // monopolize the prompt; env override still wins for power users.
+  const TRANSCRIPT_PER_SESSION = Number(
+    process.env.CCC_CARDS_TRANSCRIPT_PER_SESSION || Math.max(4_000, Math.floor(TRANSCRIPT_TOTAL_BUDGET / 5))
+  );
+
+  const indexedSessions = transcriptIndex.recentSessions(cutoffMs);
+  const scannedFromDisk = scanAllProjects({ sinceMs: cutoffMs });
+
+  const bySessionId = new Map();
+  for (const e of indexedSessions) {
+    bySessionId.set(e.sessionId, {
+      sessionId: e.sessionId,
+      transcriptPath: e.transcriptPath,
+      cwd: e.cwd || null,
+      lastSeenAt: e.lastSeenAt,
+      source: "indexed"
+    });
+  }
+  for (const s of scannedFromDisk) {
+    if (bySessionId.has(s.sessionId)) continue;
+    bySessionId.set(s.sessionId, {
+      sessionId: s.sessionId,
+      transcriptPath: s.transcriptPath,
+      cwd: s.projectDirDecoded,
+      lastSeenAt: s.mtime,
+      source: "scanned"
+    });
+  }
+  let allSessions = Array.from(bySessionId.values()).sort((a, b) => {
+    return String(b.lastSeenAt || "").localeCompare(String(a.lastSeenAt || ""));
+  });
+
+  // If the user explicitly picked sessions, restrict to that set. This
+  // happens AFTER discovery so a typo'd id silently drops out (vs. throwing).
+  if (selectedSessionIds.length > 0) {
+    const allow = new Set(selectedSessionIds);
+    allSessions = allSessions.filter((s) => allow.has(s.sessionId));
+  }
+
+  cardsGenerationStatus.message = `Reading ${allSessions.length} session${allSessions.length === 1 ? "" : "s"}…`;
+  cardsGenerationStatus.stage = "reading";
+
+  // Read transcript content per session. Cap per-session + overall so
+  // the prompt fits the model's context window. Each session is recorded
+  // in `scanned` with its outcome (included / empty / skipped-by-budget)
+  // so the bubble + the persisted generationRecord can show transparency.
+  const transcripts = [];
+  let transcriptCharsUsed = 0;
+  for (let i = 0; i < allSessions.length; i += 1) {
+    const entry = allSessions[i];
+    const cwdLabel = entry.cwd ? entry.cwd.split(/[\\/]/).filter(Boolean).slice(-2).join("/") : "?";
+    cardsGenerationStatus.message = `Reading session ${i + 1}/${allSessions.length} · ${cwdLabel}`;
+    if (transcriptCharsUsed >= TRANSCRIPT_TOTAL_BUDGET) {
+      cardsGenerationStatus.scanned.push({
+        sessionId: entry.sessionId,
+        cwd: entry.cwd,
+        source: entry.source,
+        status: "skipped (budget)",
+        chars: 0
+      });
+      continue;
+    }
+    const remaining = TRANSCRIPT_TOTAL_BUDGET - transcriptCharsUsed;
+    const text = readTranscript({
+      transcriptPath: entry.transcriptPath,
+      since: cutoffMs,
+      maxChars: Math.min(TRANSCRIPT_PER_SESSION, remaining)
+    });
+    if (!text) {
+      cardsGenerationStatus.scanned.push({
+        sessionId: entry.sessionId,
+        cwd: entry.cwd,
+        source: entry.source,
+        status: "empty",
+        chars: 0
+      });
+      continue;
+    }
+    transcripts.push({
+      sessionId: entry.sessionId,
+      cwd: entry.cwd || null,
+      text
+    });
+    transcriptCharsUsed += text.length;
+    cardsGenerationStatus.scanned.push({
+      sessionId: entry.sessionId,
+      cwd: entry.cwd,
+      source: entry.source,
+      status: "included",
+      chars: text.length
+    });
+  }
+
+  cardsGenerationStatus.stage = "calling";
+  cardsGenerationStatus.message = transcripts.length > 0
+    ? `Calling claude -p with ${transcripts.length} session${transcripts.length === 1 ? "" : "s"} (${Math.round(transcriptCharsUsed / 1000)}k chars)…`
+    : `Calling claude -p (no transcript content found in window)…`;
+
+  // Snapshot every session JSONL under ~/.claude/projects BEFORE calling
+  // claude -p, so we can diff after and trash whatever the subprocess
+  // creates as its OWN session file (otherwise the next generate scans
+  // the prior generator's noise and the loop snowballs).
+  const preSnapshot = snapshotJsonlPaths();
+
+  // generateCards never throws — it returns { payload, dropped, stub, error }.
+  // Stub fallback kicks in when claude CLI isn't on PATH, so a dev box with
+  // no Claude Code install still gets a working bubble.
+  const result = await generateCards({
+    focus,
+    difficulty,
+    windowDays,
+    targetDate,
+    cardCount,
+    webFallback,
+    locale,
+    sessions: sessionStateList(),
+    auditEvents,
+    transcripts,
+    sampleDeckPayload
+  });
+
+  // Diff snapshot regardless of success/failure. Anything new is, by
+  // definition, a session that didn't exist before this run — i.e. the
+  // generator's own subprocess session. Trash it so the next scan is clean.
+  try {
+    const postSnapshot = snapshotJsonlPaths();
+    const newPaths = [];
+    for (const p of postSnapshot) {
+      if (!preSnapshot.has(p)) newPaths.push(p);
+    }
+    for (const p of newPaths) {
+      sessionTrash.trashFile(p, "generator", { reason: "auto-cleanup of generator's own session" });
+    }
+    if (newPaths.length > 0) {
+      console.log(`[cards] auto-trashed ${newPaths.length} generator session${newPaths.length === 1 ? "" : "s"}`);
+    }
+  } catch (cleanupError) {
+    console.log(`[cards] generator-session cleanup failed: ${cleanupError.message}`);
+  }
+
+  if (!result.payload) {
+    cardsGenerationStatus = {
+      state: "error",
+      startedAt: cardsGenerationStatus.startedAt,
+      finishedAt: nowIso(),
+      message: result.error || "Generation failed"
+    };
+    jsonResponse(res, 500, { error: result.error || "Generation failed" });
+    return;
+  }
+
+  let persisted;
+  try {
+    // Stamp the generationRecord onto the payload before saving so
+    // History tab can show "what got scanned" alongside the abstract.
+    const finishedAt = nowIso();
+    const startedMs = Date.parse(cardsGenerationStatus.startedAt) || Date.now();
+    result.payload.generationRecord = {
+      generatedAt: cardsGenerationStatus.startedAt,
+      finishedAt,
+      durationMs: Date.now() - startedMs,
+      windowDays,
+      targetDate,
+      cardCount,
+      difficulty,
+      webFallback,
+      transcriptBudget,
+      selectedSessionIds: selectedSessionIds.length > 0 ? selectedSessionIds.slice() : null,
+      stub: !!result.stub,
+      scannedSessions: cardsGenerationStatus.scanned.slice(),
+      totalCharsInPrompt: transcriptCharsUsed,
+      cardsAccepted: 0,
+      cardsDropped: result.dropped.length
+    };
+    const saved = cardsStore.saveGeneratedDay(date, result.payload);
+    persisted = saved.payload;
+    // Update with final accepted count post-validation.
+    persisted.generationRecord.cardsAccepted = persisted.cards.length;
+    persisted.generationRecord.cardsDropped =
+      result.dropped.length + saved.dropped.length;
+    // Re-write so the persisted file has the corrected counts.
+    cardsStore.writeDay(date, persisted, { archivePrior: false });
+
+    cardsGenerationStatus = {
+      state: "idle",
+      startedAt: cardsGenerationStatus.startedAt,
+      finishedAt,
+      stage: "done",
+      scanned: cardsGenerationStatus.scanned,
+      message: result.stub
+        ? `Stub deck written (${persisted.cards.length} cards, ${result.dropped.length + saved.dropped.length} dropped)`
+        : `Generated ${persisted.cards.length} cards (dropped ${result.dropped.length + saved.dropped.length}) from ${transcripts.length} session${transcripts.length === 1 ? "" : "s"}`
+    };
+  } catch (error) {
+    cardsGenerationStatus = {
+      state: "error",
+      startedAt: cardsGenerationStatus.startedAt,
+      finishedAt: nowIso(),
+      message: error.message
+    };
+    jsonResponse(res, 500, { error: error.message });
+    return;
+  }
+
+  audit({
+    type: "cards_generated",
+    date: persisted.date,
+    cards: persisted.cards.length,
+    dropped: result.dropped.length,
+    stub: !!result.stub,
+    focus: focus ? "set" : "empty",
+    windowDays,
+    targetDate
+  });
+
+  jsonResponse(res, 200, {
+    ok: true,
+    stub: !!result.stub,
+    payload: persisted,
+    dropped: result.dropped
+  });
+}
+
+async function handleCardsExport(req, res, url) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+
+  const scope = url.searchParams.get("scope") || "today";
+  const date = url.searchParams.get("date");
+  const archive = url.searchParams.get("archive");
+
+  let markdown = "";
+  let filename = "companion-export.md";
+
+  if (scope === "today") {
+    const targetDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayLocalDate();
+    const payload = archive
+      ? cardsStore.readArchivedDay(targetDate, archive)
+      : cardsStore.readDay(targetDate);
+    if (!payload) {
+      jsonResponse(res, 404, { error: `No deck for ${targetDate}${archive ? ` @ ${archive}` : ""}` });
+      return;
+    }
+    markdown = composeDayMarkdown(payload);
+    filename = `companion-${targetDate}${archive ? `-${archive}` : ""}.md`;
+  } else if (scope === "history") {
+    // Pull a wider list (limit 365) so the export covers a year of decks
+    // even if the History tab UI shows only the most recent 30. Resolve
+    // each summary back to its full payload via the public store API.
+    const items = cardsStore.listHistory({ limit: 365 });
+    const expanded = [];
+    for (const summary of items) {
+      const archiveId = summary.isArchive && summary.archivedAt
+        ? summary.archivedAt.replace(/:/g, "")
+        : null;
+      const payload = archiveId
+        ? cardsStore.readArchivedDay(summary.date, archiveId)
+        : cardsStore.readDay(summary.date);
+      if (payload) expanded.push({ payload, archivedAt: summary.archivedAt });
+    }
+    markdown = composeAllAbstractsMarkdown(expanded);
+    filename = "companion-history.md";
+  } else if (scope === "wrong-book") {
+    markdown = composeWrongBookMarkdown(cardsStore.readWrongBook());
+    filename = "companion-wrong-book.md";
+  } else {
+    jsonResponse(res, 400, { error: `Unknown scope: ${scope}` });
+    return;
+  }
+
+  res.writeHead(200, {
+    "content-type": "text/markdown; charset=utf-8",
+    "content-length": Buffer.byteLength(markdown),
+    "content-disposition": `attachment; filename="${filename}"`,
+    "cache-control": "no-store"
+  });
+  res.end(markdown);
+}
+
+async function handleCardsGenerationStatus(req, res, url) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+
+  jsonResponse(res, 200, cardsGenerationStatus);
+}
+
+async function handleCardsStorageRead(req, res, url) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+  const resolved = cardsStorageConfig.resolvedCardsDir();
+  jsonResponse(res, 200, {
+    cardsDir: cardsStore.cardsDir,
+    defaultCardsDir: cardsStorageConfig.defaultCardsDir,
+    isDefault: resolved.isDefault,
+    configuredAt: resolved.configuredAt,
+    note: resolved.cardsDir !== cardsStore.cardsDir
+      ? "configuration changed; restart daemon to apply"
+      : null
+  });
+}
+
+async function handleCardsStorageWrite(req, res) {
+  if (!requireLocalRequest(req, res)) return;
+  const body = await readJsonBody(req).catch(() => ({}));
+  const wanted = typeof body.cardsDir === "string" ? body.cardsDir.trim() : "";
+  // Empty string / null → revert to default.
+  const next = cardsStorageConfig.setCardsDir(wanted || null);
+  audit({
+    type: "cards_storage_changed",
+    cardsDir: next.cardsDir,
+    isDefault: next.isDefault
+  });
+  jsonResponse(res, 200, {
+    ok: true,
+    cardsDir: next.cardsDir,
+    isDefault: next.isDefault,
+    configuredAt: next.configuredAt,
+    appliedAfterRestart: next.cardsDir !== cardsStore.cardsDir,
+    note: "Daemon must restart to read/write the new directory."
+  });
+}
+
+async function handleCardsConsentRead(req, res, url) {
+  const device = requireAuthorizedRequest(req, res, url);
+  if (!device) return;
+
+  const record = consentStore.read();
+  jsonResponse(res, 200, {
+    given: record.given,
+    givenAt: record.givenAt,
+    consentVersion: CONSENT_VERSION
+  });
+}
+
+async function handleCardsConsentWrite(req, res) {
+  // Local-only — phones shouldn't be able to grant transcript-pipe consent
+  // remotely; that decision belongs to the human at the console.
+  if (!requireLocalRequest(req, res)) return;
+
+  const body = await readJsonBody(req).catch(() => ({}));
+  const given = Boolean(body.given);
+  const written = consentStore.write(given);
+  audit({
+    type: given ? "cards_consent_given" : "cards_consent_revoked",
+    consentVersion: CONSENT_VERSION
+  });
+  jsonResponse(res, 200, {
+    ok: true,
+    given: written.given,
+    givenAt: written.givenAt,
+    consentVersion: CONSENT_VERSION
+  });
+}
+
+// Deterministic seed deck — used by the stub generator above and by the
+// smoke test. Pulls real decisions from this very ADR / repo so a
+// developer running `npm run smoke` immediately sees plausible content.
+function sampleDeckPayload({ focus, difficulty, date }) {
+  const sourceSnippetSetupHooks =
+    "user: 4. mac 上测试出现问题：安装 hook 后 Claude Code 报错没有 power shell 指令\n" +
+    "\n" +
+    "assistant: setup-hooks.js has ASK_RULES = ['Bash', 'PowerShell']. On Mac,\n" +
+    "PowerShell isn't a registered Claude Code tool, so listing it in\n" +
+    "permissions.ask makes Claude Code reject the entire permissions block.\n" +
+    "Make setup-hooks.js platform-aware.\n" +
+    "\n" +
+    "edit: scripts/setup-hooks.js:7-13\n" +
+    "+ const SHELL_TOOLS = process.platform === 'win32'\n" +
+    "+   ? ['Bash', 'PowerShell']\n" +
+    "+   : ['Bash'];";
+
+  const sourceSnippetCloze =
+    "From packages/desktop/main.js (compactPeekBounds):\n" +
+    "const capsuleSpan = (axis) => axis === 'x'\n" +
+    "  ? full.width  - 2 * BUBBLE_PADDING - PEEK_VISIBLE_PX\n" +
+    "  : full.height - 2 * BUBBLE_PADDING - PEEK_VISIBLE_PX;\n" +
+    "// Both axes subtract the same constant so the visible peek width\n" +
+    "// is uniform (12 px) regardless of which edge the bubble snaps to.";
+
+  const sourceSnippetClaudeP =
+    "user: 不要改 api，由设定时间或者每次用户打开该软件的时候自动触发 prompt\n" +
+    "\n" +
+    "assistant: 不调 Anthropic API，直接调用用户本地已经装好的 claude CLI\n" +
+    "(headless 模式)。好处：不用配 API key、不用新增订阅成本、模型质量\n" +
+    "跟 Claude Code 用的一致、Companion 永远不直接持有用户密钥。";
+
+  return {
+    date,
+    state: "ready",
+    abstract:
+      "## Stage 1.5 Knowledge Cards 设计完成\n" +
+      "\n" +
+      "今天主要在 **companion repo** 完成了 Knowledge Cards 功能的完整设计 + 写了第一份 ADR。\n" +
+      "\n" +
+      "### 关键决定\n" +
+      "\n" +
+      "- 用 `claude -p` headless 子进程生成卡片，避免引入新的 API key\n" +
+      "- 强制溯源：每张卡必须有 verbatim session 引用，没有就丢弃\n" +
+      "- 难度三档：easy 概念 / medium 实现 / hard 底层\n" +
+      "- 空白日 fallback：从 wrong book + 过去 N 天抽题，streak 1 天保护\n" +
+      "\n" +
+      "### 触及文件\n" +
+      "\n" +
+      "- `docs/knowledge-cards-v1.html`\n" +
+      "- `docs/decisions/ADR-20260503-knowledge-cards.md`\n" +
+      "- `docs/stages.md`\n" +
+      "- `CLAUDE.md`\n" +
+      "\n" +
+      "> 下一步：实现 daemon 端的 cards-store + endpoints",
+    focusSnapshot: focus || "",
+    focusCoverage: focus ? 70 : null,
+    difficultyPreference: difficulty || "balanced",
+    sourceSessionIds: ["sess_seed"],
+    stats: { sessions: 1, durationMin: 90 },
+    cards: [
+      {
+        id: "card_seed_1",
+        type: "choice",
+        difficulty: "medium",
+        question: "为什么 setup-hooks.js 把 PowerShell 限定在 Windows？",
+        options: [
+          "Claude Code 在 macOS 上没把 PATH 透传给 hook 进程",
+          "Claude Code 启动时校验 permissions.ask 里的工具名，列出未知工具会让 CLI 直接拒绝运行",
+          "PowerShell Core 在 macOS 能跑但太慢，不适合 hook 路径",
+          "Apple sandbox 阻止 PowerShell 派生子进程"
+        ],
+        answer: 1,
+        source: {
+          sessionId: "sess_seed",
+          snippet: sourceSnippetSetupHooks,
+          fileRef: "scripts/setup-hooks.js#L7-13"
+        },
+        explanation: {
+          fromSession: true,
+          snippet: "Claude Code maintains an internal tool whitelist; pointing permissions.ask at an unknown tool fails startup validation."
+        },
+        attempts: []
+      },
+      {
+        id: "card_seed_2",
+        type: "cloze",
+        difficulty: "easy",
+        question: "填空：compactPeekBounds 里 capsuleSpan 的 X 轴公式 — 减号后面的常量是？",
+        answer: "PEEK_VISIBLE_PX",
+        source: {
+          sessionId: "sess_seed",
+          snippet: sourceSnippetCloze,
+          fileRef: "packages/desktop/main.js#L365-L368"
+        },
+        explanation: {
+          fromSession: true,
+          snippet: "Same constant on both axes — visible peek width is uniform (12 px)."
+        },
+        attempts: []
+      },
+      {
+        id: "card_seed_3",
+        type: "choice",
+        difficulty: "hard",
+        question: "为什么 Companion 选择 spawn `claude -p` 而不是直接调 Anthropic API？",
+        options: [
+          "claude -p 比 API 调用快约 30%",
+          "API 调用需要绕过 Cloudflare bot 检测",
+          "复用用户已认证的 Claude Code 会话，避免引入新的密钥配置 / 计费 / 鉴权生命周期",
+          "Anthropic SDK 在 Node 20 之前不稳定"
+        ],
+        answer: 2,
+        source: {
+          sessionId: "sess_seed",
+          snippet: sourceSnippetClaudeP,
+          fileRef: "docs/decisions/ADR-20260503-knowledge-cards.md#decision-1"
+        },
+        explanation: {
+          fromSession: true,
+          snippet: "User explicitly preferred not configuring a separate API key. Subprocess sidesteps auth lifecycle entirely."
+        },
+        attempts: []
+      }
+    ]
+  };
+}
+
 async function route(req, res) {
   if (req.method === "OPTIONS") {
     jsonResponse(res, 204, {});
@@ -1389,6 +2180,74 @@ async function route(req, res) {
     }
 
     jsonResponse(res, 200, { events: auditEvents.slice(-100) });
+    return;
+  }
+
+  // Knowledge Cards (Stage 1.5)
+  if (req.method === "GET" && url.pathname === "/cards/today") {
+    await handleCardsToday(req, res, url);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/cards/history") {
+    await handleCardsHistory(req, res, url);
+    return;
+  }
+  const historyDateMatch = url.pathname.match(/^\/cards\/history\/(\d{4}-\d{2}-\d{2})$/);
+  if (req.method === "GET" && historyDateMatch) {
+    await handleCardsHistoryDate(req, res, url, historyDateMatch[1]);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/cards/wrong-book") {
+    await handleCardsWrongBook(req, res, url);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/cards/generation-status") {
+    await handleCardsGenerationStatus(req, res, url);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/cards/export") {
+    await handleCardsExport(req, res, url);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/cards/consent") {
+    await handleCardsConsentRead(req, res, url);
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/cards/consent") {
+    await handleCardsConsentWrite(req, res);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/cards/storage") {
+    await handleCardsStorageRead(req, res, url);
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/cards/storage") {
+    await handleCardsStorageWrite(req, res);
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/cards/answer") {
+    await handleCardsAnswer(req, res, url);
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/cards/generate") {
+    await handleCardsGenerate(req, res);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/sessions/scan-candidates") {
+    handleScanCandidates(req, res, url);
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/sessions/delete") {
+    await handleSessionsDelete(req, res);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/cards/streak") {
+    if (!requireLocalRequest(req, res)) return;
+    try {
+      jsonResponse(res, 200, cardsStreak.compute());
+    } catch (error) {
+      jsonResponse(res, 500, { error: error.message });
+    }
     return;
   }
 
