@@ -36,7 +36,7 @@
 
 <p align="center"><em>Drag it to any screen edge. When you're not looking at it, it tucks behind to a 4-px context-percent slit — out of the way, still glanceable.</em></p>
 
-> Internally still referred to as **"Claude Code Companion"** in protocol code and env vars (`CCC_*`) — same project, mid-rebrand. iOS companion next.
+> Internally still referred to as **"Claude Code Companion"** in protocol code and env vars (`CCC_*`) — same project, mid-rebrand.
 
 ---
 
@@ -189,7 +189,6 @@ HTTP endpoints (used by the bubble + any future client):
 /sessions                  active Claude Code sessions
 /pending-requests          permission requests awaiting decision
 /permission-decisions      decision log
-/pairing-token             for the planned iPhone client
 ```
 
 <details>
@@ -240,22 +239,16 @@ After every demo HTML change, just rerun `npm run render-demos`.
 
 ---
 
-## Roadmap
+## What's shipped
 
-| Stage | What | Status |
+| Stage | What | Released |
 |---|---|---|
-| **0** | Approval daemon + hook spike | shipped |
-| **1** | Windows floating bubble (5 modes + liquid morph) | shipped |
-| **1.5** | Knowledge Cards (today / history / wrong-book / record · streak · heatmap picker · bilingual generator) | **shipped — v1.2.0** |
-| **2** | Desktop personality / pet layer | _deferred_ |
-| **3** | iPhone client over local network | _planned_ |
-| **4** | Live Activity / Dynamic Island mirror on iOS | _planned_ |
-| **5** | Remote relay (use outside the same LAN) | _planned_ |
-
-Stage 2 is re-evaluated only after 1.5 has seen real use.
+| **0** | Approval daemon + hook spike | v0.1 |
+| **1** | Windows floating bubble (5 modes + liquid morph) | v1.0 |
+| **1.5** | Knowledge Cards (Today / History / Wrong-book / Record · streak · heatmap picker · bilingual generator) | **v1.2.0** ← current |
 
 ---
 
 <p align="center">
-  <sub>Made for Windows. iOS planned.<br>Built end-to-end with Claude Code itself — the recursion is the whole point.</sub>
+  <sub>Made for Windows.<br>Built end-to-end with Claude Code itself — the recursion is the whole point.</sub>
 </p>

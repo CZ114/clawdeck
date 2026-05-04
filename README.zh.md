@@ -36,7 +36,7 @@
 
 <p align="center"><em>拖到屏幕任何一边都能贴住。你没在看它的时候，它会自己藏到边后，只露一条 4px 的 context 进度条 —— 不挡路，但要看一眼随时能看。</em></p>
 
-> 协议代码和环境变量 (`CCC_*`) 里仍然写着 **"Claude Code Companion"** —— 同一个项目，正在改名中。下一站 iOS 同伴 app。
+> 协议代码和环境变量 (`CCC_*`) 里仍然写着 **"Claude Code Companion"** —— 同一个项目，正在改名中。
 
 ---
 
@@ -189,7 +189,6 @@ HTTP 端点（气泡 + 未来的客户端共用）：
 /sessions                  当前活跃 Claude Code 会话列表
 /pending-requests          等决定的权限请求
 /permission-decisions      决定日志
-/pairing-token             给规划中的 iPhone 客户端用
 ```
 
 <details>
@@ -240,22 +239,16 @@ npm run render-demos             # ~90 秒，重生 media/ 下全部 6 张 APNG
 
 ---
 
-## 路线图
+## 已发布
 
-| Stage | 内容 | 状态 |
+| Stage | 内容 | 版本 |
 |---|---|---|
-| **0** | 审批 daemon + hook 技术验证 | 已发布 |
-| **1** | Windows 浮动气泡（5 模式 + 液滴 morph） | 已发布 |
-| **1.5** | Knowledge Cards（Today / History / Wrong-book / 记录 · streak · 热力图选 session · 双语 generator） | **已发布 — v1.2.0** |
-| **2** | 桌面拟人 / 桌宠层 | _搁置_ |
-| **3** | iPhone 客户端（局域网内）| _规划中_ |
-| **4** | iOS 上的 Live Activity / Dynamic Island 镜像 | _规划中_ |
-| **5** | 远程中继（跨网络使用）| _规划中_ |
-
-Stage 2 等 1.5 跑过一段真实使用再评估。
+| **0** | 审批 daemon + hook 技术验证 | v0.1 |
+| **1** | Windows 浮动气泡（5 模式 + 液滴 morph） | v1.0 |
+| **1.5** | Knowledge Cards（Today / History / Wrong-book / 记录 · streak · 热力图选 session · 双语 generator） | **v1.2.0** ← 当前 |
 
 ---
 
 <p align="center">
-  <sub>Windows 优先 · iOS 在路上。<br>整个项目就是用 Claude Code 自己写出来的 —— 这个递归就是核心 demo。</sub>
+  <sub>Windows 优先。<br>整个项目就是用 Claude Code 自己写出来的 —— 这个递归就是核心 demo。</sub>
 </p>
