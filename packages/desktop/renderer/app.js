@@ -3860,6 +3860,72 @@ function bindAutoGenerateTimePicker() {
   hourEl.addEventListener("scroll", () => onScroll(hourEl), { passive: true });
   minEl.addEventListener("scroll", () => onScroll(minEl), { passive: true });
 
+  // Native wheel scrolling on Windows feels too aggressive — one mouse-
+  // wheel tick easily moves 100 px, jumping 4–5 rows. Override with a
+  // throttled "one row per wheel notch" handler.
+  function bindWheelOnly(el, max) {
+    let wheelLock = 0;
+    el.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      const now = performance.now();
+      if (now - wheelLock < 80) return;
+      wheelLock = now;
+      const dir = event.deltaY > 0 ? 1 : -1;
+      const current = valueFor(el);
+      const next = Math.max(0, Math.min(max, current + dir));
+      el.scrollTo({ top: next * ROW_H, behavior: "smooth" });
+    }, { passive: false });
+  }
+  bindWheelOnly(hourEl, 23);
+  bindWheelOnly(minEl, 59);
+
+  // Mouse / touch drag — pointerdown captures the wheel, pointermove
+  // translates the wheel, pointerup snaps to the nearest cell. While
+  // dragging we kill scroll-snap so the wheel tracks the cursor 1:1
+  // instead of fighting back to the nearest snap point.
+  function bindDrag(el, max) {
+    let dragging = false;
+    let startY = 0;
+    let startScroll = 0;
+    let pointerId = null;
+    el.addEventListener("pointerdown", (event) => {
+      // Ignore non-primary buttons; let wheel/touch primary through.
+      if (event.button !== 0 && event.pointerType === "mouse") return;
+      dragging = true;
+      startY = event.clientY;
+      startScroll = el.scrollTop;
+      pointerId = event.pointerId;
+      try { el.setPointerCapture(pointerId); } catch (_e) {}
+      el.style.scrollSnapType = "none";
+      el.style.cursor = "grabbing";
+    });
+    el.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      const dy = event.clientY - startY;
+      const next = Math.max(0, Math.min(max * ROW_H, startScroll - dy));
+      el.scrollTop = next;
+    });
+    const finishDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      try { if (pointerId !== null) el.releasePointerCapture(pointerId); } catch (_e) {}
+      pointerId = null;
+      el.style.cursor = "";
+      // Snap to nearest cell. Force-restore scroll-snap on the next
+      // frame so the smooth scroll lands on the snap, not before it.
+      const idx = Math.max(0, Math.min(max, Math.round(el.scrollTop / ROW_H)));
+      el.scrollTo({ top: idx * ROW_H, behavior: "smooth" });
+      requestAnimationFrame(() => {
+        el.style.scrollSnapType = "";
+      });
+    };
+    el.addEventListener("pointerup", finishDrag);
+    el.addEventListener("pointercancel", finishDrag);
+    el.style.cursor = "grab";
+  }
+  bindDrag(hourEl, 23);
+  bindDrag(minEl, 59);
+
   // Hide the wheel when auto-generate is off (still rendered so we don't
   // re-build on toggle, just visually collapsed via [hidden]).
   function syncWheelVisibility() {
