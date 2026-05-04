@@ -6,20 +6,36 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const MANAGED_SCRIPT_NAMES = ["event.js", "pre-tool-use.js", "permission-request.js"];
 const USER_SETTINGS_PATH = path.join(os.homedir(), ".claude", "settings.json");
 
-function normalizeForCommand(filePath) {
-  return filePath;
+// Hook command generation — two modes:
+//
+//   dev:  "node "<repo>/packages/hooks/<name>.js""
+//         Used when scripts/setup-user-hooks.js runs from a checked-out
+//         clone. Requires Node on PATH + the repo to stay put.
+//
+//   prod: "$env:ELECTRON_RUN_AS_NODE='1'; & '<exe>' '<resources>/packages/hooks/<name>.js'"
+//         Used when packaged Clawdeck.exe runs main.js with --install-hooks.
+//         Reuses the Electron exe as a Node interpreter via the standard
+//         ELECTRON_RUN_AS_NODE flag — no separate Node install needed,
+//         no dependence on the repo. Hook scripts ship as extraResources
+//         so they're real files on disk (not in app.asar).
+function hookCommand(relativeScriptPath, ctx) {
+  if (ctx && ctx.exePath && ctx.resourcesPath) {
+    const scriptPath = path.join(ctx.resourcesPath, relativeScriptPath);
+    // PowerShell single quotes prevent variable expansion; & invokes a
+    // string path. Pre-escape any apostrophes in the paths just in case.
+    const exe = ctx.exePath.replace(/'/g, "''");
+    const script = scriptPath.replace(/'/g, "''");
+    return `$env:ELECTRON_RUN_AS_NODE='1'; & '${exe}' '${script}'`;
+  }
+  return `node "${path.join(ROOT, relativeScriptPath)}"`;
 }
 
-function hookCommand(relativeScriptPath) {
-  return `node "${normalizeForCommand(path.join(ROOT, relativeScriptPath))}"`;
-}
-
-function commandHook(relativeScriptPath, timeout, statusMessage) {
+function commandHook(relativeScriptPath, timeout, statusMessage, ctx) {
   const hook = {
     type: "command",
     shell: "powershell",
     timeout,
-    command: hookCommand(relativeScriptPath)
+    command: hookCommand(relativeScriptPath, ctx)
   };
 
   if (statusMessage) {
@@ -29,17 +45,19 @@ function commandHook(relativeScriptPath, timeout, statusMessage) {
   return hook;
 }
 
-function desiredUserHooks() {
-  const eventHook = commandHook("packages/hooks/event.js", 10);
+function desiredUserHooks(ctx) {
+  const eventHook = commandHook("packages/hooks/event.js", 10, undefined, ctx);
   const approvalHook = commandHook(
     "packages/hooks/pre-tool-use.js",
     60,
-    "Waiting for Claude Code Companion approval"
+    "Waiting for Claude Code Companion approval",
+    ctx
   );
   const permissionHook = commandHook(
     "packages/hooks/permission-request.js",
     60,
-    "Waiting for Claude Code Companion approval"
+    "Waiting for Claude Code Companion approval",
+    ctx
   );
 
   return {
@@ -158,7 +176,7 @@ function mergeManagedHooks(settings, options = {}) {
   }
 
   if (!options.uninstall) {
-    const desired = desiredUserHooks();
+    const desired = desiredUserHooks(options.ctx);
     for (const [eventName, entries] of Object.entries(desired)) {
       if (!Array.isArray(settings.hooks[eventName])) {
         settings.hooks[eventName] = [];

@@ -45,7 +45,23 @@
       "!**/.{git,idea,vscode}",
       "!**/{__tests__,test,tests,coverage,docs,examples}"
     ],
-    "extraResources": [],
+    "extraResources": [
+      {
+        "from": "packages/hooks",
+        "to": "packages/hooks",
+        "filter": ["**/*.js"]
+      },
+      {
+        "from": "packages/shared",
+        "to": "packages/shared",
+        "filter": ["**/*.js"]
+      },
+      {
+        "from": "scripts/lib",
+        "to": "scripts/lib",
+        "filter": ["**/*.js"]
+      }
+    ],
     "afterPack": "scripts/after-pack.js",
     "win": {
       "target": [
@@ -70,7 +86,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Clawdeck",
       "uninstallDisplayName": "Clawdeck",
-      "artifactName": "${productName}-${version}.exe"
+      "artifactName": "${productName}-${version}.exe",
+      "include": "build/installer.nsh"
     }
   },
   "devDependencies": {
