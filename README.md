@@ -1,69 +1,95 @@
 # Clawdeck
 
-> Floating Windows companion for Claude Code — approvals, status, and a daily knowledge-card review, all in one bubble that morphs like a liquid droplet between modes.
+<p align="center">
+  <em>The floating Claude Code companion for Windows.</em><br>
+  <em>Permission prompts route through it · status lives at your screen edge</em><br>
+  <em>· yesterday's sessions become tomorrow's flashcards.</em>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/stage-1.5%20shipped-2ea44f" alt="Stage 1.5 shipped">
+  &nbsp;
+  <img src="https://img.shields.io/badge/version-v1.2.0-ff8800" alt="v1.2.0">
+  &nbsp;
+  <img src="https://img.shields.io/badge/platform-Windows-0078d4" alt="Windows">
+  &nbsp;
+  <img src="https://img.shields.io/badge/node-20%2B-339933" alt="Node 20+">
+  &nbsp;
+  <img src="https://img.shields.io/badge/themes-4-blueviolet" alt="4 themes">
+</p>
+
+<p align="center">
+  <strong>English</strong> &nbsp;·&nbsp; <a href="README.zh.md">中文</a>
+</p>
+
+---
 
 <p align="center">
   <img src="media/hero-status.apng" alt="Floating bubble cycling through Idle, Thinking, Running tool, Awaiting approval, Done — the orb tells you what Claude is doing at a glance" width="480">
 </p>
 
-> The orb tells you what Claude is doing at a glance. No alt-tab.
+<p align="center"><em>The orb tells you what Claude is doing at a glance. No alt-tab.</em></p>
 
 <p align="center">
   <img src="media/edges-cycle.apng" alt="Bubble docks to right, top, left, bottom — and tucks behind each edge to a thin context slit when not in use" width="640">
 </p>
 
-> Drag it to any screen edge. When you're not looking at it, it tucks behind the edge to a 4-px context-percent slit — out of your way, still glanceable.
+<p align="center"><em>Drag it to any screen edge. When you're not looking at it, it tucks behind to a 4-px context-percent slit — out of the way, still glanceable.</em></p>
 
-> iOS planned. Internally still referred to as "Claude Code Companion" in protocol code and env vars (`CCC_*`) — same project.
-
----
-
-## Why
-
-- **Claude Code's permission prompts steal your terminal focus.** Clawdeck routes them through a floating bubble — one click to approve, deny, answer, or always-allow; bubble dismisses; back to your editor.
-- **Status is ambient.** The orb shows `thinking` / `running_tool` / `waiting_approval` / `done` so you know what Claude is doing without alt-tabbing. Snap it to a screen edge and it peeks out instead of getting in your way.
-- **Your Claude sessions become study material.** Stage 1.5 Knowledge Cards turn yesterday's transcripts into spaced-repetition cards with verbatim source quotes — no hallucinations.
+> Internally still referred to as **"Claude Code Companion"** in protocol code and env vars (`CCC_*`) — same project, mid-rebrand. iOS companion next.
 
 ---
 
-## The bubble has 5 modes
+## Why this exists
+
+Three Claude Code annoyances, all answered here:
+
+| Annoyance | Clawdeck's answer |
+|---|---|
+| Permission prompts steal terminal focus | One click on the floating bubble, decision routes back to Claude, focus stays in your editor |
+| You can't tell what Claude is doing without alt-tabbing | Ambient status orb at your screen edge — peripheral vision is enough |
+| Brilliant moments from your sessions evaporate when the conversation closes | Daily flashcards, generated locally from yesterday's transcripts, every card cites a verbatim source line |
+
+---
+
+## 5 modes · one liquid morph
 
 | Mode | Trigger | What it shows |
 |---|---|---|
-| **Compact** | default resting state | status orb + status text + context meter; auto-peeks when snapped to a screen edge |
+| **Compact** | resting state | status orb + status text + context meter; auto-peeks when snapped to a screen edge |
 | **Approval / Question** | auto on permission request | risk chip · tool / cwd / reason · Approve / Deny / Always-allow, or a freeform answer for question requests |
 | **📚 Cards** | 📚 button | Today · History · Wrong-book · Generation Record |
 | **⚙ Settings** | ⚙ button | left-rail nav: Knowledge cards · Storage · Export · Companion (themes + EN/中文 + hook status) |
 | **⤢ Live** | ⤢ button | semi-transparent monitor with breathing pulse: today's deck summary + active Claude sessions |
 
-Transitions use a single liquid water-droplet morph — the OS window resize and the renderer's `border-radius` interpolate on a synchronized bouncy curve, so the bubble stretches rather than snapping.
+The bubble morphs between every mode on a synchronized cubic-bezier curve — OS window resize and CSS `border-radius` bend on the same overshooting droplet stretch, so a mode change reads as **one** motion, not two.
 
 <p align="center">
-  <img src="media/approval-flow.apng" alt="Bash request lands → bubble auto-morphs to approval card → click Approve → bubble glides back to compact, status flashes Done" width="520">
+  <img src="media/approval-flow.apng" alt="Bash request → bubble auto-morphs to approval card → user clicks Approve → bubble glides back to compact, status flashes Done" width="520">
 </p>
 
 <p align="center">
-  <img src="media/hero-morph.apng" alt="Settings → drag-select 5 days in the heatmap picker → Live → click Generate → 📚 fresh deck" width="480">
+  <img src="media/hero-morph.apng" alt="Settings → drag-select 5 days in the heatmap picker → Live → click Generate → 📚 fresh deck appears" width="480">
 </p>
 
 ---
 
-## Knowledge Cards (Stage 1.5)
+## Knowledge Cards · Stage 1.5
 
-Generated locally. Companion pipes a redacted slice of `~/.claude/projects/` JSONLs into a `claude -p` subprocess; the model returns cards keyed back to verbatim source quotes.
+Generated locally. Companion pipes a redacted slice of `~/.claude/projects/` JSONLs into a `claude -p` subprocess; the model returns cards keyed back to verbatim source quotes. **No hallucinations** — every card cites a real session line, the strict-source validator drops anything that doesn't match.
 
-- **Strict source policy** — every card cites a real session line; optional web fallback cites the URL it pulled from
-- **Redaction before send** — `.env*` adjacent lines dropped, token-shaped strings (GitHub PAT / Anthropic key / AWS key) substituted, usernames collapsed to `~`
-- **Local only** — uses your authenticated `claude -p`; no direct Anthropic API call from Companion
-- **Today / History / Wrong-book / Generation Record** tabs
-- **Wrong cards return** until mastered (consecutive-correct threshold per difficulty)
-- **Streak counter** survives one empty day with a 🛡 shield
-- **Difficulty preset** — Casual / Balanced / Deep adjusts the easy / medium / hard mix
-- **Heatmap session picker** — drag-select which days feed the generator; Auto top-3 / All / None shortcuts
-- **Bilingual** — generator prompt branches on locale (English / 中文)
-- **Export** — Today, all abstracts, or wrong-book → markdown that pastes cleanly into Obsidian / Notion
+- ✅ **Strict source policy** — every card cites a real session line; optional web fallback cites the URL
+- 🛡 **Redaction before send** — `.env*` adjacent lines dropped, token-shaped strings (GitHub PAT / Anthropic key / AWS key) substituted, usernames collapsed to `~`
+- 🔒 **Local only** — uses your authenticated `claude -p`; no direct Anthropic API call from Companion
+- 🗂 **Today · History · Wrong-book · Generation Record** tabs
+- 🔁 **Wrong cards return** until mastered (consecutive-correct threshold scales with difficulty)
+- 🔥 **Streak counter** survives one empty day with a 🛡 shield
+- 🎚 **Difficulty preset** — Casual / Balanced / Deep adjusts the easy / medium / hard mix
+- 📅 **Heatmap session picker** — drag-select which days feed the generator; Auto top-3 / All / None shortcuts
+- 🌐 **Bilingual** — generator prompt + UI both branch on locale (English / 中文)
+- ↓ **Markdown export** — Today, all abstracts, or wrong-book → pastes cleanly into Obsidian / Notion
 
-First generation is gated by an opt-in consent modal explaining the data flow.
+First generation is gated by an **opt-in consent modal** explaining the data flow.
 
 <p align="center">
   <img src="media/cards-review.apng" alt="Cards mode: Today's deck → Start review → answer correct + wrong, with verbatim source citations" width="460">
@@ -71,16 +97,18 @@ First generation is gated by an opt-in consent modal explaining the data flow.
 
 ---
 
-## Themes
+## 4 themes · 0 paid skin packs
 
-Four presets, every body-text contrast holds at WCAG-AA or better. Approve is always sage-green, Deny is always rose-red across all themes.
+All four hold body-text contrast at WCAG-AA or better. Approve is always sage-green, Deny is always rose-red — no matter the theme.
 
-- **Midnight Teal** 深海青夜 — cool dusk surfaces with teal accent (default)
-- **Amber Hearth** 暖夜炉火 — warm browns and amber, easy on the eyes after sundown
-- **Paper Light** 晨纸轻亮 — white surfaces, slate ink, calm accents — daytime use
-- **Aurora Indigo** 极光紫夜 — deep indigo with lavender + peach, cinematic
+| | | |
+|---|---|---|
+| **Midnight Teal** 深海青夜 | dark | cool dusk surfaces with teal accent (default) |
+| **Amber Hearth** 暖夜炉火 | dark | warm browns + amber, easy on eyes after sundown |
+| **Paper Light** 晨纸轻亮 | light | white surfaces, slate ink, calm accents — daytime |
+| **Aurora Indigo** 极光紫夜 | dark | deep indigo + lavender + peach, cinematic |
 
-The swatch button on the controls strip cycles through them; the previews in Settings → Companion let you pick directly.
+The swatch button on the controls strip cycles through them; the previews in **Settings → Companion** let you pick directly.
 
 <p align="center">
   <img src="media/themes-cycle.apng" alt="Cycling through the four theme presets" width="480">
@@ -88,32 +116,24 @@ The swatch button on the controls strip cycles through them; the previews in Set
 
 ---
 
-## Quick Start
+## 60-second start
 
-Requires Node.js 20+.
+> Requires **Node.js 20+** on Windows.
 
 ```powershell
 npm install
-npm run smoke
+npm run setup-user-hooks    # injects hooks into ~/.claude/settings.json (with backup)
+npm run doctor              # confirms install
 ```
 
-**Install hooks globally** so the bubble works in every Claude Code project:
+Two terminals:
 
 ```powershell
-npm run setup-user-hooks
-npm run doctor
+npm run daemon              # one terminal — http://127.0.0.1:4317
+npm run desktop             # another — the bubble
 ```
 
-`setup-user-hooks` merges the Companion `hooks` block into `%USERPROFILE%\.claude\settings.json`, preserves unrelated settings, and writes a timestamped backup before changes. Use `-- --dry-run` to preview, or `-- --uninstall` to remove only Companion-managed hooks.
-
-Run the daemon and bubble (two terminals):
-
-```powershell
-npm run daemon
-npm run desktop
-```
-
-That's it — open Claude Code in any directory; permission prompts now route through the bubble.
+That's it. Open Claude Code in any directory; permission prompts now route through the bubble.
 
 ### Kill-switch
 
@@ -135,40 +155,20 @@ $env:CCC_DISABLE_STATUS_HOOK  = "true"   # stop recording status hook events
 
 ## Hooks Companion installs
 
-Three Claude Code hooks, all merged into `~/.claude/settings.json` by `setup-user-hooks` (or per-project after `setup-hooks -- <path>`). Verify any time with:
-
-```powershell
-npm run doctor
-```
+Three Claude Code hooks, merged into `~/.claude/settings.json` by `setup-user-hooks` (or per-project after `setup-hooks -- <path>`). Verify install any time with `npm run doctor`.
 
 | Hook | Fires when | What it does | Mode |
 |---|---|---|---|
 | `PreToolUse` | Before every tool call (Bash, Edit, Write, …) | Routes Claude's permission prompt through the bubble's approval card; the approve / deny / answer reply goes back to Claude as the hook's exit decision | **blocking** — Claude waits for your decision |
 | `PermissionRequest` | On any explicit `ask` permission decision | Surfaces the request in the bubble, awaits decide / approve / deny / answer over WebSocket | **blocking** |
-| `Event` | On every Claude lifecycle event (`thinking`, `tool_started`, `tool_finished`, `done`, …) | Feeds session state to the bubble's status orb and the Live monitor session list | **non-blocking** — fire-and-forget, never delays Claude |
+| `Event` | On every Claude lifecycle event (`thinking`, `tool_started`, `tool_finished`, `done`, …) | Feeds session state to the bubble's status orb and the Live monitor session list | **non-blocking** — fire-and-forget |
 
-The hook scripts themselves live in [`packages/hooks/`](packages/hooks/) — they're plain Node entry points that POST to the local daemon and write the daemon's reply back to stdout in Claude's hook protocol. `setup-user-hooks` only writes a JSON entry pointing to them; nothing is bundled into Claude Code.
+Hook scripts themselves live in [`packages/hooks/`](packages/hooks/) — plain Node entry points that POST to the local daemon and write the daemon's reply back to stdout in Claude's hook protocol. `setup-user-hooks` only writes a JSON entry pointing to them; nothing is bundled into Claude Code.
 
-**Toggling individual hooks** (per-shell — affects the next Claude Code launched in that shell):
-
-```powershell
-$env:CCC_BYPASS_APPROVAL_HOOK = "true"   # PreToolUse + PermissionRequest fall through → Claude Code's native UI handles approvals
-$env:CCC_DISABLE_STATUS_HOOK  = "true"   # Event hook returns noop → bubble stops receiving status updates
-```
-
-**Hard disable everything** without uninstalling:
+**Uninstall** without touching your other hooks:
 
 ```powershell
-type nul > %USERPROFILE%\.claude-companion\disabled    # all hooks return noop on next fire
-del %USERPROFILE%\.claude-companion\disabled           # re-enable
-```
-
-The bubble's ⏻ button writes / removes the same sentinel file.
-
-**Uninstall**:
-
-```powershell
-npm run setup-user-hooks -- --uninstall   # removes only Companion-managed entries; leaves your other hooks alone
+npm run setup-user-hooks -- --uninstall
 ```
 
 ---
@@ -183,17 +183,17 @@ Local daemon — http://127.0.0.1:4317
 Electron bubble (renderer + main)
 ```
 
-HTTP endpoints used by the bubble (and any future client):
+HTTP endpoints (used by the bubble + any future client):
 
 ```
-/sessions                  list of active Claude Code sessions
+/sessions                  active Claude Code sessions
 /pending-requests          permission requests awaiting decision
 /permission-decisions      decision log
 /pairing-token             for the planned iPhone client
 ```
 
 <details>
-<summary>Per-project hook install (legacy — use only if you want hooks scoped to one repo)</summary>
+<summary><strong>Per-project hook install</strong> (legacy — only if you want hooks scoped to one repo)</summary>
 
 ```powershell
 npm run setup-hooks -- D:\path\to\project
@@ -204,7 +204,7 @@ npm run setup-hooks -- D:\path\to\project --disable
 </details>
 
 <details>
-<summary>Manual approval CLI (for headless / scripting use)</summary>
+<summary><strong>Manual approval CLI</strong> (headless / scripting)</summary>
 
 ```powershell
 npm run approve -- <requestId>
@@ -216,12 +216,26 @@ The Electron bubble does the same internally over WebSocket.
 </details>
 
 <details>
-<summary>Hook entry points</summary>
+<summary><strong>Hook entry points</strong></summary>
 
 ```powershell
 npm run hook:permission-request   # blocking — gates approvals
 npm run hook:event                # non-blocking — feeds status / context
 ```
+</details>
+
+<details>
+<summary><strong>Re-render the demo APNGs in this README</strong></summary>
+
+The animations on this page are auto-rendered from [`demo/bubble-mockup.html`](demo/bubble-mockup.html) by [`scripts/render-demos.js`](scripts/render-demos.js) — Playwright drives a headless Chromium through each sequence, ffmpeg crops + encodes APNG.
+
+```powershell
+winget install ffmpeg            # one-time
+npx playwright install chromium  # one-time
+npm run render-demos             # ~90 s, regenerates all 6 APNGs in media/
+```
+
+After every demo HTML change, just rerun `npm run render-demos`.
 </details>
 
 ---
@@ -230,12 +244,18 @@ npm run hook:event                # non-blocking — feeds status / context
 
 | Stage | What | Status |
 |---|---|---|
-| 0 | Technical approval spike (daemon + hook) | shipped |
-| 1 | Windows floating companion (5 modes + liquid morph) | shipped |
-| 1.5 | Knowledge Cards | **shipped — v1.2.0** |
-| 2 | Desktop personality layer | deferred |
-| 3 | iPhone client over local network | unbuilt |
-| 4 | Live Activity / Dynamic Island mirror | unbuilt |
-| 5 | Remote relay (use outside the same LAN) | unbuilt |
+| **0** | Approval daemon + hook spike | shipped |
+| **1** | Windows floating bubble (5 modes + liquid morph) | shipped |
+| **1.5** | Knowledge Cards (today / history / wrong-book / record · streak · heatmap picker · bilingual generator) | **shipped — v1.2.0** |
+| **2** | Desktop personality / pet layer | _deferred_ |
+| **3** | iPhone client over local network | _planned_ |
+| **4** | Live Activity / Dynamic Island mirror on iOS | _planned_ |
+| **5** | Remote relay (use outside the same LAN) | _planned_ |
 
 Stage 2 is re-evaluated only after 1.5 has seen real use.
+
+---
+
+<p align="center">
+  <sub>Made for Windows. iOS planned.<br>Built end-to-end with Claude Code itself — the recursion is the whole point.</sub>
+</p>
