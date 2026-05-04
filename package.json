@@ -46,10 +46,17 @@
       "!**/{__tests__,test,tests,coverage,docs,examples}"
     ],
     "extraResources": [],
+    "afterPack": "scripts/after-pack.js",
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
+      "icon": "build/icon.png",
       "signAndEditExecutable": false,
       "verifyUpdateCodeSignature": false
     },
@@ -69,6 +76,8 @@
   "devDependencies": {
     "electron": "^41.4.0",
     "electron-builder": "^25.1.8",
-    "playwright": "^1.49.0"
+    "playwright": "^1.49.0",
+    "png-to-ico": "^3.0.1",
+    "rcedit": "^5.0.2"
   }
 }
