@@ -131,42 +131,66 @@ async function renderOne(browser, seq) {
   if (!webms.length) throw new Error(`[${seq.name}] no webm produced`);
   const webmPath = path.join(TMP_DIR, webms[0].f);
 
-  // Encode to APNG. Crop to record-frame, scale to target width preserving
-  // aspect, fps cap, infinite loop (-plays 0). -predictor mixed keeps
-  // colour transitions smooth without ballooning size.
-  const outPath = path.join(OUT_DIR, seq.output);
-  process.stdout.write("encoding… ");
-  const ff = spawnSync(
+  // The same crop/scale filter chain feeds both encoders below.
+  const baseFilter =
+    `crop=${cropRect.w}:${cropRect.h}:${cropRect.x}:${cropRect.y},` +
+    `fps=${seq.fps},scale=${seq.width}:-1:flags=lanczos`;
+
+  // 1) APNG — full 24-bit colour, infinite loop. -pred mixed keeps colour
+  //    transitions smooth without ballooning size.
+  const apngPath = path.join(OUT_DIR, seq.output);
+  process.stdout.write("apng… ");
+  const ffApng = spawnSync(
     "ffmpeg",
     [
-      "-y",
-      "-i", webmPath,
-      "-vf",
-      `crop=${cropRect.w}:${cropRect.h}:${cropRect.x}:${cropRect.y},` +
-      `fps=${seq.fps},scale=${seq.width}:-1:flags=lanczos`,
+      "-y", "-i", webmPath,
+      "-vf", baseFilter,
       "-plays", "0",
       "-pred", "mixed",
-      outPath,
+      apngPath,
+    ],
+    { stdio: "ignore" }
+  );
+
+  // 2) GIF — same dims, palette generated from the clip itself for the
+  //    best possible 256-colour approximation. Floyd-Steinberg dither
+  //    smooths the OKLCH gradients GIF can't represent natively.
+  const gifPath = apngPath.replace(/\.apng$/, ".gif");
+  process.stdout.write("gif… ");
+  const ffGif = spawnSync(
+    "ffmpeg",
+    [
+      "-y", "-i", webmPath,
+      "-vf",
+      `${baseFilter},split[s0][s1];` +
+      `[s0]palettegen=stats_mode=diff[p];` +
+      `[s1][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle`,
+      "-loop", "0",
+      gifPath,
     ],
     { stdio: "ignore" }
   );
 
   fs.unlinkSync(webmPath);
 
-  if (ff.status !== 0) {
-    console.error(`\n[${seq.name}] ffmpeg failed (exit ${ff.status})`);
+  if (ffApng.status !== 0) {
+    console.error(`\n[${seq.name}] apng ffmpeg failed (exit ${ffApng.status})`);
     return null;
   }
+  if (ffGif.status !== 0) {
+    console.error(`\n[${seq.name}] gif ffmpeg failed (exit ${ffGif.status})`);
+  }
 
-  const sizeMB = fs.statSync(outPath).size / 1024 / 1024;
+  const apngMB = fs.statSync(apngPath).size / 1024 / 1024;
+  const gifMB =
+    ffGif.status === 0 && fs.existsSync(gifPath)
+      ? fs.statSync(gifPath).size / 1024 / 1024
+      : 0;
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   console.log(
-    `done · ${sizeMB.toFixed(2)} MB · ${elapsed}s → ${path.relative(
-      PROJECT_ROOT,
-      outPath
-    )}`
+    `done · apng ${apngMB.toFixed(2)} MB · gif ${gifMB.toFixed(2)} MB · ${elapsed}s`
   );
-  return outPath;
+  return apngPath;
 }
 
 async function main() {
