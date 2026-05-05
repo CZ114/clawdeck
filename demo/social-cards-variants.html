@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibedog-for-agents · 3 套科技风对比</title>
+  <style>
+    /* ============================================================
+       Common scaffolding — page chrome + card frame.
+       Bubble form is preserved across variants; only tokens differ.
+       ============================================================ */
+    @property --ring { syntax: "<percentage>"; inherits: true; initial-value: 60%; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #15171c;
+      color: oklch(82% 0 0);
+      font-family: "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+      letter-spacing: 0.005em;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Toolbar (excluded from screenshot) ─── */
+    .bar {
+      position: sticky; top: 0; z-index: 50;
+      background: oklch(13% 0 0 / 0.94);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid oklch(100% 0 0 / 0.06);
+      padding: 14px 28px;
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+      font-size: 13px; color: oklch(70% 0 0);
+    }
+    .bar strong {
+      color: oklch(94% 0 0); font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase; font-size: 11.5px;
+    }
+    .bar .dot { width: 4px; height: 4px; border-radius: 50%; background: oklch(45% 0 0); }
+    .bar .hint { color: oklch(55% 0 0); margin-left: auto; }
+
+    /* ─── Variant section ─── */
+    .variant-section {
+      max-width: 1280px; margin: 0 auto;
+      padding: 80px 40px 80px;
+    }
+    .variant-section + .variant-section { padding-top: 0; }
+    .variant-head {
+      max-width: 1080px; margin: 0 auto 40px;
+      display: flex; align-items: flex-end; gap: 22px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid oklch(100% 0 0 / 0.08);
+    }
+    .variant-head .label {
+      font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+      font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: oklch(50% 0 0);
+    }
+    .variant-head h2 {
+      font-family: "PingFang SC", system-ui, sans-serif;
+      font-size: 34px; font-weight: 700; color: oklch(96% 0 0);
+      letter-spacing: -0.005em;
+    }
+    .variant-head .meta {
+      margin-left: auto; font-size: 13px; color: oklch(60% 0 0);
+      font-family: "JetBrains Mono", monospace;
+      text-align: right; line-height: 1.7;
+    }
+    .variant-head .swatches {
+      display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end;
+    }
+    .variant-head .sw {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1px solid oklch(100% 0 0 / 0.14);
+    }
+
+    .pair {
+      max-width: 1080px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 56px;
+    }
+    .slot { display: flex; flex-direction: column; gap: 10px; }
+    .slot-meta {
+      font-family: "JetBrains Mono", monospace; font-size: 11px;
+      color: oklch(50% 0 0); letter-spacing: 0.1em; text-transform: uppercase;
+      text-align: center;
+    }
+    .slot-meta b { color: oklch(80% 0 0); }
+
+    /* ─── Card frame (shared 1080×1440) ─── */
+    .card {
+      width: 1080px; height: 1440px;
+      position: relative; overflow: hidden;
+      border-radius: 4px;
+      box-shadow: 0 30px 80px -30px oklch(0% 0 0 / 0.7);
+    }
+    .card .body {
+      position: relative; z-index: 2;
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      padding: 96px 88px 88px;
+    }
+    .card .corners > i {
+      position: absolute; width: 22px; height: 22px;
+      border: 1.5px solid currentColor; opacity: 0.5;
+      pointer-events: none;
+    }
+    .card .corners > i.tl { top: 36px; left: 36px; border-right: 0; border-bottom: 0; }
+    .card .corners > i.tr { top: 36px; right: 36px; border-left: 0; border-bottom: 0; }
+    .card .corners > i.bl { bottom: 36px; left: 36px; border-right: 0; border-top: 0; }
+    .card .corners > i.br { bottom: 36px; right: 36px; border-left: 0; border-top: 0; }
+
+    /* ============================================================
+       SHARED BUBBLE — 同一形态，三套配色都用它。
+       变体通过 :root 上的 token 控制：
+         --bubble-surface · --bubble-shadow ·
+         --orb-fill · --orb-track · --orb-inner ·
+         --bubble-text
+       ============================================================ */
+    .bubble {
+      display: inline-flex; align-items: center; gap: 14px;
+      padding: 12px 22px 12px 14px;
+      height: 80px;
+      width: max-content;
+      border-radius: 999px;
+      background: var(--bubble-surface);
+      box-shadow: var(--bubble-shadow);
+      flex-shrink: 0;
+    }
+    .bubble .orb {
+      --p: 60%;
+      width: 50px; height: 50px; border-radius: 50%;
+      position: relative;
+      background: conic-gradient(from 220deg,
+        var(--orb-fill) 0%,
+        var(--orb-fill) var(--p),
+        var(--orb-track) var(--p));
+      display: grid; place-items: center;
+    }
+    .bubble .orb::before {
+      content: ""; position: absolute; inset: 5px;
+      border-radius: 50%;
+      background: var(--orb-inner);
+    }
+    .bubble .orb .glyph {
+      position: relative; z-index: 1;
+      font-size: 22px;
+    }
+    .bubble .label {
+      font-family: var(--bubble-font, "Segoe UI Variable Display", "Inter", system-ui, sans-serif);
+      font-size: 22px; font-weight: 500;
+      color: var(--bubble-text);
+      white-space: nowrap;
+      letter-spacing: 0.005em;
+    }
+
+    /* ============================================================
+       VARIANT A · 冰川钢蓝 (Glacial Steel)
+       Mood: refined, monochrome, Apple-keynote-grade restraint.
+       ============================================================ */
+    .va {
+      --bg:        oklch(13% 0.018 245);
+      --bg-2:      oklch(15% 0.020 245);
+      --surface-1: oklch(18% 0.022 245);
+      --surface-2: oklch(22% 0.026 245);
+      --inner:     oklch(11% 0.014 245);
+      --line:      oklch(100% 0.014 240 / 0.10);
+      --line-2:    oklch(100% 0.014 240 / 0.05);
+      --ink-0:     oklch(96% 0.012 240);
+      --ink-1:     oklch(74% 0.014 240);
+      --ink-2:     oklch(54% 0.014 240);
+      --ink-3:     oklch(40% 0.012 240);
+      --accent:    oklch(82% 0.09 230);
+      --accent-soft: oklch(82% 0.09 230 / 0.16);
+
+      --bubble-surface: var(--surface-1);
+      --bubble-text:    var(--ink-0);
+      --bubble-shadow:
+        0 24px 60px -22px oklch(0% 0 0 / 0.7),
+        0 1px 0 inset oklch(100% 0.014 240 / 0.10),
+        0 -1px 0 inset oklch(0% 0 0 / 0.45),
+        0 0 0 1px inset oklch(100% 0.014 240 / 0.05);
+      --orb-fill: var(--accent);
+      --orb-track: oklch(100% 0.014 240 / 0.06);
+      --orb-inner: var(--surface-1);
+
+      background: var(--bg);
+      color: var(--ink-0);
+      font-family: "Inter", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+    }
+    .va .ambient {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        radial-gradient(ellipse 700px 600px at 0% 0%,
+          oklch(20% 0.03 230 / 1) 0%, transparent 60%),
+        radial-gradient(ellipse 800px 700px at 100% 100%,
+          oklch(18% 0.025 250 / 1) 0%, transparent 60%);
+    }
+    .va .corners { color: var(--accent); }
+
+    .va .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+      font-size: 12.5px; letter-spacing: 0.06em;
+      color: var(--ink-2);
+    }
+    .va .top-bar .brand {
+      display: flex; align-items: center; gap: 12px;
+      color: var(--ink-0); font-weight: 600;
+      letter-spacing: 0.005em;
+    }
+    .va .top-bar .brand .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+    }
+    .va .top-bar .nb b { color: var(--ink-0); font-weight: 700; }
+
+    /* — A · COVER — */
+    .va.s-cover .eyebrow {
+      margin-top: 70px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--accent); font-weight: 600;
+    }
+    .va.s-cover h1 {
+      margin-top: 26px;
+      font-weight: 800; font-size: 132px; line-height: 0.96;
+      letter-spacing: -0.035em;
+      color: var(--ink-0);
+    }
+    .va.s-cover h1 .accent {
+      color: var(--accent);
+    }
+    .va.s-cover .deck {
+      margin-top: 36px;
+      font-size: 26px; line-height: 1.5;
+      color: var(--ink-1);
+      max-width: 800px;
+      font-weight: 400;
+    }
+    .va.s-cover .deck b { color: var(--ink-0); font-weight: 600; }
+    .va.s-cover .show {
+      margin-top: auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+    }
+    .va.s-cover .show .col {
+      padding: 22px 24px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background:
+        linear-gradient(180deg, oklch(100% 0.014 240 / 0.025), transparent 60%),
+        oklch(100% 0.014 240 / 0.012);
+    }
+    .va.s-cover .show .col .lbl {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--ink-2);
+      margin-bottom: 14px;
+    }
+    .va.s-cover .footer {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12.5px; letter-spacing: 0.06em;
+      color: var(--ink-2);
+    }
+    .va.s-cover .footer b { color: var(--ink-0); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+
+    /* — A · KNOWLEDGE CARDS — */
+    .va.s-cards .eyebrow {
+      margin-top: 56px;
+      display: inline-flex; align-items: center; gap: 14px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--accent); font-weight: 600;
+      align-self: flex-start;
+    }
+    .va.s-cards .eyebrow::before {
+      content: ""; width: 28px; height: 1.5px;
+      background: var(--accent);
+    }
+    .va.s-cards h1 {
+      margin-top: 22px;
+      font-weight: 800; font-size: 92px; line-height: 1.0;
+      letter-spacing: -0.025em;
+    }
+    .va.s-cards h1 .accent { color: var(--accent); }
+    .va.s-cards .deck {
+      margin-top: 22px;
+      font-size: 21px; line-height: 1.55;
+      color: var(--ink-1); max-width: 880px;
+    }
+    .va.s-cards .deck b { color: var(--ink-0); font-weight: 600; }
+
+    .va.s-cards .quiz {
+      margin-top: 32px;
+      padding: 28px 30px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, oklch(100% 0.014 240 / 0.025), transparent 70%),
+        var(--surface-1);
+    }
+    .va.s-cards .quiz-head {
+      display: flex; align-items: center; gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line-2);
+      margin-bottom: 22px;
+    }
+    .va.s-cards .quiz-head .nbr {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; color: var(--ink-1);
+      letter-spacing: 0.06em;
+    }
+    .va.s-cards .quiz-head .diff {
+      margin-left: auto;
+      padding: 4px 12px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+      font-weight: 700;
+      border-radius: 4px;
+      background: var(--accent-soft);
+    }
+    .va.s-cards .quiz-q {
+      font-size: 26px; font-weight: 600; line-height: 1.4;
+      letter-spacing: -0.005em;
+      color: var(--ink-0);
+    }
+    .va.s-cards .quiz-q code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 21px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 2px 8px; border-radius: 5px;
+      font-weight: 600;
+    }
+    .va.s-cards .quiz-src {
+      margin-top: 12px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12.5px; letter-spacing: 0.04em;
+      color: var(--ink-2);
+    }
+    .va.s-cards .quiz-src b {
+      background: var(--surface-2); color: var(--ink-1);
+      padding: 2px 8px; margin-right: 10px;
+      border-radius: 4px;
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      font-weight: 700;
+    }
+    .va.s-cards .quiz-opts {
+      margin-top: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .va.s-cards .opt {
+      padding: 14px 18px;
+      background: var(--inner);
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      display: flex; align-items: center; gap: 16px;
+      font-size: 17px; color: var(--ink-1); line-height: 1.4;
+    }
+    .va.s-cards .opt .key {
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700; font-size: 13px;
+      background: var(--surface-2); color: var(--ink-1);
+      border-radius: 6px; flex-shrink: 0;
+    }
+    .va.s-cards .opt.right {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--ink-0);
+    }
+    .va.s-cards .opt.right .key {
+      background: var(--accent); color: var(--inner);
+    }
+    .va.s-cards .chip-row {
+      margin-top: 26px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .va.s-cards .chip {
+      padding: 7px 14px;
+      border: 1px solid var(--line);
+      background: oklch(100% 0.014 240 / 0.025);
+      color: var(--ink-1);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; letter-spacing: 0.04em;
+      border-radius: 999px;
+    }
+    .va.s-cards .privacy {
+      margin-top: 22px;
+      padding: 16px 20px;
+      border: 1px solid var(--line-2);
+      border-radius: 12px;
+      background: var(--inner);
+      display: flex; align-items: center; gap: 14px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px; color: var(--ink-1); line-height: 1.5;
+    }
+    .va.s-cards .privacy b { color: var(--ink-0); font-weight: 700; }
+    .va.s-cards .privacy .lk { color: var(--accent); font-weight: 700; }
+
+    .va.s-cards .footer {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12.5px; letter-spacing: 0.06em;
+      color: var(--ink-2);
+    }
+    .va.s-cards .footer b { color: var(--ink-0); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+
+    /* ============================================================
+       VARIANT B · 墨黑奶油 (Carbon Cream)
+       Mood: warm-dark, premium, Anthropic-style.
+       ============================================================ */
+    .vb {
+      --bg:        oklch(14% 0.010 50);
+      --bg-2:      oklch(16% 0.012 50);
+      --surface-1: oklch(20% 0.012 50);
+      --surface-2: oklch(24% 0.014 50);
+      --inner:     oklch(11% 0.008 50);
+      --line:      oklch(80% 0.020 60 / 0.12);
+      --line-2:    oklch(80% 0.020 60 / 0.06);
+      --ink-0:     oklch(94% 0.022 80);
+      --ink-1:     oklch(72% 0.020 70);
+      --ink-2:     oklch(52% 0.018 60);
+      --ink-3:     oklch(40% 0.014 60);
+      --accent:    oklch(78% 0.13 65);
+      --accent-soft: oklch(78% 0.13 65 / 0.16);
+      --accent-deep: oklch(58% 0.14 55);
+
+      --bubble-surface: var(--surface-1);
+      --bubble-text:    var(--ink-0);
+      --bubble-shadow:
+        0 24px 60px -22px oklch(0% 0 0 / 0.7),
+        0 1px 0 inset oklch(100% 0.020 80 / 0.08),
+        0 -1px 0 inset oklch(0% 0 0 / 0.45),
+        0 0 0 1px inset oklch(100% 0.020 80 / 0.05);
+      --orb-fill: var(--accent);
+      --orb-track: oklch(100% 0.020 80 / 0.06);
+      --orb-inner: var(--surface-1);
+
+      background: var(--bg);
+      color: var(--ink-0);
+      font-family: "Inter", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+    }
+    .vb .ambient {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        radial-gradient(ellipse 800px 700px at 100% 0%,
+          oklch(30% 0.05 65 / 1) 0%, transparent 65%),
+        radial-gradient(ellipse 600px 500px at 0% 100%,
+          oklch(22% 0.04 60 / 1) 0%, transparent 60%);
+    }
+    .vb .corners { color: var(--accent); }
+
+    .vb .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12.5px; letter-spacing: 0.06em;
+      color: var(--ink-2);
+    }
+    .vb .top-bar .brand {
+      display: flex; align-items: center; gap: 12px;
+      color: var(--ink-0); font-weight: 600;
+    }
+    .vb .top-bar .brand .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+    }
+    .vb .top-bar .nb b { color: var(--ink-0); font-weight: 700; }
+
+    /* — B · COVER — */
+    .vb.s-cover .eyebrow {
+      margin-top: 70px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--accent); font-weight: 600;
+    }
+    .vb.s-cover h1 {
+      margin-top: 26px;
+      font-family: "Iowan Old Style", "Source Serif 4", "Songti SC", "STSong", serif;
+      font-weight: 700; font-size: 138px; line-height: 0.96;
+      letter-spacing: -0.025em;
+      color: var(--ink-0);
+    }
+    .vb.s-cover h1 .accent {
+      font-style: italic; font-weight: 400;
+      color: var(--accent);
+    }
+    .vb.s-cover .deck {
+      margin-top: 38px;
+      font-size: 26px; line-height: 1.55;
+      color: var(--ink-1);
+      max-width: 800px;
+      font-weight: 400;
+    }
+    .vb.s-cover .deck b { color: var(--ink-0); font-weight: 600; }
+    .vb.s-cover .show {
+      margin-top: auto;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .vb.s-cover .footer {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12.5px; letter-spacing: 0.06em;
+      color: var(--ink-2);
+    }
+    .vb.s-cover .footer b { color: var(--ink-0); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+    .vb.s-cover .footer .arrow { color: var(--accent); font-weight: 700; }
+
+    /* — B · KNOWLEDGE CARDS — */
+    .vb.s-cards .eyebrow {
+      margin-top: 56px;
+      display: inline-flex; align-items: center; gap: 14px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--accent); font-weight: 600;
+      align-self: flex-start;
+    }
+    .vb.s-cards .eyebrow::before {
+      content: ""; width: 28px; height: 1.5px;
+      background: var(--accent);
+    }
+    .vb.s-cards h1 {
+      margin-top: 22px;
+      font-family: "Iowan Old Style", "Source Serif 4", "Songti SC", "STSong", serif;
+      font-weight: 700; font-size: 94px; line-height: 1.0;
+      letter-spacing: -0.02em;
+    }
+    .vb.s-cards h1 .accent {
+      font-style: italic; color: var(--accent);
+    }
+    .vb.s-cards .deck {
+      margin-top: 22px;
+      font-size: 21px; line-height: 1.6;
+      color: var(--ink-1); max-width: 880px;
+    }
+    .vb.s-cards .deck b { color: var(--ink-0); font-weight: 600; }
+    .vb.s-cards .deck em { color: var(--accent); font-style: normal; font-weight: 600; }
+
+    .vb.s-cards .quiz {
+      margin-top: 32px;
+      padding: 28px 30px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, oklch(100% 0.020 80 / 0.025), transparent 70%),
+        var(--surface-1);
+    }
+    .vb.s-cards .quiz-head {
+      display: flex; align-items: center; gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line-2);
+      margin-bottom: 22px;
+    }
+    .vb.s-cards .quiz-head .nbr {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; color: var(--ink-1); letter-spacing: 0.06em;
+    }
+    .vb.s-cards .quiz-head .diff {
+      margin-left: auto;
+      padding: 4px 12px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+      font-weight: 700;
+      border-radius: 999px;
+    }
+    .vb.s-cards .quiz-q {
+      font-family: "Iowan Old Style", "Source Serif 4", "Songti SC", serif;
+      font-size: 27px; font-weight: 600; line-height: 1.4;
+      color: var(--ink-0);
+    }
+    .vb.s-cards .quiz-q code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 21px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 2px 8px; border-radius: 5px;
+      font-weight: 600;
+    }
+    .vb.s-cards .quiz-src {
+      margin-top: 12px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12.5px; color: var(--ink-2);
+    }
+    .vb.s-cards .quiz-src b {
+      background: var(--surface-2); color: var(--ink-1);
+      padding: 2px 8px; margin-right: 10px;
+      border-radius: 4px;
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      font-weight: 700;
+    }
+    .vb.s-cards .quiz-opts {
+      margin-top: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .vb.s-cards .opt {
+      padding: 14px 18px;
+      background: var(--inner);
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      display: flex; align-items: center; gap: 16px;
+      font-size: 17px; color: var(--ink-1); line-height: 1.4;
+    }
+    .vb.s-cards .opt .key {
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700; font-size: 13px;
+      background: var(--surface-2); color: var(--ink-1);
+      border-radius: 6px; flex-shrink: 0;
+    }
+    .vb.s-cards .opt.right {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--ink-0);
+    }
+    .vb.s-cards .opt.right .key {
+      background: var(--accent); color: oklch(20% 0.04 60);
+    }
+    .vb.s-cards .chip-row {
+      margin-top: 26px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .vb.s-cards .chip {
+      padding: 7px 14px;
+      border: 1px solid var(--line);
+      background: oklch(100% 0.020 80 / 0.025);
+      color: var(--ink-1);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; letter-spacing: 0.04em;
+      border-radius: 999px;
+    }
+    .vb.s-cards .privacy {
+      margin-top: 22px;
+      padding: 16px 20px;
+      border: 1px solid var(--line-2);
+      border-radius: 12px;
+      background: var(--inner);
+      display: flex; align-items: center; gap: 14px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px; color: var(--ink-1); line-height: 1.5;
+    }
+    .vb.s-cards .privacy b { color: var(--ink-0); font-weight: 700; }
+    .vb.s-cards .privacy .lk { color: var(--accent); font-weight: 700; font-size: 16px; }
+    .vb.s-cards .footer {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12.5px; letter-spacing: 0.06em;
+      color: var(--ink-2);
+    }
+    .vb.s-cards .footer b { color: var(--ink-0); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+
+    /* ============================================================
+       VARIANT C · 蓝图工程 (Engineering Blueprint)
+       Mood: technical drawing, CAD, monospace annotations.
+       ============================================================ */
+    .vc {
+      --bg:        oklch(15% 0.040 250);
+      --bg-2:      oklch(17% 0.045 250);
+      --surface-1: oklch(20% 0.050 250);
+      --surface-2: oklch(24% 0.052 250);
+      --inner:     oklch(12% 0.030 250);
+      --line:      oklch(85% 0.020 220 / 0.14);
+      --line-2:    oklch(85% 0.020 220 / 0.07);
+      --ink-0:     oklch(95% 0.018 220);
+      --ink-1:     oklch(74% 0.020 220);
+      --ink-2:     oklch(54% 0.020 220);
+      --ink-3:     oklch(40% 0.018 220);
+      --accent:    oklch(78% 0.13 215);
+      --accent-soft: oklch(78% 0.13 215 / 0.18);
+
+      --bubble-surface: var(--surface-1);
+      --bubble-text:    var(--ink-0);
+      --bubble-shadow:
+        0 24px 60px -22px oklch(0% 0 0 / 0.7),
+        0 1px 0 inset oklch(100% 0.018 220 / 0.10),
+        0 -1px 0 inset oklch(0% 0 0 / 0.45),
+        0 0 0 1px inset oklch(100% 0.018 220 / 0.05);
+      --orb-fill: var(--accent);
+      --orb-track: oklch(100% 0.018 220 / 0.06);
+      --orb-inner: var(--surface-1);
+
+      background: var(--bg);
+      color: var(--ink-0);
+      font-family: "Inter", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+    }
+    .vc .ambient {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        radial-gradient(ellipse 700px 600px at 50% 0%,
+          oklch(22% 0.06 240 / 0.8) 0%, transparent 65%);
+    }
+    .vc .blueprint-grid {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(to right, oklch(100% 0.018 220 / 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, oklch(100% 0.018 220 / 0.04) 1px, transparent 1px),
+        linear-gradient(to right, oklch(100% 0.018 220 / 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, oklch(100% 0.018 220 / 0.08) 1px, transparent 1px);
+      background-size: 30px 30px, 30px 30px, 150px 150px, 150px 150px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 50%, transparent 100%);
+    }
+    .vc .corners { color: var(--accent); }
+
+    .vc .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: oklch(100% 0.018 220 / 0.02);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11.5px; letter-spacing: 0.08em;
+      color: var(--ink-2); text-transform: uppercase;
+    }
+    .vc .top-bar .brand {
+      display: flex; align-items: center; gap: 10px;
+      color: var(--accent); font-weight: 700;
+      letter-spacing: 0.1em;
+    }
+    .vc .top-bar .brand::before {
+      content: ""; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+    .vc .top-bar .specs {
+      display: flex; gap: 18px;
+    }
+    .vc .top-bar .specs span b { color: var(--ink-0); font-weight: 700; }
+
+    /* — C · COVER — */
+    .vc.s-cover .annot-box {
+      margin-top: 56px;
+      padding: 12px 16px;
+      border: 1px dashed var(--accent);
+      border-radius: 4px;
+      display: inline-flex; gap: 14px; align-items: baseline;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11.5px; color: var(--ink-2);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      align-self: flex-start;
+    }
+    .vc.s-cover .annot-box .tag {
+      color: var(--accent); font-weight: 700;
+    }
+    .vc.s-cover h1 {
+      margin-top: 28px;
+      font-weight: 800; font-size: 132px; line-height: 0.96;
+      letter-spacing: -0.035em;
+      color: var(--ink-0);
+    }
+    .vc.s-cover h1 .accent { color: var(--accent); }
+    .vc.s-cover h1 .underline {
+      position: relative; display: inline-block;
+    }
+    .vc.s-cover h1 .underline::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -8px;
+      height: 4px; background: var(--accent);
+    }
+    .vc.s-cover .deck {
+      margin-top: 36px;
+      font-size: 26px; line-height: 1.5;
+      color: var(--ink-1); max-width: 800px;
+    }
+    .vc.s-cover .deck b { color: var(--ink-0); font-weight: 600; }
+    .vc.s-cover .show {
+      margin-top: auto;
+      display: flex; flex-direction: column; gap: 14px;
+      align-self: stretch;
+    }
+    .vc.s-cover .show .meas {
+      display: flex; align-items: center; gap: 14px;
+      padding-left: 20px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; color: var(--ink-2);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .vc.s-cover .show .meas::before {
+      content: ""; width: 8px; height: 8px;
+      border-left: 1px solid var(--accent);
+      border-bottom: 1px solid var(--accent);
+    }
+    .vc.s-cover .show .meas b { color: var(--accent); font-weight: 700; letter-spacing: 0.06em; text-transform: none; }
+    .vc.s-cover .footer {
+      margin-top: 22px;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: oklch(100% 0.018 220 / 0.02);
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-2);
+    }
+    .vc.s-cover .footer b { color: var(--ink-0); font-weight: 700; letter-spacing: 0.14em; }
+    .vc.s-cover .footer .arrow { color: var(--accent); font-weight: 700; letter-spacing: 0.16em; }
+
+    /* — C · KNOWLEDGE CARDS — */
+    .vc.s-cards .eyebrow {
+      margin-top: 50px;
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 6px 12px;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      background: var(--accent-soft);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--accent); font-weight: 700;
+      align-self: flex-start;
+    }
+    .vc.s-cards h1 {
+      margin-top: 22px;
+      font-weight: 800; font-size: 92px; line-height: 1.0;
+      letter-spacing: -0.025em;
+    }
+    .vc.s-cards h1 .accent { color: var(--accent); }
+    .vc.s-cards h1 .underline {
+      position: relative; display: inline-block;
+    }
+    .vc.s-cards h1 .underline::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -6px;
+      height: 3px; background: var(--accent);
+    }
+    .vc.s-cards .deck {
+      margin-top: 22px;
+      font-size: 21px; line-height: 1.55;
+      color: var(--ink-1); max-width: 880px;
+    }
+    .vc.s-cards .deck b { color: var(--ink-0); font-weight: 600; }
+    .vc.s-cards .deck em { color: var(--accent); font-style: normal; font-weight: 600; }
+
+    .vc.s-cards .quiz {
+      margin-top: 30px;
+      padding: 28px 30px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      background:
+        linear-gradient(180deg, oklch(100% 0.018 220 / 0.02), transparent 70%),
+        var(--surface-1);
+      position: relative;
+    }
+    .vc.s-cards .quiz::before {
+      content: "// CARD MOCKUP — RENDERED FROM SESSION TRANSCRIPT";
+      position: absolute; top: -10px; left: 24px;
+      padding: 0 10px;
+      background: var(--bg);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10.5px; color: var(--accent);
+      letter-spacing: 0.14em; font-weight: 700;
+    }
+    .vc.s-cards .quiz-head {
+      display: flex; align-items: center; gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px dashed var(--line);
+      margin-bottom: 22px;
+    }
+    .vc.s-cards .quiz-head .nbr {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; color: var(--ink-1);
+      letter-spacing: 0.06em;
+    }
+    .vc.s-cards .quiz-head .diff {
+      margin-left: auto;
+      padding: 4px 12px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+      font-weight: 700;
+      border-radius: 4px;
+    }
+    .vc.s-cards .quiz-q {
+      font-size: 26px; font-weight: 600; line-height: 1.4;
+      color: var(--ink-0);
+      letter-spacing: -0.005em;
+    }
+    .vc.s-cards .quiz-q code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 21px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 2px 8px; border-radius: 4px;
+      font-weight: 600;
+    }
+    .vc.s-cards .quiz-src {
+      margin-top: 12px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12.5px; color: var(--ink-2);
+    }
+    .vc.s-cards .quiz-src b {
+      background: var(--accent); color: var(--inner);
+      padding: 2px 8px; margin-right: 10px;
+      border-radius: 3px;
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      font-weight: 700;
+    }
+    .vc.s-cards .quiz-opts {
+      margin-top: 22px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .vc.s-cards .opt {
+      padding: 14px 18px;
+      background: var(--inner);
+      border: 1px solid var(--line-2);
+      border-radius: 6px;
+      display: flex; align-items: center; gap: 16px;
+      font-size: 17px; color: var(--ink-1); line-height: 1.4;
+    }
+    .vc.s-cards .opt .key {
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700; font-size: 13px;
+      background: var(--surface-2); color: var(--ink-1);
+      border-radius: 4px; flex-shrink: 0;
+      border: 1px solid var(--line);
+    }
+    .vc.s-cards .opt.right {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--ink-0);
+    }
+    .vc.s-cards .opt.right .key {
+      background: var(--accent); color: var(--inner); border-color: var(--accent);
+    }
+    .vc.s-cards .chip-row {
+      margin-top: 26px;
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .vc.s-cards .chip {
+      padding: 6px 12px;
+      border: 1px dashed var(--line);
+      background: oklch(100% 0.018 220 / 0.025);
+      color: var(--ink-1);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; letter-spacing: 0.06em;
+      border-radius: 4px;
+    }
+    .vc.s-cards .privacy {
+      margin-top: 22px;
+      padding: 16px 20px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--inner);
+      display: flex; align-items: center; gap: 14px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px; color: var(--ink-1); line-height: 1.5;
+    }
+    .vc.s-cards .privacy b { color: var(--ink-0); font-weight: 700; }
+    .vc.s-cards .privacy .lk { color: var(--accent); font-weight: 700; font-size: 16px; }
+    .vc.s-cards .footer {
+      margin-top: auto;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: oklch(100% 0.018 220 / 0.02);
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-2);
+    }
+    .vc.s-cards .footer b { color: var(--ink-0); font-weight: 700; letter-spacing: 0.14em; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <strong>Vibedog-for-agents · 3 套科技风</strong>
+    <span class="dot"></span>
+    <span>气泡形式保留 · 同样的文案换 3 套色板</span>
+    <span class="hint">挑一个我把全部 8 张铺开</span>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       VARIANT A · 冰川钢蓝
+       ════════════════════════════════════════════════ -->
+  <section class="variant-section">
+    <div class="variant-head">
+      <div>
+        <div class="label">Variant A</div>
+        <h2>冰川钢蓝 · Glacial Steel</h2>
+      </div>
+      <div class="meta">
+        Apple keynote / Linear 暗模式 · 单一冰蓝
+        <div class="swatches">
+          <span class="sw" style="background: oklch(13% 0.018 245);"></span>
+          <span class="sw" style="background: oklch(22% 0.026 245);"></span>
+          <span class="sw" style="background: oklch(82% 0.09 230);"></span>
+          <span class="sw" style="background: oklch(96% 0.012 240);"></span>
+        </div>
+      </div>
+    </div>
+    <div class="pair">
+      <!-- A · COVER -->
+      <div class="slot">
+        <div class="card va s-cover">
+          <div class="ambient"></div>
+          <div class="corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+          <div class="body">
+            <div class="top-bar">
+              <div class="brand"><span class="dot"></span>Vibedog · for agents</div>
+              <div class="nb"><b>01</b> / 08 · cover</div>
+            </div>
+
+            <div class="eyebrow">— Claude Code Companion</div>
+            <h1>给 Claude Code<br>配个<span class="accent">桌面搭子</span></h1>
+            <div class="deck">
+              一个浮在屏幕角落的小气泡 ——<br>
+              <b>替你管权限</b>，<b>替你看状态</b>，<br>
+              还把昨天的会话变成明天的<b>知识卡片</b>。
+            </div>
+
+            <div class="show">
+              <div class="col">
+                <div class="lbl">Compact · idle</div>
+                <div class="bubble">
+                  <span class="orb" style="--p: 35%;"><span class="glyph">💤</span></span>
+                  <span class="label">Idle</span>
+                </div>
+              </div>
+              <div class="col">
+                <div class="lbl">Running · 70% ctx</div>
+                <div class="bubble">
+                  <span class="orb" style="--p: 70%;"><span class="glyph">⚙️</span></span>
+                  <span class="label">Running tool</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <span><b>WINDOWS</b> · node 20+ · open source</span>
+              <span>swipe →</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot-meta">A · cover · 1080 × 1440</div>
+      </div>
+
+      <!-- A · KNOWLEDGE CARDS -->
+      <div class="slot">
+        <div class="card va s-cards">
+          <div class="ambient"></div>
+          <div class="corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+          <div class="body">
+            <div class="top-bar">
+              <div class="brand"><span class="dot"></span>Vibedog · for agents</div>
+              <div class="nb"><b>05</b> / 08 · cards</div>
+            </div>
+
+            <div class="eyebrow">Knowledge Cards · 知识卡片</div>
+            <h1>昨天的会话<br><span class="accent">明天考你一遍</span></h1>
+            <div class="deck">
+              每天<b>从 Claude Code 的 transcript 自动生成卡片</b>，
+              每张都引用真实会话原文行 ——
+              对不上号的卡片直接丢掉，<b>绝不瞎编</b>。
+            </div>
+
+            <div class="quiz">
+              <div class="quiz-head">
+                <span class="nbr">Card 3 / 5</span>
+                <span class="diff">medium</span>
+              </div>
+              <div class="quiz-q">气泡的 BrowserWindow 为什么要设 <code>thickFrame: false</code>？</div>
+              <div class="quiz-src"><b>source</b>session 2026-05-03 · main.js:962</div>
+              <div class="quiz-opts">
+                <div class="opt"><span class="key">A</span>Mac-only flag，对 Windows 没影响</div>
+                <div class="opt right"><span class="key">B</span>Win11 会给透明 frameless 窗口画一圈 1px 边框</div>
+                <div class="opt"><span class="key">C</span>能省 ~2 MB GPU 内存</div>
+              </div>
+            </div>
+
+            <div class="chip-row">
+              <span class="chip">错题本</span>
+              <span class="chip">12 天 streak</span>
+              <span class="chip">3 档难度</span>
+              <span class="chip">中英双语</span>
+              <span class="chip">导出 Markdown</span>
+              <span class="chip">热力图选 session</span>
+            </div>
+
+            <div class="privacy">
+              <span class="lk">↳</span>
+              <span><b>本地生成</b> · 复用你认证过的 claude -p · 发送前自动脱敏 .env / token / 用户名</span>
+            </div>
+
+            <div class="footer">
+              <span><b>strict source</b> verification</span>
+              <span>stage 1.5 · v1.2</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot-meta">A · 知识卡片 · 1080 × 1440</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════
+       VARIANT B · 墨黑奶油
+       ════════════════════════════════════════════════ -->
+  <section class="variant-section">
+    <div class="variant-head">
+      <div>
+        <div class="label">Variant B</div>
+        <h2>墨黑奶油 · Carbon Cream</h2>
+      </div>
+      <div class="meta">
+        Anthropic-style 暖暗 · 单一琥珀 + 衬线点缀
+        <div class="swatches">
+          <span class="sw" style="background: oklch(14% 0.010 50);"></span>
+          <span class="sw" style="background: oklch(20% 0.012 50);"></span>
+          <span class="sw" style="background: oklch(78% 0.13 65);"></span>
+          <span class="sw" style="background: oklch(94% 0.022 80);"></span>
+        </div>
+      </div>
+    </div>
+    <div class="pair">
+      <!-- B · COVER -->
+      <div class="slot">
+        <div class="card vb s-cover">
+          <div class="ambient"></div>
+          <div class="corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+          <div class="body">
+            <div class="top-bar">
+              <div class="brand"><span class="dot"></span>Vibedog · for agents</div>
+              <div class="nb"><b>01</b> / 08 · cover</div>
+            </div>
+
+            <div class="eyebrow">— Claude Code Companion</div>
+            <h1>给 Claude Code<br>配个<span class="accent">桌面搭子</span></h1>
+            <div class="deck">
+              一个浮在屏幕角落的小气泡 ——<br>
+              <b>替你管权限</b>，<b>替你看状态</b>，<br>
+              还把昨天的会话变成明天的<b>知识卡片</b>。
+            </div>
+
+            <div class="show">
+              <div class="bubble">
+                <span class="orb" style="--p: 70%;"><span class="glyph">⚙️</span></span>
+                <span class="label">Running tool</span>
+              </div>
+              <div class="bubble">
+                <span class="orb" style="--p: 95%;"><span class="glyph">✅</span></span>
+                <span class="label">Done · 95% ctx</span>
+              </div>
+            </div>
+
+            <div class="footer">
+              <span><b>WINDOWS</b> · node 20+ · open source</span>
+              <span class="arrow">swipe →</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot-meta">B · cover · 1080 × 1440</div>
+      </div>
+
+      <!-- B · KNOWLEDGE CARDS -->
+      <div class="slot">
+        <div class="card vb s-cards">
+          <div class="ambient"></div>
+          <div class="corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+          <div class="body">
+            <div class="top-bar">
+              <div class="brand"><span class="dot"></span>Vibedog · for agents</div>
+              <div class="nb"><b>05</b> / 08 · cards</div>
+            </div>
+
+            <div class="eyebrow">Knowledge Cards · 知识卡片</div>
+            <h1>昨天的会话<br><span class="accent">明天考你一遍</span></h1>
+            <div class="deck">
+              每天<b>从 Claude Code 的 transcript 自动生成卡片</b>，
+              每张都引用真实会话原文行 ——
+              对不上号的卡片直接丢掉，<em>绝不瞎编</em>。
+            </div>
+
+            <div class="quiz">
+              <div class="quiz-head">
+                <span class="nbr">Card 3 / 5</span>
+                <span class="diff">medium</span>
+              </div>
+              <div class="quiz-q">气泡的 BrowserWindow 为什么要设 <code>thickFrame: false</code>？</div>
+              <div class="quiz-src"><b>source</b>session 2026-05-03 · main.js:962</div>
+              <div class="quiz-opts">
+                <div class="opt"><span class="key">A</span>Mac-only flag，对 Windows 没影响</div>
+                <div class="opt right"><span class="key">B</span>Win11 会给透明 frameless 窗口画一圈 1px 边框</div>
+                <div class="opt"><span class="key">C</span>能省 ~2 MB GPU 内存</div>
+              </div>
+            </div>
+
+            <div class="chip-row">
+              <span class="chip">错题本</span>
+              <span class="chip">12 天 streak</span>
+              <span class="chip">3 档难度</span>
+              <span class="chip">中英双语</span>
+              <span class="chip">导出 Markdown</span>
+              <span class="chip">热力图选 session</span>
+            </div>
+
+            <div class="privacy">
+              <span class="lk">↳</span>
+              <span><b>本地生成</b> · 复用你认证过的 claude -p · 发送前自动脱敏 .env / token / 用户名</span>
+            </div>
+
+            <div class="footer">
+              <span><b>strict source</b> verification</span>
+              <span>stage 1.5 · v1.2</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot-meta">B · 知识卡片 · 1080 × 1440</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════
+       VARIANT C · 蓝图工程
+       ════════════════════════════════════════════════ -->
+  <section class="variant-section">
+    <div class="variant-head">
+      <div>
+        <div class="label">Variant C</div>
+        <h2>蓝图工程 · Engineering Blueprint</h2>
+      </div>
+      <div class="meta">
+        CAD 工程图 · 网格 + Mono 标注 · 单一青蓝
+        <div class="swatches">
+          <span class="sw" style="background: oklch(15% 0.040 250);"></span>
+          <span class="sw" style="background: oklch(20% 0.050 250);"></span>
+          <span class="sw" style="background: oklch(78% 0.13 215);"></span>
+          <span class="sw" style="background: oklch(95% 0.018 220);"></span>
+        </div>
+      </div>
+    </div>
+    <div class="pair">
+      <!-- C · COVER -->
+      <div class="slot">
+        <div class="card vc s-cover">
+          <div class="ambient"></div>
+          <div class="blueprint-grid"></div>
+          <div class="corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+          <div class="body">
+            <div class="top-bar">
+              <div class="brand">VIBEDOG · FOR AGENTS</div>
+              <div class="specs">
+                <span>SHEET <b>01/08</b></span>
+                <span>SCALE <b>1:1</b></span>
+                <span>REV <b>1.2</b></span>
+              </div>
+            </div>
+
+            <div class="annot-box">
+              <span class="tag">// FIG-01</span>
+              <span>claude code companion · windows</span>
+            </div>
+            <h1>给 Claude Code<br>配个<span class="underline accent">桌面搭子</span></h1>
+            <div class="deck">
+              一个浮在屏幕角落的小气泡 ——<br>
+              <b>替你管权限</b>，<b>替你看状态</b>，<br>
+              还把昨天的会话变成明天的<b>知识卡片</b>。
+            </div>
+
+            <div class="show">
+              <div class="meas"><b>compact · idle</b></div>
+              <div class="bubble">
+                <span class="orb" style="--p: 35%;"><span class="glyph">💤</span></span>
+                <span class="label">Idle</span>
+              </div>
+              <div class="meas"><b>running · 70% ctx</b></div>
+              <div class="bubble">
+                <span class="orb" style="--p: 70%;"><span class="glyph">⚙️</span></span>
+                <span class="label">Running tool</span>
+              </div>
+            </div>
+
+            <div class="footer">
+              <span>WINDOWS · NODE 20+ · OPEN SOURCE</span>
+              <span class="arrow">SWIPE →</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot-meta">C · cover · 1080 × 1440</div>
+      </div>
+
+      <!-- C · KNOWLEDGE CARDS -->
+      <div class="slot">
+        <div class="card vc s-cards">
+          <div class="ambient"></div>
+          <div class="blueprint-grid"></div>
+          <div class="corners"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+          <div class="body">
+            <div class="top-bar">
+              <div class="brand">VIBEDOG · FOR AGENTS</div>
+              <div class="specs">
+                <span>SHEET <b>05/08</b></span>
+                <span>FIG <b>03</b></span>
+                <span>REV <b>1.2</b></span>
+              </div>
+            </div>
+
+            <div class="eyebrow">// FIG-03 · KNOWLEDGE CARDS</div>
+            <h1>昨天的会话<br><span class="underline accent">明天考你一遍</span></h1>
+            <div class="deck">
+              每天<b>从 Claude Code 的 transcript 自动生成卡片</b>，
+              每张都引用真实会话原文行 ——
+              对不上号的卡片直接丢掉，<em>绝不瞎编</em>。
+            </div>
+
+            <div class="quiz">
+              <div class="quiz-head">
+                <span class="nbr">Card 3 / 5</span>
+                <span class="diff">medium</span>
+              </div>
+              <div class="quiz-q">气泡的 BrowserWindow 为什么要设 <code>thickFrame: false</code>？</div>
+              <div class="quiz-src"><b>src</b>session 2026-05-03 · main.js:962</div>
+              <div class="quiz-opts">
+                <div class="opt"><span class="key">A</span>Mac-only flag，对 Windows 没影响</div>
+                <div class="opt right"><span class="key">B</span>Win11 会给透明 frameless 窗口画一圈 1px 边框</div>
+                <div class="opt"><span class="key">C</span>能省 ~2 MB GPU 内存</div>
+              </div>
+            </div>
+
+            <div class="chip-row">
+              <span class="chip">错题本</span>
+              <span class="chip">12 天 streak</span>
+              <span class="chip">3 档难度</span>
+              <span class="chip">中英双语</span>
+              <span class="chip">导出 Markdown</span>
+              <span class="chip">热力图选 session</span>
+            </div>
+
+            <div class="privacy">
+              <span class="lk">↳</span>
+              <span><b>本地生成</b> · 复用你认证过的 claude -p · 发送前自动脱敏 .env / token / 用户名</span>
+            </div>
+
+            <div class="footer">
+              <span>STRICT SOURCE VERIFICATION</span>
+              <span><b>STAGE 1.5</b> · v1.2</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot-meta">C · 知识卡片 · 1080 × 1440</div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

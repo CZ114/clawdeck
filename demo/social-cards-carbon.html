@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vibedog-for-agents · 小红书宣传图（8 张连图 1080×1440）</title>
+  <title>Vibedog-for-agents · 墨黑奶油 (Carbon Cream) — 8 张连图</title>
   <style>
     /* ============================================================
        Design tokens — verbatim from packages/shared/themes.js
@@ -11,29 +11,32 @@
        ============================================================ */
     @property --ring-pct { syntax: "<percentage>"; inherits: true; initial-value: 60%; }
 
+    /* Carbon Cream — warm-dark + amber + serif accents */
     :root {
-      --bg:           oklch(11% 0.012 270);
-      --bg-2:         oklch(13% 0.014 270);
-      --surface-1:    oklch(17% 0.014 270);
-      --surface-2:    oklch(22% 0.016 270);
-      --surface-3:    oklch(26% 0.018 270);
-      --inner-well:   oklch(11% 0.010 270);
-      --ink-0:        oklch(95% 0.014 80);
-      --ink-1:        oklch(72% 0.012 250);
-      --ink-2:        oklch(50% 0.010 250);
-      --ink-3:        oklch(38% 0.010 250);
-      --line:         oklch(100% 0 0 / 0.08);
-      --line-2:       oklch(100% 0 0 / 0.04);
-      --accent:       oklch(74% 0.07 195);
-      --accent-soft:  oklch(74% 0.07 195 / 0.18);
-      --accent-warm:  oklch(78% 0.10 65);
-      --accent-warm-soft: oklch(78% 0.10 65 / 0.16);
-      --accent-sage:  oklch(72% 0.06 150);
-      --accent-rose:  oklch(70% 0.07 25);
-      --accent-slate: oklch(60% 0.03 250);
+      --bg:           oklch(14% 0.010 50);
+      --bg-2:         oklch(16% 0.012 50);
+      --surface-1:    oklch(20% 0.012 50);
+      --surface-2:    oklch(24% 0.014 50);
+      --surface-3:    oklch(28% 0.016 50);
+      --inner-well:   oklch(11% 0.008 50);
+      --ink-0:        oklch(94% 0.022 80);
+      --ink-1:        oklch(72% 0.020 70);
+      --ink-2:        oklch(52% 0.018 60);
+      --ink-3:        oklch(40% 0.014 60);
+      --line:         oklch(80% 0.020 60 / 0.12);
+      --line-2:       oklch(80% 0.020 60 / 0.06);
+      --accent:       oklch(78% 0.13 65);
+      --accent-soft:  oklch(78% 0.13 65 / 0.16);
+      --accent-warm:  oklch(78% 0.13 65);
+      --accent-warm-soft: oklch(78% 0.13 65 / 0.16);
+      --accent-sage:  oklch(74% 0.08 145);
+      --accent-rose:  oklch(70% 0.10 28);
+      --accent-slate: oklch(58% 0.030 60);
 
       --font-cn: "PingFang SC", "Noto Sans SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
-      --font-en: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", "Inter", system-ui, sans-serif;
+      --font-cn-serif: "Songti SC", "STSong", "Source Han Serif SC", "Iowan Old Style", "Source Serif 4", serif;
+      --font-en: "Iowan Old Style", "Source Serif 4", "Palatino", "PingFang SC", system-ui, serif;
+      --font-en-sans: "Inter", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
       --font-mono: "Cascadia Mono", "JetBrains Mono", "SF Mono", Consolas, monospace;
     }
 
@@ -143,7 +146,9 @@
       color: oklch(94% 0 0);
       border-color: oklch(100% 0 0 / 0.16);
     }
-    .dl-btn.is-busy { pointer-events: none; opacity: 0.6; }
+    .dl-btn.is-busy {
+      pointer-events: none; opacity: 0.6;
+    }
     .dl-btn b { color: var(--accent); font-weight: 600; }
     .dl-all {
       margin-left: 12px;
@@ -151,7 +156,7 @@
       font-family: var(--font-mono); font-size: 12px;
       letter-spacing: 0.06em;
       background: var(--accent);
-      color: oklch(15% 0.04 240);
+      color: oklch(20% 0.04 60);
       border: 0;
       cursor: pointer;
       font-weight: 600;
@@ -215,24 +220,23 @@
     .eyebrow.no-rule { gap: 0; }
 
     h1.head {
-      font-family: var(--font-cn);
+      font-family: var(--font-cn-serif);
       font-weight: 700;
       font-size: 76px; line-height: 1.12;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.005em;
       color: var(--ink-0);
       text-wrap: pretty;
     }
     h1.head em {
-      font-style: normal;
+      font-style: italic;
+      font-weight: 400;
       color: var(--accent);
-      background: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
+      background: none;
+      -webkit-text-fill-color: currentColor;
     }
     h1.head u {
       text-decoration: none;
-      box-shadow: inset 0 -16px 0 0 color-mix(in oklch, var(--accent-warm), transparent 70%);
+      box-shadow: inset 0 -14px 0 0 color-mix(in oklch, var(--accent), transparent 70%);
     }
 
     h2.sub {
@@ -384,7 +388,7 @@
     .s-cover h1.head {
       margin-top: 36px;
       font-size: 96px; line-height: 1.06;
-      font-weight: 800;
+      font-weight: 700;
     }
     .s-cover .punch {
       margin-top: 38px;
@@ -482,7 +486,7 @@
       padding: 56px 48px;
       border-radius: 28px;
       background:
-        radial-gradient(ellipse 60% 100% at 50% 100%, oklch(20% 0.014 270) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 100% at 50% 100%, oklch(22% 0.018 60) 0%, transparent 70%),
         var(--inner-well);
       border: 1px solid var(--line);
       display: flex; flex-direction: column; gap: 36px;
@@ -761,7 +765,7 @@
       position: relative;
       border-radius: 24px;
       background:
-        radial-gradient(ellipse 70% 60% at 30% 35%, oklch(16% 0.014 270) 0%, var(--inner-well) 80%);
+        radial-gradient(ellipse 70% 60% at 30% 35%, oklch(18% 0.014 50) 0%, var(--inner-well) 80%);
       border: 1px solid var(--line);
       overflow: hidden;
     }
@@ -1030,14 +1034,14 @@
     }
     .s-end h1.head {
       margin-top: 64px;
-      font-size: 168px; font-weight: 800;
-      line-height: 0.96; letter-spacing: -0.025em;
+      font-size: 156px; font-weight: 700;
+      line-height: 0.98; letter-spacing: -0.02em;
     }
     .s-end h1.head em {
-      font-style: normal;
-      background: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-style: italic; font-weight: 400;
+      color: var(--accent);
+      background: none;
+      -webkit-text-fill-color: currentColor;
     }
     .s-end .search-bar {
       margin-top: 64px;
@@ -1091,7 +1095,7 @@
 </head>
 <body>
   <div class="toolbar">
-    <strong>Vibedog-for-agents · 小红书图文 8 张连图</strong>
+    <strong>Vibedog-for-agents · 墨黑奶油 · 8 张连图</strong>
     <span class="sep"></span>
     <span>每张 1080 × 1440（3:4 竖图）</span>
     <span class="sep"></span>
@@ -1633,6 +1637,7 @@
 
     cards.forEach(card => {
       card.addEventListener('click', (e) => {
+        // Don't trigger on download-button clicks etc.
         if (e.target.closest('.dl-btn')) return;
         if (focusedEl === card) { release(); return; }
         release();
@@ -1646,12 +1651,12 @@
     });
 
     /* ─── PNG export ───
-       Each card gets a sibling slot-tools row with a download button.
-       Click renders the card to a 1080×1440 PNG (2× pixelRatio for crisp
-       Xiaohongshu compression) and triggers a browser download. */
+       Each card has a sibling slot-tools row (injected dynamically) with
+       a download button. Clicking renders the card to a 1080×1440 PNG and
+       triggers a browser download. */
     function injectDownloadButtons() {
       cards.forEach((card, idx) => {
-        const slot = card.parentElement;
+        const slot = card.parentElement; // .slot
         if (!slot) return;
         const tools = document.createElement('div');
         tools.className = 'slot-tools';
@@ -1663,6 +1668,7 @@
           await downloadCard(card, idx, btn);
         });
         tools.appendChild(btn);
+        // Insert before slot-meta if present, else append.
         const meta = slot.querySelector('.slot-meta');
         if (meta) slot.insertBefore(tools, meta);
         else slot.appendChild(tools);
@@ -1674,6 +1680,8 @@
         alert('html-to-image 还没加载完，等一下再试');
         return;
       }
+      // Release focus mode so the card renders at its natural 1080×1440
+      // (without the scale transform).
       const wasFocused = card.classList.contains('is-focused');
       if (wasFocused) release();
 
@@ -1682,8 +1690,9 @@
         const dataUrl = await window.htmlToImage.toPng(card, {
           width: 1080,
           height: 1440,
-          pixelRatio: 2,
+          pixelRatio: 2, // export at 2160×2880 for crisp Xiaohongshu compression
           cacheBust: true,
+          // Make sure the export doesn't get clipped by parent layout.
           style: {
             transform: 'none',
             position: 'static',
@@ -1692,7 +1701,7 @@
           },
         });
         const link = document.createElement('a');
-        link.download = `vibedog-slide-${String(idx+1).padStart(2,'0')}.png`;
+        link.download = `vibedog-carbon-${String(idx+1).padStart(2,'0')}.png`;
         link.href = dataUrl;
         link.click();
       } catch (err) {
@@ -1712,6 +1721,8 @@
       for (let i = 0; i < cards.length; i++) {
         if (allBtn) allBtn.textContent = `导出中… ${i+1} / ${cards.length}`;
         await downloadCard(cards[i], i, null);
+        // Small pause so the browser can flush the download dialog
+        // before the next render starts.
         await new Promise(r => setTimeout(r, 400));
       }
       if (allBtn) {
@@ -1720,6 +1731,7 @@
       }
     }
 
+    // Wait for html-to-image to load before wiring up.
     function waitForLib() {
       return new Promise(resolve => {
         if (window.htmlToImage) return resolve();
