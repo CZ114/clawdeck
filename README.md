@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="media/logo/clawdeck.png" alt="Clawdeck logo" width="160">
+  <img src="media/logo/clawdeck.png" alt="vibelog logo" width="160">
 </p>
 
-<h1 align="center">Clawdeck</h1>
+<h1 align="center">vibelog</h1>
+
+<p align="center"><em>Background-watch your Claude Code agent. Tomorrow, review what it taught you.</em></p>
 
 <p align="center">
   <em>The floating Claude Code companion for Windows.</em><br>
@@ -48,7 +50,7 @@
 
 Three Claude Code annoyances, all answered here:
 
-| Annoyance | Clawdeck's answer |
+| Annoyance | vibelog's answer |
 |---|---|
 | Permission prompts steal terminal focus | One click on the floating bubble, decision routes back to Claude, focus stays in your editor |
 | You can't tell what Claude is doing without alt-tabbing | Ambient status orb at your screen edge — peripheral vision is enough |
@@ -162,7 +164,7 @@ Three Claude Code hooks, registered as native `"type":"http"` entries in `~/.cla
 | `PermissionRequest` | On any explicit `ask` permission decision | Surfaces the request in the bubble, awaits decide / approve / deny / answer over WebSocket | **blocking** |
 | `Event` | On every Claude lifecycle event (`thinking`, `tool_started`, `tool_finished`, `done`, …) | Feeds session state to the bubble's status orb and the Live monitor session list | **non-blocking** — fire-and-forget |
 
-`setup-user-hooks` writes JSON entries that POST directly to `http://127.0.0.1:4317/hook/<endpoint>`. There's no local hook script — Claude Code talks to the daemon natively, which means a daemon-down or Clawdeck-uninstalled scenario is a non-blocking error in Claude Code's native handler (Claude logs and proceeds), instead of a fail-closed lockup. Each entry carries a custom `"x-clawdeck-version"` field so future versions can detect-and-upgrade their own entries.
+`setup-user-hooks` writes JSON entries that POST directly to `http://127.0.0.1:4317/hook/<endpoint>`. There's no local hook script — Claude Code talks to the daemon natively, which means a daemon-down or vibelog-uninstalled scenario is a non-blocking error in Claude Code's native handler (Claude logs and proceeds), instead of a fail-closed lockup. Each entry carries a custom `"x-clawdeck-version"` field so future versions can detect-and-upgrade their own entries.
 
 **Uninstall** without touching your other hooks:
 
@@ -170,7 +172,7 @@ Three Claude Code hooks, registered as native `"type":"http"` entries in `~/.cla
 npm run setup-user-hooks -- --uninstall
 ```
 
-The packaged `Clawdeck.exe` self-installs hooks on first launch and the NSIS uninstaller calls `--uninstall-hooks` before deleting the exe — manual `setup-user-hooks` is dev-mode only.
+The packaged vibelog binary (`Clawdeck.exe` — internal name kept for backwards compatibility) self-installs hooks on first launch and the NSIS uninstaller calls `--uninstall-hooks` before deleting the exe — manual `setup-user-hooks` is dev-mode only.
 
 ---
 
