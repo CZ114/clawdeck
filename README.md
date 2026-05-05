@@ -32,7 +32,7 @@
   <img src="media/hero-status.apng" alt="Floating bubble cycling through Idle, Thinking, Running tool, Awaiting approval, Done — the orb tells you what Claude is doing at a glance" width="480">
 </p>
 
-<p align="center"><em>The orb tells you what Claude is doing at a glance. No alt-tab.</em></p>
+<p align="center"><em>The orb tells you what Claude is doing at a glance — and the same orb fills clockwise as a 0–100% context meter (conic ring round its rim). No alt-tab.</em></p>
 
 <p align="center">
   <img src="media/edges-cycle.apng" alt="Bubble docks to right, top, left, bottom — and tucks behind each edge to a thin context slit when not in use" width="640">
@@ -60,7 +60,7 @@ Three Claude Code annoyances, all answered here:
 
 | Mode | Trigger | What it shows |
 |---|---|---|
-| **Compact** | resting state | status orb + status text + context meter; auto-peeks when snapped to a screen edge |
+| **Compact** | resting state | status orb (animates by status, fills clockwise as a context-% conic ring) + status text + 4-px peek slit (linear context bar); auto-peeks when snapped to a screen edge |
 | **Approval / Question** | auto on permission request | risk chip · tool / cwd / reason · Approve / Deny / Always-allow, or a freeform answer for question requests |
 | **📚 Cards** | 📚 button | Today · History · Wrong-book · Generation Record |
 | **⚙ Settings** | ⚙ button | left-rail nav: Knowledge cards · Storage · Export · Companion (themes + EN/中文 + hook status) |

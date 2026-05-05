@@ -32,7 +32,7 @@
   <img src="media/hero-status.apng" alt="状态环依次切过 Idle / Thinking / Running tool / Awaiting approval / Done — 一眼就知道 Claude 在干嘛" width="480">
 </p>
 
-<p align="center"><em>状态环挂在那儿，扫一眼就知道 Claude 在干嘛。不用 Alt+Tab。</em></p>
+<p align="center"><em>状态环挂在那儿，扫一眼就知道 Claude 在干嘛 —— 同时这个圆环顺时针填充就是 0–100% 的 context 用量（conic gradient 沿圈走）。不用 Alt+Tab。</em></p>
 
 <p align="center">
   <img src="media/edges-cycle.apng" alt="气泡停靠到屏幕右、上、左、下四边 —— 闲置时藏到边后只剩一条 4px 的 context 进度光带" width="640">
@@ -60,7 +60,7 @@ Claude Code 原生体验有三件事让人不爽，这里都解决：
 
 | 模式 | 触发方式 | 显示什么 |
 |---|---|---|
-| **Compact** | 默认静止状态 | 状态环 + 状态文字 + context 计量；贴边后会自动 peek |
+| **Compact** | 默认静止状态 | 状态环（按状态做动效，同时圆周顺时针填充作为 context 圆环）+ 状态文字 + 4px peek 光带（线性 context 进度条）；贴边后会自动 peek |
 | **Approval / Question** | 收到权限请求自动进入 | 风险等级 · 工具 / cwd / 原因 · Approve / Deny / Always-allow，问答类请求支持自由文本回复 |
 | **📚 Cards** | 📚 按钮 | Today · History · Wrong-book · 生成记录 |
 | **⚙ Settings** | ⚙ 按钮 | 左侧导航：知识卡片 · 存储 · 导出 · Companion (主题 + 中英文 + Hook 状态) |
