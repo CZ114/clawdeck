@@ -1128,7 +1128,7 @@ function rebuildTrayMenu() {
 
   const menu = Menu.buildFromTemplate([
     {
-      label: "Show vibelog",
+      label: "Show Vibedog-for-agents",
       click: () => {
         if (!mainWindow) return;
         if (mainWindow.isMinimized()) mainWindow.restore();
@@ -1148,7 +1148,7 @@ function rebuildTrayMenu() {
     },
     { type: "separator" },
     {
-      label: "vibelog enabled",
+      label: "Vibedog-for-agents enabled",
       type: "checkbox",
       checked: enabled,
       click: (item) => {
@@ -1167,7 +1167,7 @@ function rebuildTrayMenu() {
     },
     { type: "separator" },
     {
-      label: "Quit vibelog",
+      label: "Quit Vibedog-for-agents",
       click: () => {
         isQuitting = true;
         app.quit();
@@ -1193,7 +1193,7 @@ function createTray() {
   }
 
   tray = new Tray(image);
-  tray.setToolTip("vibelog — Claude Code agent watch & review");
+  tray.setToolTip("Vibedog-for-agents — Claude Code agent watch & review");
   rebuildTrayMenu();
 
   tray.on("click", () => {

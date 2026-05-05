@@ -869,7 +869,7 @@ function daemonRootNoticeHtml() {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>vibelog</title>
+  <title>Vibedog-for-agents</title>
   <style>
     body {
       margin: 0;
@@ -892,7 +892,7 @@ function daemonRootNoticeHtml() {
 </head>
 <body>
   <main>
-    <h1>vibelog</h1>
+    <h1>Vibedog-for-agents</h1>
     <p>The browser dashboard has been replaced by the desktop bubble.</p>
     <p>Run <code>npm run desktop</code> from the repo root to launch it. Approvals, sessions, devices, pairing tokens, and audit events all live inside the bubble's dashboard mode now (gear icon in the controls strip).</p>
   </main>
@@ -970,7 +970,7 @@ function waitForDecision(request) {
       broadcastPendingRequests();
       resolve({
         decision: "deny",
-        reason: "Timed out waiting for vibelog approval."
+        reason: "Timed out waiting for Vibedog-for-agents approval."
       });
     }, REQUEST_TIMEOUT_MS);
 
@@ -1026,7 +1026,7 @@ async function handlePreToolUse(req, res) {
   if (isAskUserQuestionRequest(request)) {
     const rawDecision = String(decision.decision || "");
     const normalizedDecision = normalizeDecision(rawDecision) || "deny";
-    const reason = decision.reason || "Decision from vibelog";
+    const reason = decision.reason || "Decision from Vibedog-for-agents";
 
     if (rawDecision === "answer" || normalizedDecision === "allow") {
       const normalized = normalizeQuestionAnswers(request.questions, decision.answers);
@@ -1064,7 +1064,7 @@ async function handlePreToolUse(req, res) {
   if (permissionDecision === "answer") {
     permissionDecision = "deny";
   }
-  const reason = decision.reason || `Decision from vibelog: ${permissionDecision}`;
+  const reason = decision.reason || `Decision from Vibedog-for-agents: ${permissionDecision}`;
 
   jsonResponse(res, 200, claudePreToolUseDecision(permissionDecision, reason));
 }
@@ -1124,7 +1124,7 @@ async function handleHookEvent(req, res) {
 
 function permissionRequestDecision(request, approval) {
   const rawDecision = String(approval.decision || "");
-  const reason = approval.reason || "Decision from vibelog";
+  const reason = approval.reason || "Decision from Vibedog-for-agents";
 
   if (rawDecision === "allow" || rawDecision === "approve" || rawDecision === "always_allow") {
     const decision = {
@@ -2039,7 +2039,7 @@ function sampleDeckPayload({ focus, difficulty, date }) {
     "\n" +
     "assistant: 不调 Anthropic API，直接调用用户本地已经装好的 claude CLI\n" +
     "(headless 模式)。好处：不用配 API key、不用新增订阅成本、模型质量\n" +
-    "跟 Claude Code 用的一致、vibelog 永远不直接持有用户密钥。";
+    "跟 Claude Code 用的一致、Vibedog-for-agents 永远不直接持有用户密钥。";
 
   return {
     date,
@@ -2107,7 +2107,7 @@ function sampleDeckPayload({ focus, difficulty, date }) {
         id: "card_seed_3",
         type: "choice",
         difficulty: "hard",
-        question: "为什么 vibelog 选择 spawn `claude -p` 而不是直接调 Anthropic API？",
+        question: "为什么 Vibedog-for-agents 选择 spawn `claude -p` 而不是直接调 Anthropic API？",
         options: [
           "claude -p 比 API 调用快约 30%",
           "API 调用需要绕过 Cloudflare bot 检测",
@@ -2378,7 +2378,7 @@ server.on("upgrade", (req, socket) => {
 server.on("error", (error) => {
   if (error.code === "EADDRINUSE") {
     console.error(`[error] Port ${PORT} on ${HOST} is already in use.`);
-    console.error("[error] Another vibelog daemon is likely already running.");
+    console.error("[error] Another Vibedog-for-agents daemon is likely already running.");
     console.error("[error] To stop it on Windows, run in PowerShell:");
     console.error(
       `        Get-NetTCPConnection -LocalPort ${PORT} -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`
@@ -2390,7 +2390,7 @@ server.on("error", (error) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`vibelog daemon listening on http://${HOST}:${PORT}`);
+  console.log(`Vibedog-for-agents daemon listening on http://${HOST}:${PORT}`);
   console.log("Daemon home: http://" + HOST + ":" + PORT + "/  (visiting in a browser shows a redirect notice; the dashboard now lives in the desktop bubble)");
   console.log("Realtime events: ws://" + HOST + ":" + PORT + "/ws");
   console.log("Pairing token endpoint: http://" + HOST + ":" + PORT + "/pairing-token");

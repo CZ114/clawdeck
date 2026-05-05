@@ -1413,13 +1413,13 @@ function applyEnabledState(enabled) {
   if (enabled) {
     delete document.body.dataset.companionDisabled;
     if (els.toggleEnabled) {
-      els.toggleEnabled.title = "Disable vibelog approvals (fall back to terminal)";
+      els.toggleEnabled.title = "Disable Vibedog-for-agents approvals (fall back to terminal)";
       els.toggleEnabled.setAttribute("aria-pressed", "false");
     }
   } else {
     document.body.dataset.companionDisabled = "true";
     if (els.toggleEnabled) {
-      els.toggleEnabled.title = "Enable vibelog approvals";
+      els.toggleEnabled.title = "Enable Vibedog-for-agents approvals";
       els.toggleEnabled.setAttribute("aria-pressed", "true");
     }
   }

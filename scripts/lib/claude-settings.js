@@ -37,13 +37,13 @@ function desiredUserHooks(opts = {}) {
   const approvalHook = httpHook(
     "pre-tool-use",
     60,
-    "Waiting for vibelog approval",
+    "Waiting for Vibedog-for-agents approval",
     opts
   );
   const permissionHook = httpHook(
     "permission-request",
     60,
-    "Waiting for vibelog approval",
+    "Waiting for Vibedog-for-agents approval",
     opts
   );
 

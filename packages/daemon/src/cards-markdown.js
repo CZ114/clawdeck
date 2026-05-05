@@ -97,7 +97,7 @@ function composeAllAbstractsMarkdown(items) {
   blocks.push(`count: ${items.length}`);
   blocks.push("---");
   blocks.push("");
-  blocks.push("# vibelog abstracts — full history");
+  blocks.push("# Vibedog-for-agents abstracts — full history");
   blocks.push("");
 
   for (const item of items) {

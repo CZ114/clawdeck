@@ -1,4 +1,4 @@
-/* I18n for vibelog (desktop bubble + cards generator).
+/* I18n for Vibedog-for-agents (desktop bubble + cards generator).
  *
  * Two locales: "en" (default) and "zh" (中文). Strings are organized by
  * area (bubble.*, approval.*, cards.*, settings.*, consent.*) for quick
@@ -53,7 +53,7 @@ const STRINGS = {
     "bubble.status.compacting": "Compacting",
     "bubble.detail.noRequest": "No request",
     "bubble.context.label": "ctx",
-    "bubble.toggleEnabled": "Toggle vibelog",
+    "bubble.toggleEnabled": "Toggle Vibedog-for-agents",
     "bubble.theme": "Theme",
     "bubble.cards": "Knowledge cards",
     "bubble.settings": "Settings",
@@ -197,7 +197,7 @@ const STRINGS = {
     // ── Consent modal ──────────────────────────────────────
     "consent.eyebrow": "First generation",
     "consent.title": "Knowledge Cards data usage",
-    "consent.body.intro": "vibelog will read the past N days of Claude Code session content (your prompts, assistant replies, tool calls + output summaries) and run them through redaction:",
+    "consent.body.intro": "Vibedog-for-agents will read the past N days of Claude Code session content (your prompts, assistant replies, tool calls + output summaries) and run them through redaction:",
     "consent.body.li1": "Strip lines mentioning .env / .envrc / secrets/ paths",
     "consent.body.li2": "Replace token-shaped strings (GitHub PAT / Anthropic key / AWS key etc.)",
     "consent.body.li3": "Replace your home directory with ~",
@@ -237,7 +237,7 @@ const STRINGS = {
     "bubble.status.compacting": "压缩中",
     "bubble.detail.noRequest": "无请求",
     "bubble.context.label": "ctx",
-    "bubble.toggleEnabled": "切换 vibelog 启用状态",
+    "bubble.toggleEnabled": "切换 Vibedog-for-agents 启用状态",
     "bubble.theme": "主题",
     "bubble.cards": "知识卡片",
     "bubble.settings": "设置",
@@ -381,7 +381,7 @@ const STRINGS = {
     // ── 同意书 modal ────────────────────────────────
     "consent.eyebrow": "首次生成",
     "consent.title": "Knowledge Cards 数据使用说明",
-    "consent.body.intro": "vibelog 会读取过去 N 天的 Claude Code session 内容（你的提问、助手回答、工具调用与输出摘要），过一遍脱敏：",
+    "consent.body.intro": "Vibedog-for-agents 会读取过去 N 天的 Claude Code session 内容（你的提问、助手回答、工具调用与输出摘要），过一遍脱敏：",
     "consent.body.li1": "去掉 .env / .envrc / secrets/ 路径附近的行",
     "consent.body.li2": "替换 token-shaped 字符串（GitHub PAT / Anthropic key / AWS key 等）",
     "consent.body.li3": "把用户主目录替换成 ~",

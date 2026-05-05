@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibedog-for-agents · 小红书宣传图（8 张连图 1080×1440）</title>
+  <style>
+    /* ============================================================
+       Design tokens — verbatim from packages/shared/themes.js
+       Midnight Teal · the project's default brand palette.
+       ============================================================ */
+    @property --ring-pct { syntax: "<percentage>"; inherits: true; initial-value: 60%; }
+
+    :root {
+      --bg:           oklch(11% 0.012 270);
+      --bg-2:         oklch(13% 0.014 270);
+      --surface-1:    oklch(17% 0.014 270);
+      --surface-2:    oklch(22% 0.016 270);
+      --surface-3:    oklch(26% 0.018 270);
+      --inner-well:   oklch(11% 0.010 270);
+      --ink-0:        oklch(95% 0.014 80);
+      --ink-1:        oklch(72% 0.012 250);
+      --ink-2:        oklch(50% 0.010 250);
+      --ink-3:        oklch(38% 0.010 250);
+      --line:         oklch(100% 0 0 / 0.08);
+      --line-2:       oklch(100% 0 0 / 0.04);
+      --accent:       oklch(74% 0.07 195);
+      --accent-soft:  oklch(74% 0.07 195 / 0.18);
+      --accent-warm:  oklch(78% 0.10 65);
+      --accent-warm-soft: oklch(78% 0.10 65 / 0.16);
+      --accent-sage:  oklch(72% 0.06 150);
+      --accent-rose:  oklch(70% 0.07 25);
+      --accent-slate: oklch(60% 0.03 250);
+
+      --font-cn: "PingFang SC", "Noto Sans SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      --font-en: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", "Inter", system-ui, sans-serif;
+      --font-mono: "Cascadia Mono", "JetBrains Mono", "SF Mono", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #15171c;
+      color: var(--ink-0);
+      font-family: var(--font-cn);
+      font-feature-settings: "ss01", "cv11";
+      letter-spacing: 0.005em;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================================
+       Page chrome — NOT part of the screenshot.
+       ============================================================ */
+    .toolbar {
+      position: sticky; top: 0; z-index: 50;
+      background: oklch(13% 0 0 / 0.92);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid oklch(100% 0 0 / 0.06);
+      padding: 14px 28px;
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+      font-size: 13px; color: oklch(70% 0 0);
+    }
+    .toolbar strong { color: oklch(92% 0 0); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11.5px; }
+    .toolbar span.sep { width: 1px; height: 18px; background: oklch(100% 0 0 / 0.1); }
+    .toolbar kbd {
+      font-family: var(--font-mono); font-size: 11px;
+      padding: 2px 7px; border-radius: 4px;
+      background: oklch(20% 0 0); color: oklch(80% 0 0);
+      border: 1px solid oklch(100% 0 0 / 0.06);
+    }
+    .toolbar .hint { color: oklch(58% 0 0); }
+
+    .deck {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 56px; padding: 56px 0 96px;
+    }
+    .slot {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .slot-meta {
+      font-family: var(--font-mono); font-size: 11.5px;
+      color: oklch(50% 0 0); letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .slot-meta b { color: var(--accent); font-weight: 600; }
+
+    /* ============================================================
+       Card — exact 1080 × 1440 (Xiaohongshu portrait 3:4).
+       ============================================================ */
+    .card {
+      width: 1080px; height: 1440px;
+      position: relative; overflow: hidden;
+      background: var(--bg);
+      color: var(--ink-0);
+      border-radius: 4px;
+      box-shadow:
+        0 30px 80px -30px oklch(0% 0 0 / 0.7),
+        0 0 0 1px oklch(100% 0 0 / 0.04);
+      transition: transform 320ms cubic-bezier(0.2, 0, 0, 1);
+      transform-origin: top center;
+    }
+    /* Click any card to focus it large (full viewport-wide), Esc to release. */
+    .card.is-focused {
+      position: fixed; inset: 0; margin: auto;
+      z-index: 100;
+    }
+    body.has-focused .deck { filter: blur(8px) brightness(0.5); pointer-events: none; }
+
+    /* Ambient background — soft glow orbs + faint grid.
+       These are the only "decoration"; they reuse brand accent colors. */
+    .card .ambient {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        radial-gradient(ellipse 600px 500px at 18% 12%,
+          color-mix(in oklch, var(--accent), transparent 80%) 0%,
+          transparent 60%),
+        radial-gradient(ellipse 700px 600px at 90% 95%,
+          color-mix(in oklch, var(--accent-warm), transparent 86%) 0%,
+          transparent 60%);
+    }
+    .card .grid {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+      background-image:
+        linear-gradient(to right, oklch(100% 0 0 / 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, oklch(100% 0 0 / 0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 30%, transparent 100%);
+    }
+    .card .frame-corner {
+      position: absolute; width: 28px; height: 28px;
+      border: 1.5px solid var(--accent); opacity: 0.55;
+    }
+    .card .frame-corner.tl { top: 36px; left: 36px; border-right: 0; border-bottom: 0; }
+    .card .frame-corner.tr { top: 36px; right: 36px; border-left: 0; border-bottom: 0; }
+    .card .frame-corner.bl { bottom: 36px; left: 36px; border-right: 0; border-top: 0; }
+    .card .frame-corner.br { bottom: 36px; right: 36px; border-left: 0; border-top: 0; }
+
+    .card .body {
+      position: relative; z-index: 2;
+      width: 100%; height: 100%;
+      padding: 96px 88px;
+      display: flex; flex-direction: column;
+    }
+
+    /* ============================================================
+       Shared atoms
+       ============================================================ */
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 14px;
+      font-family: var(--font-mono);
+      font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .eyebrow .num { color: var(--ink-2); }
+    .eyebrow::before {
+      content: ""; display: inline-block;
+      width: 36px; height: 1.5px;
+      background: var(--accent); opacity: 0.7;
+    }
+    .eyebrow.no-rule::before { display: none; }
+    .eyebrow.no-rule { gap: 0; }
+
+    h1.head {
+      font-family: var(--font-cn);
+      font-weight: 700;
+      font-size: 76px; line-height: 1.12;
+      letter-spacing: -0.01em;
+      color: var(--ink-0);
+      text-wrap: pretty;
+    }
+    h1.head em {
+      font-style: normal;
+      color: var(--accent);
+      background: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h1.head u {
+      text-decoration: none;
+      box-shadow: inset 0 -16px 0 0 color-mix(in oklch, var(--accent-warm), transparent 70%);
+    }
+
+    h2.sub {
+      font-size: 26px; font-weight: 400; line-height: 1.55;
+      color: var(--ink-1);
+      letter-spacing: 0.005em;
+    }
+    h2.sub strong { color: var(--ink-0); font-weight: 600; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px; font-weight: 500;
+      padding: 7px 14px; border-radius: 999px;
+      background: color-mix(in oklch, var(--accent), transparent 88%);
+      color: var(--accent);
+      border: 1px solid color-mix(in oklch, var(--accent), transparent 65%);
+      letter-spacing: 0.04em;
+    }
+    .pill.warm {
+      background: color-mix(in oklch, var(--accent-warm), transparent 88%);
+      color: var(--accent-warm);
+      border-color: color-mix(in oklch, var(--accent-warm), transparent 65%);
+    }
+    .pill.ghost {
+      background: transparent;
+      color: var(--ink-1);
+      border-color: var(--line);
+    }
+
+    .tag-row {
+      display: flex; flex-wrap: wrap; gap: 10px;
+    }
+
+    .badge-num {
+      position: absolute; top: 56px; right: 88px;
+      font-family: var(--font-mono); font-size: 14px;
+      letter-spacing: 0.14em; color: var(--ink-2);
+    }
+    .badge-num b { color: var(--ink-0); font-weight: 600; }
+    .brand-tag {
+      position: absolute; bottom: 56px; left: 88px;
+      font-family: var(--font-mono); font-size: 13px;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--ink-2);
+      display: inline-flex; align-items: center; gap: 12px;
+    }
+    .brand-tag .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent), transparent 75%);
+    }
+
+    .footer-meta {
+      position: absolute; bottom: 56px; right: 88px;
+      font-family: var(--font-mono); font-size: 13px;
+      color: var(--ink-3);
+    }
+
+    /* ============================================================
+       Mini bubble — replicates real Compact capsule shape (148×46
+       at this scale → blown up roughly 2.5×). Used in slides 3 & 6.
+       ============================================================ */
+    .bubble {
+      display: inline-flex; align-items: center; gap: 14px;
+      padding: 12px 22px 12px 14px;
+      height: 80px;
+      width: max-content;
+      flex-shrink: 0;
+      border-radius: 999px;
+      background: var(--surface-1);
+      box-shadow:
+        0 24px 60px -22px oklch(0% 0 0 / 0.55),
+        0 1px 0 inset oklch(100% 0 0 / 0.08),
+        0 -1px 0 inset oklch(0% 0 0 / 0.4),
+        0 0 0 1px inset oklch(100% 0 0 / 0.05);
+    }
+    .bubble .orb {
+      --p: 60%;
+      width: 50px; height: 50px; border-radius: 50%;
+      background:
+        conic-gradient(from 220deg, var(--accent) 0%, var(--accent) var(--p), oklch(100% 0 0 / 0.06) var(--p));
+      display: grid; place-items: center;
+      position: relative;
+    }
+    .bubble .orb::before {
+      content: ""; position: absolute; inset: 5px;
+      border-radius: 50%;
+      background: var(--surface-1);
+    }
+    .bubble .orb .glyph {
+      position: relative; z-index: 1;
+      font-size: 22px;
+    }
+    .bubble .label {
+      font-family: var(--font-en);
+      font-size: 22px; font-weight: 500;
+      color: var(--ink-0);
+      letter-spacing: 0.005em;
+      white-space: nowrap;
+    }
+    .bubble.dim .orb { --p: 30%; }
+    .bubble.warm .orb { background: conic-gradient(from 220deg, var(--accent-warm) 0%, var(--accent-warm) 80%, oklch(100% 0 0 / 0.06) 80%); }
+    .bubble.sage .orb { background: conic-gradient(from 220deg, var(--accent-sage) 0%, var(--accent-sage) 100%, oklch(100% 0 0 / 0.06) 100%); }
+
+    /* ============================================================
+       SLIDE 1 — Cover
+       ============================================================ */
+    .s-cover .body { padding: 110px 88px 88px; gap: 0; }
+    .s-cover .lockup {
+      display: flex; align-items: center; gap: 22px;
+      font-family: var(--font-en); font-weight: 600;
+      font-size: 22px; letter-spacing: 0.04em;
+      color: var(--ink-0);
+    }
+    .s-cover .lockup .mark {
+      width: 56px; height: 56px; border-radius: 50%;
+      background:
+        conic-gradient(from 220deg, var(--accent) 0%, var(--accent) 65%, oklch(100% 0 0 / 0.06) 65%);
+      display: grid; place-items: center; position: relative;
+    }
+    .s-cover .lockup .mark::before {
+      content: ""; position: absolute; inset: 6px; border-radius: 50%;
+      background: var(--bg);
+    }
+    .s-cover .lockup .mark::after {
+      content: "v"; position: relative;
+      font-family: var(--font-cn); font-weight: 700; font-size: 22px;
+      color: var(--accent);
+    }
+    .s-cover .lockup .name {
+      display: flex; flex-direction: column; gap: 2px;
+      letter-spacing: 0;
+    }
+    .s-cover .lockup .name b {
+      font-family: var(--font-en); font-weight: 700;
+      font-size: 28px; letter-spacing: 0.01em;
+    }
+    .s-cover .lockup .name span {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--ink-2); letter-spacing: 0.18em; text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .s-cover .hook-tags {
+      margin-top: 80px;
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+    .s-cover h1.head {
+      margin-top: 36px;
+      font-size: 108px; line-height: 1.05;
+      font-weight: 800;
+    }
+    .s-cover .punch {
+      margin-top: 38px;
+      font-size: 32px; line-height: 1.55; color: var(--ink-1);
+      font-weight: 400;
+      max-width: 820px;
+    }
+    .s-cover .punch b { color: var(--ink-0); font-weight: 600; }
+
+    .s-cover .show {
+      margin-top: auto;
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 40px;
+    }
+    .s-cover .stack {
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .s-cover .stack .bubble { transform: translateX(0); }
+    .s-cover .stack .bubble.s2 { transform: translateX(40px); opacity: 0.7; }
+    .s-cover .stack .bubble.s3 { transform: translateX(80px); opacity: 0.4; }
+
+    .s-cover .feet {
+      display: flex; flex-direction: column; gap: 10px; text-align: right;
+      font-family: var(--font-mono);
+      font-size: 14px; color: var(--ink-2);
+      letter-spacing: 0.06em;
+    }
+    .s-cover .feet b { color: var(--ink-0); font-weight: 600; font-size: 18px; letter-spacing: 0.04em; }
+
+    /* ============================================================
+       SLIDE 2 — Pain points
+       ============================================================ */
+    .s-pain .body { gap: 0; }
+    .s-pain h1.head { margin-top: 28px; font-size: 80px; }
+    .s-pain h1.head em { color: var(--accent-rose); background: none; -webkit-text-fill-color: var(--accent-rose); }
+    .s-pain .deck-pain {
+      margin-top: 76px;
+      display: flex; flex-direction: column; gap: 24px;
+    }
+    .pain-row {
+      display: grid; grid-template-columns: 92px 1fr 200px;
+      align-items: center; gap: 30px;
+      padding: 32px 36px;
+      border-radius: 24px;
+      background: var(--surface-1);
+      border: 1px solid var(--line);
+    }
+    .pain-row .n {
+      font-family: var(--font-mono);
+      font-size: 38px; font-weight: 700;
+      color: var(--accent-rose);
+      letter-spacing: 0.04em;
+    }
+    .pain-row .text {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .pain-row .head {
+      font-size: 28px; font-weight: 600; color: var(--ink-0);
+      line-height: 1.35;
+    }
+    .pain-row .desc {
+      font-size: 17px; color: var(--ink-2); line-height: 1.55;
+    }
+    .pain-row .arrow {
+      justify-self: end;
+      font-family: var(--font-mono);
+      font-size: 13px; color: var(--ink-3);
+      letter-spacing: 0.08em; text-align: right;
+    }
+    .pain-row .arrow b { display: block; color: var(--accent); font-size: 16px; margin-top: 4px; font-weight: 600; }
+
+    .s-pain .hand-off {
+      margin-top: auto;
+      padding-top: 32px; border-top: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+    }
+    .s-pain .hand-off .left {
+      font-size: 22px; color: var(--ink-1);
+    }
+    .s-pain .hand-off .left b { color: var(--ink-0); font-weight: 600; }
+    .s-pain .hand-off .arrow {
+      font-family: var(--font-mono); color: var(--accent);
+      font-size: 18px; letter-spacing: 0.16em;
+    }
+
+    /* ============================================================
+       SLIDE 3 — Compact / Status orb
+       ============================================================ */
+    .s-compact .body { gap: 0; }
+    .s-compact h1.head { margin-top: 28px; font-size: 84px; }
+    .s-compact .lede { margin-top: 30px; font-size: 24px; color: var(--ink-1); line-height: 1.6; max-width: 820px; }
+
+    .s-compact .stage {
+      margin-top: 56px;
+      padding: 56px 48px;
+      border-radius: 28px;
+      background:
+        radial-gradient(ellipse 60% 100% at 50% 100%, oklch(20% 0.014 270) 0%, transparent 70%),
+        var(--inner-well);
+      border: 1px solid var(--line);
+      display: flex; flex-direction: column; gap: 36px;
+      align-items: center;
+    }
+    .s-compact .row {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%;
+    }
+    .s-compact .row .bubble { transform: scale(1.1); transform-origin: left center; }
+    .s-compact .row .legend {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--ink-2); letter-spacing: 0.06em;
+      text-align: right;
+    }
+    .s-compact .row .legend b { display: block; color: var(--ink-0); font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+
+    .s-compact .feature-rows {
+      margin-top: 56px; display: flex; flex-direction: column; gap: 24px;
+    }
+    .frow {
+      display: grid; grid-template-columns: 56px 1fr;
+      align-items: flex-start; gap: 22px;
+    }
+    .frow .icon {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: color-mix(in oklch, var(--accent), transparent 85%);
+      border: 1px solid color-mix(in oklch, var(--accent), transparent 60%);
+      display: grid; place-items: center;
+      font-family: var(--font-mono); color: var(--accent);
+      font-size: 18px; font-weight: 700;
+    }
+    .frow .text { padding-top: 6px; }
+    .frow .text b { display: block; font-size: 22px; font-weight: 600; color: var(--ink-0); margin-bottom: 6px; }
+    .frow .text p { font-size: 17px; color: var(--ink-2); line-height: 1.6; }
+    .frow .text code {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--accent);
+      background: color-mix(in oklch, var(--accent), transparent 88%);
+      padding: 2px 8px; border-radius: 5px;
+    }
+
+    /* ============================================================
+       SLIDE 4 — Approval card
+       ============================================================ */
+    .s-approve .body { gap: 0; }
+    .s-approve h1.head { margin-top: 28px; font-size: 78px; }
+    .s-approve .lede { margin-top: 30px; font-size: 24px; color: var(--ink-1); line-height: 1.6; max-width: 820px; }
+    .s-approve .lede b { color: var(--ink-0); font-weight: 600; }
+
+    .approve-card {
+      margin-top: 56px;
+      width: 100%; padding: 36px 40px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, var(--surface-1) 0%, var(--surface-2) 100%);
+      border: 1px solid var(--line);
+      box-shadow:
+        0 30px 80px -30px oklch(0% 0 0 / 0.6),
+        0 1px 0 inset oklch(100% 0 0 / 0.06);
+    }
+    .approve-card .head-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .approve-card .eb {
+      font-family: var(--font-mono); font-size: 13px;
+      color: var(--ink-2); letter-spacing: 0.16em; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .approve-card h3 {
+      font-family: var(--font-en); font-size: 38px; font-weight: 600;
+      color: var(--ink-0); letter-spacing: 0.005em;
+    }
+    .approve-card .risk {
+      padding: 8px 18px; border-radius: 999px;
+      font-family: var(--font-mono); font-size: 14px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      background: color-mix(in oklch, var(--accent-sage), transparent 80%);
+      color: var(--accent-sage);
+      border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 50%);
+    }
+    .approve-card .cmd {
+      font-family: var(--font-mono); font-size: 22px;
+      padding: 18px 22px; border-radius: 12px;
+      background: var(--inner-well);
+      color: var(--ink-0);
+      border: 1px solid var(--line-2);
+      margin-bottom: 24px;
+    }
+    .approve-card .cmd .pre { color: var(--ink-2); }
+    .approve-card .meta {
+      display: grid; grid-template-columns: 100px 1fr; gap: 8px 22px;
+      font-size: 16px; line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .approve-card .meta dt {
+      font-family: var(--font-mono); color: var(--ink-2);
+      font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding-top: 4px;
+    }
+    .approve-card .meta dd { color: var(--ink-1); }
+    .approve-card .actions {
+      display: flex; gap: 14px; justify-content: flex-end;
+    }
+    .approve-card .btn {
+      padding: 14px 28px; border-radius: 12px;
+      font-family: var(--font-en); font-size: 18px; font-weight: 600;
+      letter-spacing: 0.005em;
+    }
+    .approve-card .btn.deny {
+      background: color-mix(in oklch, var(--accent-rose), transparent 86%);
+      color: var(--accent-rose);
+      border: 1px solid color-mix(in oklch, var(--accent-rose), transparent 50%);
+    }
+    .approve-card .btn.approve {
+      background: var(--accent-sage);
+      color: oklch(15% 0.04 150);
+    }
+
+    .s-approve .three {
+      margin-top: 42px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+    .s-approve .three .item {
+      padding: 20px 22px;
+      border-radius: 16px;
+      background: var(--surface-1);
+      border: 1px solid var(--line);
+    }
+    .s-approve .three .item .k {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .s-approve .three .item .v {
+      font-size: 17px; color: var(--ink-0); line-height: 1.45; font-weight: 500;
+    }
+
+    /* ============================================================
+       SLIDE 5 — Knowledge Cards
+       ============================================================ */
+    .s-cards .body { gap: 0; }
+    .s-cards h1.head { margin-top: 28px; font-size: 84px; }
+    .s-cards h1.head u {
+      box-shadow: inset 0 -22px 0 0 color-mix(in oklch, var(--accent-warm), transparent 70%);
+    }
+    .s-cards .lede {
+      margin-top: 30px; font-size: 22px; color: var(--ink-1); line-height: 1.6; max-width: 850px;
+    }
+    .s-cards .lede b { color: var(--ink-0); font-weight: 600; }
+    .s-cards .lede em { font-style: normal; color: var(--accent-warm); font-weight: 600; }
+
+    .review-card {
+      margin-top: 48px;
+      padding: 32px 36px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, var(--surface-1) 0%, var(--surface-2) 100%);
+      border: 1px solid var(--line);
+    }
+    .review-card .head {
+      display: flex; align-items: center; gap: 18px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 26px;
+    }
+    .review-card .head .back {
+      font-family: var(--font-mono); font-size: 22px; color: var(--ink-2);
+      width: 36px; height: 36px; display: grid; place-items: center;
+      border-radius: 8px; border: 1px solid var(--line);
+    }
+    .review-card .head .progress {
+      font-family: var(--font-mono); font-size: 16px; color: var(--ink-1);
+      letter-spacing: 0.06em;
+    }
+    .review-card .head .diff {
+      margin-left: auto;
+      padding: 6px 14px; border-radius: 999px;
+      font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      background: color-mix(in oklch, var(--accent-warm), transparent 82%);
+      color: var(--accent-warm);
+      border: 1px solid color-mix(in oklch, var(--accent-warm), transparent 55%);
+    }
+    .review-card .dots {
+      display: flex; gap: 8px; margin-bottom: 24px;
+    }
+    .review-card .dots .d {
+      width: 32px; height: 6px; border-radius: 3px;
+      background: var(--line);
+    }
+    .review-card .dots .d.done { background: var(--accent-sage); }
+    .review-card .dots .d.cur { background: var(--accent); }
+    .review-card .q {
+      font-size: 28px; font-weight: 600; color: var(--ink-0);
+      line-height: 1.45; margin-bottom: 22px;
+      letter-spacing: -0.005em;
+    }
+    .review-card .q code {
+      font-family: var(--font-mono); font-size: 23px; color: var(--accent);
+      background: color-mix(in oklch, var(--accent), transparent 88%);
+      padding: 2px 8px; border-radius: 6px;
+    }
+    .review-card .src-line {
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--font-mono); font-size: 13px;
+      color: var(--ink-2); margin-bottom: 18px;
+    }
+    .review-card .src-line .tag {
+      padding: 3px 8px; border-radius: 4px;
+      background: var(--surface-3); color: var(--ink-1);
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      font-weight: 600;
+    }
+    .review-card .opts { display: flex; flex-direction: column; gap: 10px; }
+    .review-card .opt {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: var(--inner-well);
+      border: 1px solid var(--line-2);
+      font-size: 17px; color: var(--ink-1); line-height: 1.4;
+    }
+    .review-card .opt.correct {
+      background: color-mix(in oklch, var(--accent-sage), transparent 86%);
+      border-color: color-mix(in oklch, var(--accent-sage), transparent 50%);
+      color: var(--ink-0);
+    }
+    .review-card .opt .key {
+      width: 32px; height: 32px;
+      display: grid; place-items: center;
+      border-radius: 8px;
+      font-family: var(--font-mono); font-weight: 700; font-size: 14px;
+      background: var(--surface-3); color: var(--ink-1);
+      flex-shrink: 0;
+    }
+    .review-card .opt.correct .key { background: var(--accent-sage); color: oklch(15% 0.04 150); }
+
+    .s-cards .feature-strip {
+      margin-top: auto;
+      padding-top: 36px;
+      display: flex; flex-wrap: wrap; gap: 10px;
+    }
+    .s-cards .privacy-line {
+      margin-top: 24px;
+      padding: 18px 22px;
+      border-radius: 14px;
+      background: var(--surface-1);
+      border: 1px solid var(--line);
+      font-family: var(--font-mono); font-size: 15px;
+      color: var(--ink-1); line-height: 1.5;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .s-cards .privacy-line .lock {
+      font-size: 22px; color: var(--accent-sage);
+    }
+    .s-cards .privacy-line b { color: var(--ink-0); font-weight: 600; }
+
+    /* ============================================================
+       SLIDE 6 — Edge peek
+       ============================================================ */
+    .s-edge .body { gap: 0; }
+    .s-edge h1.head { margin-top: 28px; font-size: 80px; }
+    .s-edge .lede { margin-top: 30px; font-size: 24px; color: var(--ink-1); line-height: 1.6; max-width: 820px; }
+
+    /* ────────────────────────────────────────────────
+       Edge peek scene — single screen with the right
+       edge showing a tucked bubble (12 px nub + 4 px
+       context strip), exact proportions from real app:
+         capsule 124 × 42, PEEK_VISIBLE_PX = 12,
+         peek-context 4 px wide × 61.8 % long.
+       Scaled 2× here so it reads on a 1080 wide card.
+       ──────────────────────────────────────────────── */
+    .screen {
+      margin-top: 56px;
+      flex: 1; min-height: 0;
+      position: relative;
+      border-radius: 24px;
+      background:
+        radial-gradient(ellipse 70% 60% at 30% 35%, oklch(16% 0.014 270) 0%, var(--inner-well) 80%);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .screen .screen-label {
+      position: absolute; top: 22px; left: 28px;
+      font-family: var(--font-mono); font-size: 13px;
+      color: var(--ink-3); letter-spacing: 0.16em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .screen .screen-label::before {
+      content: ""; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent-rose); opacity: 0.6;
+      box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.06);
+    }
+    /* Faux code lines — gives the "this is your work area" reading */
+    .screen .code-bg {
+      position: absolute; inset: 70px 180px 70px 50px;
+      display: flex; flex-direction: column; gap: 16px;
+      justify-content: center;
+      opacity: 0.6;
+    }
+    .screen .code-bg .ln {
+      height: 11px; border-radius: 4px;
+      background: oklch(100% 0 0 / 0.05);
+    }
+    .screen .code-bg .ln.short { width: 28%; }
+    .screen .code-bg .ln.med { width: 52%; }
+    .screen .code-bg .ln.long { width: 72%; }
+    .screen .code-bg .ln.xlong { width: 86%; }
+    .screen .code-bg .ln.tag {
+      width: 14%;
+      background: color-mix(in oklch, var(--accent), transparent 78%);
+    }
+
+    /* Tucked pill — 248 × 84 (real proportions ×2),
+       only 24 px (PEEK ×2) visible inside the screen at the right edge. */
+    .screen .tucked {
+      position: absolute;
+      top: 50%; right: 0;
+      transform: translate(calc(100% - 24px), -50%);
+      width: 248px; height: 84px;
+      border-radius: 999px;
+      background: var(--surface-1);
+      box-shadow:
+        0 24px 60px -22px oklch(0% 0 0 / 0.7),
+        0 1px 0 inset oklch(100% 0 0 / 0.08),
+        0 -1px 0 inset oklch(0% 0 0 / 0.4),
+        0 0 0 1px inset oklch(100% 0 0 / 0.05);
+    }
+    /* The 4 px context strip — 61.8% as long as the capsule height (≈52 px). */
+    .screen .tucked .strip {
+      position: absolute;
+      top: 50%; left: 10px;
+      transform: translateY(-50%);
+      width: 6px; height: 52px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow:
+        0 0 16px var(--accent),
+        0 0 32px color-mix(in oklch, var(--accent), transparent 60%);
+      animation: stripPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes stripPulse {
+      0%, 100% { height: 36px; opacity: 0.8; }
+      50%      { height: 52px; opacity: 1; }
+    }
+
+    /* Annotation arrow + label, pointing at the strip from the left */
+    .screen .annot {
+      position: absolute;
+      top: calc(50% + 60px);
+      right: 40px;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+      max-width: 280px; text-align: right;
+    }
+    .screen .annot .lead {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--accent); letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+    .screen .annot .desc {
+      font-size: 14px; color: var(--ink-2);
+      line-height: 1.5;
+    }
+
+    /* Small "before" inset showing the full bubble for comparison */
+    .screen .full-state {
+      position: absolute;
+      bottom: 28px; left: 28px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .screen .full-state .label-strip {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--ink-3); letter-spacing: 0.12em;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .screen .full-state .label-strip b {
+      color: var(--ink-1); font-weight: 600; font-size: 13px;
+    }
+    .screen .full-state .arrow-curve {
+      font-family: var(--font-mono); font-size: 18px;
+      color: var(--ink-3);
+    }
+    .screen .full-state .mini {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 7px 14px 7px 8px;
+      border-radius: 999px;
+      background: var(--surface-1);
+      box-shadow:
+        0 8px 20px -10px oklch(0% 0 0 / 0.5),
+        0 0 0 1px inset oklch(100% 0 0 / 0.05);
+    }
+    .screen .full-state .mini .mini-orb {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: conic-gradient(from 220deg, var(--accent) 70%, oklch(100% 0 0 / 0.06) 70%);
+      position: relative;
+    }
+    .screen .full-state .mini .mini-orb::before {
+      content: ""; position: absolute; inset: 3px; border-radius: 50%;
+      background: var(--surface-1);
+    }
+    .screen .full-state .mini .mini-label {
+      font-family: var(--font-en); font-size: 13px; color: var(--ink-1);
+      white-space: nowrap;
+    }
+
+    .s-edge .four {
+      margin-top: 36px;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    }
+    .s-edge .four .item {
+      padding: 18px 22px;
+      border-radius: 14px;
+      background: var(--surface-1);
+      border: 1px solid var(--line);
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .s-edge .four .item .glyph {
+      width: 36px; height: 36px;
+      display: grid; place-items: center;
+      border-radius: 10px;
+      background: color-mix(in oklch, var(--accent), transparent 84%);
+      color: var(--accent);
+      font-family: var(--font-mono); font-weight: 700; font-size: 16px;
+      flex-shrink: 0;
+    }
+    .s-edge .four .item .body-text { padding-top: 2px; }
+    .s-edge .four .item b { display: block; font-size: 17px; color: var(--ink-0); margin-bottom: 4px; }
+    .s-edge .four .item p { font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+
+    /* ============================================================
+       SLIDE 7 — Themes + Privacy
+       ============================================================ */
+    .s-themes .body { gap: 0; }
+    .s-themes h1.head { margin-top: 28px; font-size: 76px; }
+    .s-themes .lede { margin-top: 30px; font-size: 22px; color: var(--ink-1); line-height: 1.6; max-width: 820px; }
+
+    .theme-grid {
+      margin-top: 48px;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;
+    }
+    .theme-cell {
+      padding: 28px 30px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      position: relative; overflow: hidden;
+      min-height: 184px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .theme-cell .swatch {
+      position: absolute; right: -40px; bottom: -40px;
+      width: 200px; height: 200px; border-radius: 50%;
+      filter: blur(2px);
+    }
+    .theme-cell .name {
+      font-size: 26px; font-weight: 700; color: var(--ink-0);
+      letter-spacing: -0.005em;
+    }
+    .theme-cell .en {
+      font-family: var(--font-en); font-size: 15px; font-weight: 500;
+      color: var(--ink-2); letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+    .theme-cell .meta {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto;
+    }
+    .theme-cell .chip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-family: var(--font-mono); font-size: 11.5px;
+      letter-spacing: 0.06em;
+      background: oklch(100% 0 0 / 0.06);
+      color: var(--ink-1);
+      border: 1px solid var(--line);
+    }
+    .theme-cell.midnight { background: oklch(13% 0.012 270); }
+    .theme-cell.midnight .swatch { background: oklch(74% 0.07 195); }
+    .theme-cell.amber { background: oklch(15% 0.014 50); }
+    .theme-cell.amber .swatch { background: oklch(78% 0.10 65); }
+    .theme-cell.paper { background: oklch(99% 0.004 95); border-color: oklch(20% 0.010 270 / 0.12); }
+    .theme-cell.paper .name { color: oklch(19% 0.018 270); }
+    .theme-cell.paper .en { color: oklch(45% 0.018 260); }
+    .theme-cell.paper .swatch { background: oklch(52% 0.10 200); }
+    .theme-cell.paper .chip {
+      background: oklch(20% 0.010 270 / 0.06);
+      color: oklch(35% 0.018 260);
+      border-color: oklch(20% 0.010 270 / 0.12);
+    }
+    .theme-cell.aurora { background: oklch(14% 0.026 280); }
+    .theme-cell.aurora .swatch { background: oklch(76% 0.10 290); }
+
+    .s-themes .privacy-grid {
+      margin-top: 38px;
+      padding: 28px 32px;
+      border-radius: 20px;
+      background: var(--surface-1);
+      border: 1px solid var(--line);
+    }
+    .s-themes .privacy-head {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+      padding-bottom: 14px; border-bottom: 1px solid var(--line-2);
+    }
+    .s-themes .privacy-head .lock {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: color-mix(in oklch, var(--accent-sage), transparent 82%);
+      color: var(--accent-sage);
+      display: grid; place-items: center; font-weight: 700; font-size: 18px;
+      border: 1px solid color-mix(in oklch, var(--accent-sage), transparent 50%);
+      font-family: var(--font-mono);
+    }
+    .s-themes .privacy-head h3 {
+      font-size: 22px; font-weight: 700; color: var(--ink-0);
+    }
+    .s-themes .privacy-head .sub {
+      margin-left: auto;
+      font-family: var(--font-mono); font-size: 13px; color: var(--ink-2);
+      letter-spacing: 0.06em;
+    }
+    .s-themes .privacy-list {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    }
+    .s-themes .privacy-list .row {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 16px; color: var(--ink-1); line-height: 1.5;
+    }
+    .s-themes .privacy-list .row .check {
+      color: var(--accent-sage); font-weight: 700;
+      font-size: 18px; flex-shrink: 0;
+      font-family: var(--font-mono);
+    }
+    .s-themes .privacy-list .row b { color: var(--ink-0); font-weight: 600; }
+    .s-themes .privacy-list .row code {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--accent);
+      background: color-mix(in oklch, var(--accent), transparent 88%);
+      padding: 1px 6px; border-radius: 4px;
+    }
+
+    /* ============================================================
+       SLIDE 8 — END · GitHub search
+       ============================================================ */
+    .s-end .body {
+      gap: 0; padding: 110px 88px 88px;
+      display: flex; flex-direction: column;
+      align-items: flex-start;
+    }
+    .s-end h1.head {
+      margin-top: 56px;
+      font-size: 156px; font-weight: 800;
+      line-height: 0.96; letter-spacing: -0.025em;
+    }
+    .s-end h1.head em {
+      font-style: normal;
+      background: linear-gradient(120deg, var(--accent) 0%, var(--accent-warm) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .s-end .search-bar {
+      margin-top: 56px;
+      width: 100%;
+      padding: 26px 32px;
+      border-radius: 18px;
+      background: var(--inner-well);
+      border: 1px solid var(--line);
+      display: flex; align-items: center; gap: 22px;
+      box-shadow: 0 24px 60px -22px oklch(0% 0 0 / 0.5);
+    }
+    .s-end .search-bar .gh-mark {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: oklch(98% 0 0);
+      color: oklch(13% 0 0);
+      display: grid; place-items: center;
+      font-family: var(--font-en); font-weight: 700; font-size: 28px;
+      flex-shrink: 0;
+      letter-spacing: -0.04em;
+    }
+    .s-end .search-bar .q {
+      flex: 1;
+      font-family: var(--font-mono); font-size: 28px;
+      color: var(--ink-0); font-weight: 600;
+      letter-spacing: 0.005em;
+    }
+    .s-end .search-bar .q .slash {
+      color: var(--ink-3); margin-right: 12px;
+    }
+    .s-end .search-bar .return-key {
+      font-family: var(--font-mono); font-size: 13px;
+      color: var(--ink-2); letter-spacing: 0.08em;
+      padding: 8px 14px; border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+    }
+
+    .s-end .recursion {
+      margin-top: auto;
+      padding: 32px 0 0;
+      border-top: 1px solid var(--line);
+      font-size: 22px; color: var(--ink-1); line-height: 1.55;
+    }
+    .s-end .recursion b { color: var(--ink-0); font-weight: 600; }
+    .s-end .recursion em {
+      color: var(--accent-warm);
+      font-style: normal; font-weight: 600;
+    }
+    .s-end .meta-row {
+      margin-top: 22px;
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong>Vibedog-for-agents · 小红书图文 8 张连图</strong>
+    <span class="sep"></span>
+    <span>每张 1080 × 1440（3:4 竖图）</span>
+    <span class="sep"></span>
+    <span class="hint">点任一卡片 → 居中放大；按 <kbd>Esc</kbd> 关闭。用 Snipaste / 微信截图 / Edge 内置截图 沿卡片边缘截取即可。</span>
+  </div>
+
+  <main class="deck" id="deck">
+
+    <!-- ════════════════════════════════════════════════
+         SLIDE 1 — COVER
+         ════════════════════════════════════════════════ -->
+    <div class="slot">
+      <div class="card s-cover" data-n="1">
+        <div class="ambient"></div>
+        <div class="grid"></div>
+        <div class="frame-corner tl"></div>
+        <div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div>
+        <div class="frame-corner br"></div>
+        <div class="badge-num"><b>01</b> / 08</div>
+
+        <div class="body">
+          <div class="lockup">
+            <div class="mark"></div>
+            <div class="name">
+              <b>Vibedog-for-agents</b>
+              <span>desktop companion · v1.2</span>
+            </div>
+          </div>
+
+          <div class="hook-tags">
+            <span class="pill">Claude Code 用户</span>
+            <span class="pill warm">写给开发者的小工具</span>
+          </div>
+
+          <h1 class="head">
+            给 <em>Claude&nbsp;Code</em><br>
+            配个<u>桌面搭子</u>
+          </h1>
+
+          <p class="punch">
+            一个浮在屏幕角落的小气泡 ——<br>
+            <b>替你管权限</b>，<b>替你看状态</b>，<br>
+            还把昨天的会话变成明天的<b>知识卡片</b>。
+          </p>
+
+          <div class="show">
+            <div class="stack">
+              <div class="bubble">
+                <span class="orb"><span class="glyph">⚙️</span></span>
+                <span class="label">Running tool</span>
+              </div>
+              <div class="bubble warm s2">
+                <span class="orb"><span class="glyph">🟡</span></span>
+                <span class="label">Awaiting approval</span>
+              </div>
+              <div class="bubble sage s3">
+                <span class="orb"><span class="glyph">✅</span></span>
+                <span class="label">Done</span>
+              </div>
+            </div>
+            <div class="feet">
+              <b>WINDOWS · 开源</b>
+              <div>npm · electron · node 20+</div>
+              <div style="color: var(--accent);">向右滑 →</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="brand-tag"><span class="dot"></span>Vibedog-for-agents · 01</div>
+      </div>
+      <div class="slot-meta">slide <b>01</b> · cover · 1080 × 1440</div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         SLIDE 2 — PAIN POINTS
+         ════════════════════════════════════════════════ -->
+    <div class="slot">
+      <div class="card s-pain" data-n="2">
+        <div class="ambient"></div>
+        <div class="grid"></div>
+        <div class="badge-num"><b>02</b> / 08</div>
+
+        <div class="body">
+          <div class="eyebrow"><span class="num">02</span>WHY · 痛点</div>
+          <h1 class="head">用原生 Claude&nbsp;Code，<br>这 <em>3 件事</em>真的烦</h1>
+
+          <div class="deck-pain">
+            <div class="pain-row">
+              <div class="n">01</div>
+              <div class="text">
+                <div class="head">权限弹窗一来，焦点立刻被抢走</div>
+                <div class="desc">正在打的字飞了，光标跳到终端，回车一不小心就 Approve 了不该 Approve 的东西。</div>
+              </div>
+              <div class="arrow">→<b>气泡里点</b></div>
+            </div>
+
+            <div class="pain-row">
+              <div class="n">02</div>
+              <div class="text">
+                <div class="head">不切窗口，根本不知道它在干嘛</div>
+                <div class="desc">是在思考？在跑工具？还是已经卡住了？只能 Alt+Tab 回去看一眼，然后又被打断。</div>
+              </div>
+              <div class="arrow">→<b>状态环挂边</b></div>
+            </div>
+
+            <div class="pain-row">
+              <div class="n">03</div>
+              <div class="text">
+                <div class="head">灵光一现的解释，关掉对话就蒸发了</div>
+                <div class="desc">"原来 Electron 在 Win11 上要这样设" —— 关了 session，第二天忘得一干二净。</div>
+              </div>
+              <div class="arrow">→<b>变成卡片</b></div>
+            </div>
+          </div>
+
+          <div class="hand-off">
+            <div class="left"><b>Vibedog-for-agents</b> 把这 3 件事 一次性解决</div>
+            <div class="arrow">SWIPE FOR HOW →</div>
+          </div>
+        </div>
+
+        <div class="brand-tag"><span class="dot"></span>Vibedog-for-agents · 痛点</div>
+      </div>
+      <div class="slot-meta">slide <b>02</b> · why · 痛点</div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         SLIDE 3 — COMPACT / STATUS ORB
+         ════════════════════════════════════════════════ -->
+    <div class="slot">
+      <div class="card s-compact" data-n="3">
+        <div class="ambient"></div>
+        <div class="grid"></div>
+        <div class="badge-num"><b>03</b> / 08</div>
+
+        <div class="body">
+          <div class="eyebrow"><span class="num">01 模式</span>COMPACT</div>
+          <h1 class="head">扫一眼<br>就<em>知道 Claude</em> 在干嘛</h1>
+          <p class="lede">气泡静止时是一颗状态环 + 一行字。<b>圆环就是 context 的实时进度条</b> —— 每收一条消息就刷一下，0–100% 顺时针自然涨。</p>
+
+          <div class="stage">
+            <div class="row">
+              <div class="bubble">
+                <span class="orb" style="--p: 30%;"><span class="glyph">🤔</span></span>
+                <span class="label">Thinking</span>
+              </div>
+              <div class="legend"><b>30% context</b>对话刚开始</div>
+            </div>
+            <div class="row">
+              <div class="bubble">
+                <span class="orb" style="--p: 70%;"><span class="glyph">⚙️</span></span>
+                <span class="label">Running tool</span>
+              </div>
+              <div class="legend"><b>70% context</b>实时刷，不用估</div>
+            </div>
+            <div class="row">
+              <div class="bubble sage">
+                <span class="orb" style="--p: 95%;"><span class="glyph">✅</span></span>
+                <span class="label">Done</span>
+              </div>
+              <div class="legend"><b>95% context</b>该开新会话了</div>
+            </div>
+          </div>
+
+          <div class="feature-rows">
+            <div class="frow">
+              <div class="icon">9</div>
+              <div class="text">
+                <b>9 种状态一眼分辨</b>
+                <p>idle · thinking · running_tool · waiting · waiting_approval · waiting_answer · done · failed · blocked</p>
+              </div>
+            </div>
+            <div class="frow">
+              <div class="icon">4px</div>
+              <div class="text">
+                <b>贴边后还有一条 4px 光带</b>
+                <p>是同一个 context 进度的线性版本 —— 气泡藏起来了，进度照样实时刷。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="brand-tag"><span class="dot"></span>compact · status orb</div>
+        <div class="footer-meta">理论上不用再 Alt+Tab</div>
+      </div>
+      <div class="slot-meta">slide <b>03</b> · compact mode · 状态环</div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         SLIDE 4 — APPROVAL
+         ════════════════════════════════════════════════ -->
+    <div class="slot">
+      <div class="card s-approve" data-n="4">
+        <div class="ambient"></div>
+        <div class="grid"></div>
+        <div class="badge-num"><b>04</b> / 08</div>
+
+        <div class="body">
+          <div class="eyebrow"><span class="num">02 模式</span>APPROVAL</div>
+          <h1 class="head">审批<em>从气泡走</em>，<br>焦点不离开编辑器</h1>
+          <p class="lede">每个权限请求自动 morph 成审批卡。<b>风险等级</b> 自动识别，决定回去给 Claude，焦点留在你的 VS Code / 终端 —— <b>不抢光标，不抢键盘</b>。</p>
+
+          <div class="approve-card">
+            <div class="head-row">
+              <div>
+                <div class="eb">approval · pretooluse</div>
+                <h3>Bash</h3>
+              </div>
+              <div class="risk">low risk</div>
+            </div>
+            <div class="cmd"><span class="pre">$</span> npm run smoke</div>
+            <dl class="meta">
+              <dt>cwd</dt><dd>~\claude-code-companion</dd>
+              <dt>reason</dt><dd>Verify daemon boots after the latest hook change.</dd>
+              <dt>session</dt><dd>5e9c…<span style="color:var(--ink-3)">aa2f</span></dd>
+            </dl>
+            <div class="actions">
+              <button class="btn deny">Deny</button>
+              <button class="btn approve">Approve</button>
+            </div>
+          </div>
+
+          <div class="three">
+            <div class="item">
+              <div class="k">RISK</div>
+              <div class="v">基于命令模式自动 low / medium / high 分级</div>
+            </div>
+            <div class="item">
+              <div class="k">ANSWER</div>
+              <div class="v">问答类请求支持自由文本回复</div>
+            </div>
+            <div class="item">
+              <div class="k">TIMEOUT</div>
+              <div class="v">55s 内必决定，超时干净 deny</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="brand-tag"><span class="dot"></span>approval flow</div>
+        <div class="footer-meta">PreToolUse · PermissionRequest · Event</div>
+      </div>
+      <div class="slot-meta">slide <b>04</b> · approval · 不抢焦点</div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         SLIDE 5 — KNOWLEDGE CARDS (killer feature)
+         ════════════════════════════════════════════════ -->
+    <div class="slot">
+      <div class="card s-cards" data-n="5">
+        <div class="ambient"></div>
+        <div class="grid"></div>
+        <div class="badge-num"><b>05</b> / 08</div>
+
+        <div class="body">
+          <div class="eyebrow" style="color: var(--accent-warm);"><span class="num" style="color: var(--ink-2);">03 模式</span>📚 KNOWLEDGE CARDS</div>
+          <h1 class="head">昨天的会话，<br><u>明天考你一遍</u></h1>
+          <p class="lede">每天<em>自动从 Claude Code 的 transcript 生成卡片</em>，每张都引用真实会话原文行 —— <b>对不上号的卡片直接丢掉，绝不瞎编。</b></p>
+
+          <div class="review-card">
+            <div class="head">
+              <div class="back">←</div>
+              <div class="progress">Card 3 / 5</div>
+              <div class="diff">medium</div>
+            </div>
+            <div class="dots">
+              <div class="d done"></div>
+              <div class="d done"></div>
+              <div class="d cur"></div>
+              <div class="d"></div>
+              <div class="d"></div>
+            </div>
+            <div class="q">气泡的 BrowserWindow 为什么要设 <code>thickFrame: false</code>？</div>
+            <div class="src-line">
+              <span class="tag">source</span>
+              <span>session 2026-05-03 · main.js:962</span>
+            </div>
+            <div class="opts">
+              <div class="opt"><span class="key">A</span><span>Mac-only flag，对 Windows 没影响</span></div>
+              <div class="opt correct"><span class="key">B</span><span>Win11 会给透明 frameless 窗口画一圈 1px 边框</span></div>
+              <div class="opt"><span class="key">C</span><span>能省 ~2 MB GPU 内存</span></div>
+            </div>
+          </div>
+
+          <div class="feature-strip">
+            <span class="pill warm">错题本</span>
+            <span class="pill warm">12 天 streak</span>
+            <span class="pill warm">3 档难度</span>
+            <span class="pill warm">中英双语</span>
+            <span class="pill warm">导出 Markdown</span>
+            <span class="pill warm">热力图选 session</span>
+          </div>
+
+          <div class="privacy-line">
+            <span class="lock">🔒</span>
+            <div><b>本地生成</b> · 复用你已经认证的 <code>claude -p</code> · 发送前自动脱敏 .env / token / 用户名</div>
+          </div>
+        </div>
+
+        <div class="brand-tag"><span class="dot"></span>cards · stage 1.5</div>
+        <div class="footer-meta">strict source verification</div>
+      </div>
+      <div class="slot-meta">slide <b>05</b> · 知识卡片 · 杀手功能</div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         SLIDE 6 — EDGE PEEK
+         ════════════════════════════════════════════════ -->
+    <div class="slot">
+      <div class="card s-edge" data-n="6">
+        <div class="ambient"></div>
+        <div class="grid"></div>
+        <div class="badge-num"><b>06</b> / 08</div>
+
+        <div class="body">
+          <div class="eyebrow"><span class="num">行为</span>EDGE PEEK</div>
+          <h1 class="head">不打扰你，<br>但要看一眼 <em>随时能看</em></h1>
+          <p class="lede">拖到屏幕任意一边都能贴住。闲置自动藏到边后 —— 只露一条 4px 光带。鼠标靠近，滑回来。</p>
+
+          <div class="screen">
+            <div class="screen-label">YOUR SCREEN · 右边</div>
+
+            <div class="code-bg">
+              <div class="ln tag"></div>
+              <div class="ln long"></div>
+              <div class="ln med"></div>
+              <div class="ln xlong"></div>
+              <div class="ln short"></div>
+              <div class="ln long"></div>
+              <div class="ln med"></div>
+            </div>
+
+            <!-- The tucked pill: 248×84 (project's 124×42 ×2),
+                 transformed off-screen so only 24 px (PEEK ×2) remains visible. -->
+            <div class="tucked">
+              <div class="strip"></div>
+            </div>
+
+            <!-- Annotation pointing at the visible strip -->
+            <div class="annot">
+              <span class="lead">↗ 这一条 4px 光带</span>
+              <span class="desc">是 context 进度的实时投影 ——<br>气泡藏起来了，进度照样在涨</span>
+            </div>
+
+            <!-- "Before" comparison: full bubble visible -->
+            <div class="full-state">
+              <div class="label-strip">
+                <b>鼠标靠近 →</b>
+                <span>气泡滑回来</span>
+              </div>
+              <span class="arrow-curve">↻</span>
+              <div class="mini">
+                <span class="mini-orb"></span>
+                <span class="mini-label">Running tool</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="four">
+            <div class="item">
+              <div class="glyph">⇄</div>
+              <div class="body-text">
+                <b>四边都能停靠</b>
+                <p>左 / 右 / 上 / 下 自动吸附 8px 内边距</p>
+              </div>
+            </div>
+            <div class="item">
+              <div class="glyph">−</div>
+              <div class="body-text">
+                <b>闲置自动 tuck</b>
+                <p>滑出屏幕只剩 12px 露头</p>
+              </div>
+            </div>
+            <div class="item">
+              <div class="glyph">~</div>
+              <div class="body-text">
+                <b>液滴拉伸动画</b>
+                <p>cubic-bezier(.34, 1.56, .64, 1) 同步过冲</p>
+              </div>
+            </div>
+            <div class="item">
+              <div class="glyph">⏻</div>
+              <div class="body-text">
+                <b>一键 kill switch</b>
+                <p>气泡上的 ⏻ 按钮，所有 hook 立刻 noop</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="brand-tag"><span class="dot"></span>edge · peek</div>
+      </div>
+      <div class="slot-meta">slide <b>06</b> · 边缘 peek</div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         SLIDE 7 — THEMES + PRIVACY
+         ════════════════════════════════════════════════ -->
+    <div class="slot">
+      <div class="card s-themes" data-n="7">
+        <div class="ambient"></div>
+        <div class="grid"></div>
+        <div class="badge-num"><b>07</b> / 08</div>
+
+        <div class="body">
+          <div class="eyebrow"><span class="num">主题 + 隐私</span>THEMES · LOCAL-FIRST</div>
+          <h1 class="head">四套主题<br>+ 完全<em>本地</em></h1>
+          <p class="lede">每套主题 WCAG-AA 对比度过线。Approve 永远是鼠尾草绿，Deny 永远是玫瑰红 —— 切主题不会切语义色。</p>
+
+          <div class="theme-grid">
+            <div class="theme-cell midnight">
+              <div>
+                <div class="name">深海青夜</div>
+                <div class="en">Midnight Teal</div>
+              </div>
+              <div class="meta">
+                <span class="chip">默认</span>
+                <span class="chip">暗色</span>
+                <span class="chip">teal</span>
+              </div>
+              <div class="swatch"></div>
+            </div>
+            <div class="theme-cell amber">
+              <div>
+                <div class="name">暖夜炉火</div>
+                <div class="en">Amber Hearth</div>
+              </div>
+              <div class="meta">
+                <span class="chip">暗色</span>
+                <span class="chip">琥珀</span>
+                <span class="chip">日落后</span>
+              </div>
+              <div class="swatch"></div>
+            </div>
+            <div class="theme-cell paper">
+              <div>
+                <div class="name">晨纸轻亮</div>
+                <div class="en">Paper Light</div>
+              </div>
+              <div class="meta">
+                <span class="chip">亮色</span>
+                <span class="chip">白底</span>
+                <span class="chip">白天</span>
+              </div>
+              <div class="swatch"></div>
+            </div>
+            <div class="theme-cell aurora">
+              <div>
+                <div class="name">极光紫夜</div>
+                <div class="en">Aurora Indigo</div>
+              </div>
+              <div class="meta">
+                <span class="chip">暗色</span>
+                <span class="chip">薰衣草</span>
+                <span class="chip">电影感</span>
+              </div>
+              <div class="swatch"></div>
+            </div>
+          </div>
+
+          <div class="privacy-grid">
+            <div class="privacy-head">
+              <div class="lock">L</div>
+              <h3>本地优先 · 隐私</h3>
+              <span class="sub">127.0.0.1 only · no cloud</span>
+            </div>
+            <div class="privacy-list">
+              <div class="row"><span class="check">✓</span><span><b>本地 daemon</b> 跑在 <code>127.0.0.1:4317</code></span></div>
+              <div class="row"><span class="check">✓</span><span><b>不直连</b> Anthropic API · 复用 <code>claude -p</code></span></div>
+              <div class="row"><span class="check">✓</span><span><b>token / .env</b> 发送前自动脱敏</span></div>
+              <div class="row"><span class="check">✓</span><span><b>批准从不落盘</b> · 进程崩了不会留</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="brand-tag"><span class="dot"></span>themes · privacy</div>
+      </div>
+      <div class="slot-meta">slide <b>07</b> · 主题 + 隐私</div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         SLIDE 8 — END · GitHub search
+         ════════════════════════════════════════════════ -->
+    <div class="slot">
+      <div class="card s-end" data-n="8">
+        <div class="ambient"></div>
+        <div class="grid"></div>
+        <div class="badge-num"><b>08</b> / 08</div>
+
+        <div class="body">
+          <div class="eyebrow"><span class="num">end</span>FIND IT</div>
+
+          <h1 class="head">
+            去 <em>GitHub</em><br>
+            搜 Vibedog-for-agents
+          </h1>
+
+          <div class="search-bar">
+            <div class="gh-mark">G</div>
+            <div class="q"><span class="slash">/</span>Vibedog-for-agents</div>
+            <div class="return-key">⏎</div>
+          </div>
+
+          <div class="recursion">
+            整个 <b>Vibedog-for-agents</b> 就是用 <b>Claude Code</b> 自己写出来的 ——<br>
+            <em>这个递归就是核心 demo</em>。
+          </div>
+
+          <div class="meta-row">
+            <span class="pill">开源</span>
+            <span class="pill ghost">Windows 优先</span>
+            <span class="pill ghost">MIT</span>
+          </div>
+        </div>
+
+        <div class="brand-tag"><span class="dot"></span>Vibedog-for-agents · find it</div>
+      </div>
+      <div class="slot-meta">slide <b>08</b> · 去 GitHub 搜</div>
+    </div>
+
+  </main>
+
+  <script>
+    // Click any card → focus it (fixed center). Esc to close.
+    const cards = document.querySelectorAll('.card');
+    let focusedEl = null;
+
+    function release() {
+      if (!focusedEl) return;
+      focusedEl.classList.remove('is-focused');
+      document.body.classList.remove('has-focused');
+      focusedEl = null;
+    }
+
+    cards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (focusedEl === card) {
+          release();
+          return;
+        }
+        release();
+        focusedEl = card;
+        card.classList.add('is-focused');
+        document.body.classList.add('has-focused');
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') release();
+    });
+  </script>
+</body>
+</html>

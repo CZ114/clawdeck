@@ -4,7 +4,7 @@
  * Hooked into electron-builder's `afterPack` lifecycle. Runs after
  * Electron + the app are packaged into dist/win-unpacked/ but before
  * the NSIS installer is built. Uses rcedit to write our logo into
- * vibelog.exe's Win32 icon resource so taskbar / start menu / desktop
+ * Vibedog-for-agents.exe's Win32 icon resource so taskbar / start menu / desktop
  * shortcuts pick it up.
  *
  * We do this ourselves (rather than letting electron-builder do it via
@@ -49,10 +49,10 @@ module.exports = async function afterPack(context) {
   await rcedit(exePath, {
     icon: ico,
     "version-string": {
-      ProductName: "vibelog",
-      FileDescription: "vibelog — background-watch your Claude Code agent + next-day review",
-      CompanyName: "vibelog",
-      LegalCopyright: "© 2026 vibelog",
+      ProductName: "Vibedog-for-agents",
+      FileDescription: "Vibedog-for-agents — background-watch your Claude Code agent + next-day review",
+      CompanyName: "Vibedog-for-agents",
+      LegalCopyright: "© 2026 Vibedog-for-agents",
     },
     "product-version": context.packager.appInfo.version,
     "file-version": context.packager.appInfo.version,

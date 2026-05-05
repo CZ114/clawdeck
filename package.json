@@ -1,13 +1,13 @@
 {
-  "name": "vibelog",
-  "version": "1.4.1",
+  "name": "vibedog-for-agents",
+  "version": "1.5.0",
   "private": true,
-  "description": "vibelog — background-watch your Claude Code agent, then review what it taught you the next day.",
+  "description": "Vibedog-for-agents — background-watch your Claude Code agent, then review what it taught you the next day.",
   "author": "CZ114",
-  "homepage": "https://github.com/CZ114/vibelog",
+  "homepage": "https://github.com/CZ114/Vibedog-for-agents",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CZ114/vibelog.git"
+    "url": "https://github.com/CZ114/Vibedog-for-agents.git"
   },
   "main": "packages/desktop/main.js",
   "scripts": {
@@ -28,9 +28,9 @@
     "node": ">=20"
   },
   "build": {
-    "appId": "io.vibelog.app",
-    "productName": "vibelog",
-    "copyright": "© 2026 vibelog",
+    "appId": "io.vibedog.app",
+    "productName": "Vibedog-for-agents",
+    "copyright": "© 2026 Vibedog-for-agents",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -66,8 +66,8 @@
       "runAfterFinish": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "vibelog",
-      "uninstallDisplayName": "vibelog",
+      "shortcutName": "Vibedog-for-agents",
+      "uninstallDisplayName": "Vibedog-for-agents",
       "artifactName": "${productName}-${version}.exe",
       "include": "build/installer.nsh"
     }

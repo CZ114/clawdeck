@@ -43,11 +43,11 @@ function desiredHookConfig(options = {}) {
   const installStatus = options.installStatus !== false;
   const installApproval = options.installApproval !== false;
   const eventHook = httpHook("event", 10);
-  const answerHook = httpHook("pre-tool-use", 60, "Waiting for vibelog answer");
+  const answerHook = httpHook("pre-tool-use", 60, "Waiting for Vibedog-for-agents answer");
   const permissionHook = httpHook(
     "permission-request",
     60,
-    "Waiting for vibelog approval"
+    "Waiting for Vibedog-for-agents approval"
   );
 
   const config = {};

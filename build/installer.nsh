@@ -3,17 +3,17 @@
 ; electron-builder picks this up via "build.nsis.include" in package.json.
 ; Only thing we need from NSIS is to clean Claude Code's hook config
 ; before our exe vanishes from disk — otherwise the user's
-; ~/.claude/settings.json keeps pointing at a vibelog.exe that no longer
+; ~/.claude/settings.json keeps pointing at a Vibedog-for-agents.exe that no longer
 ; exists, every Claude Code tool call hangs on the missing daemon, and
 ; the next reinstall has to find a way to repair the damage.
 ;
-; The macro runs while $INSTDIR\vibelog.exe is still present, but BEFORE
-; the file-deletion phase. ExecWait blocks until vibelog.exe exits so we
+; The macro runs while $INSTDIR\Vibedog-for-agents.exe is still present, but BEFORE
+; the file-deletion phase. ExecWait blocks until Vibedog-for-agents.exe exits so we
 ; don't race the uninstall step.
 
 !macro customUnInstall
   DetailPrint "Removing Claude Code hooks..."
-  ExecWait '"$INSTDIR\vibelog.exe" --uninstall-hooks' $0
+  ExecWait '"$INSTDIR\Vibedog-for-agents.exe" --uninstall-hooks' $0
   DetailPrint "Hook cleanup exit code: $0"
 !macroend
 
