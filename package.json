@@ -1,6 +1,6 @@
 {
   "name": "vibelog",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "vibelog — background-watch your Claude Code agent, then review what it taught you the next day.",
   "author": "CZ114",

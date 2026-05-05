@@ -16,6 +16,30 @@ function debugLog(msg) {
 }
 debugLog(`main.js boot — argv=${JSON.stringify(process.argv)}`);
 
+// Crash forensics — without these, the bubble silently disappears
+// after 10-30 minutes (Node 22's default for unhandledRejection is to
+// crash the process, but we never logged the stack). Catching all
+// four channels here means the next time the app dies we have a
+// breadcrumb in clawdeck-debug.log instead of dead silence.
+//
+// IMPORTANT: we LOG and KEEP RUNNING for unhandled rejections /
+// uncaught exceptions in steady state. Pre-Electron-load failures
+// (DPR=2 webm garbage, missing modules) still process.exit normally.
+process.on("uncaughtException", (err, origin) => {
+  debugLog(`uncaughtException at ${origin}: ${err && err.stack || err}`);
+});
+process.on("unhandledRejection", (reason) => {
+  debugLog(`unhandledRejection: ${reason && reason.stack || reason}`);
+});
+process.on("warning", (w) => {
+  // Node sometimes turns memory leaks into MaxListenersExceededWarning
+  // — capturing them here lets us spot leaks BEFORE they OOM the app.
+  debugLog(`warning: ${w.name}: ${w.message}`);
+});
+process.on("exit", (code) => {
+  debugLog(`process exit code=${code}`);
+});
+
 // CLI hook-management modes — handled BEFORE we touch Electron's app
 // shell, so the .exe can act as a tiny utility for the NSIS installer +
 // uninstaller without flashing a window. Each branch exits the process.
@@ -71,6 +95,19 @@ if (hasFlag("uninstall-hooks")) {
 }
 
 const { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage } = require("electron");
+
+// Electron-side crash forensics — companion to the Node-level handlers
+// above. These cover surfaces Node's process events miss: GPU process,
+// renderer process, utility / extension processes, generic child procs.
+app.on("render-process-gone", (_event, webContents, details) => {
+  debugLog(`render-process-gone: reason=${details.reason} exitCode=${details.exitCode}`);
+});
+app.on("child-process-gone", (_event, details) => {
+  debugLog(`child-process-gone: type=${details.type} reason=${details.reason} exitCode=${details.exitCode} name=${details.name || ""}`);
+});
+app.on("gpu-process-crashed", (_event, killed) => {
+  debugLog(`gpu-process-crashed killed=${killed}`);
+});
 
 // Same path the hook scripts check via shared/protocol.js#isCompanionDisabled.
 const COMPANION_DIR = path.join(os.homedir(), ".claude-companion");
