@@ -231,6 +231,14 @@ function composePrompt({ focus, difficulty, transcript, date, windowDays, cardCo
       `focusCoverage: 0. Do NOT invent content.`
     ].join("\n"),
     ``,
+    `STRING ESCAPING — these break JSON.parse and have crashed prior runs:`,
+    `- NEVER use raw " (ASCII 0x22) inside any string value for emphasis.`,
+    `- For Chinese emphasis use 「」 corner brackets, e.g. 消除了「本地脚本不存在」的问题.`,
+    `- For English emphasis use backticks or single quotes, e.g. 'this case' or \`this case\`.`,
+    `- If a literal " MUST appear in a value (rare — e.g. quoting a string`,
+    `  literal from the activity log), escape it as \\".`,
+    `- Newlines inside string values must be \\n, never raw line breaks.`,
+    ``,
     `OUTPUT FORMAT — RAW JSON ONLY, no markdown fence, no commentary, no leading thought:`,
     `{`,
     `  "abstract": "## Day title\\n\\n${tpl.abstractInstruction}",`,
@@ -462,7 +470,48 @@ function parseInnerCards(text) {
   if (firstBrace >= 0 && lastBrace > firstBrace) {
     body = body.slice(firstBrace, lastBrace + 1);
   }
-  return JSON.parse(body);
+
+  try {
+    return JSON.parse(body);
+  } catch (firstErr) {
+    // Salvage path — the most common breakage we see in zh-locale output
+    // is unescaped `"` used for emphasis inside Chinese string values
+    // (`从根本上消除了"X"的问题`). Detect any `"..."` span that's
+    // surrounded by CJK / Chinese punctuation on both sides AND contains
+    // CJK inside, then swap to 「...」 corner brackets and retry. This
+    // can't accidentally rewrite legit JSON structure because the
+    // look-behind / look-ahead require non-JSON-structural neighbours.
+    const repaired = repairUnescapedEmphasisQuotes(body);
+    if (repaired !== body) {
+      try {
+        return JSON.parse(repaired);
+      } catch (_secondErr) {
+        // Fall through — surface the original error since the salvage
+        // didn't help, telling us the breakage is something else.
+      }
+    }
+    throw firstErr;
+  }
+}
+
+// Replace `"X"` → `「X」` ONLY when:
+//  - X contains at least one CJK char (so we won't touch English strings)
+//  - the opening `"` is NOT preceded by a JSON structural char (`:`, `{`,
+//    `,`, `[`, whitespace, `\`) — which would mean it IS the opening
+//    quote of a key/value
+//  - the closing `"` is NOT followed by a JSON structural char (`:`, `,`,
+//    `}`, `]`, whitespace, end) — same reason for the closing quote
+// Anything not matching both fences stays as-is. Run multiple passes so
+// we catch nested cases on the same line.
+function repairUnescapedEmphasisQuotes(input) {
+  const re = /([一-鿿　-〿＀-￯])"([^"\\\n]{1,120}?[一-鿿][^"\\\n]{0,120}?)"(?=[一-鿿　-〿＀-￯])/g;
+  let prev = input;
+  for (let i = 0; i < 4; i += 1) {
+    const next = prev.replace(re, "$1「$2」");
+    if (next === prev) return next;
+    prev = next;
+  }
+  return prev;
 }
 
 // ============================================================
